@@ -1,0 +1,19 @@
+# dependencies
+node_modules
+
+# sst
+.sst
+.secrets
+
+# tmp files
+.#*
+
+# env
+.env*.local
+.env
+
+# opennext
+.open-next
+
+# misc
+.DS_Store

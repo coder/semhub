@@ -1,0 +1,24 @@
+{
+  "name": "@semhub/core",
+  "version": "0.0.0",
+  "scripts": {
+    "test": "sst shell vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    "./*": [
+      "./src/*/index.ts",
+      "./src/*.ts"
+    ]
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.33.0",
+    "drizzle-zod": "^0.5.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@tsconfig/node20": "20.1.4",
+    "drizzle-kit": "^0.24.2",
+    "vitest": "^2.1.3"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@semhub/scripts",
+  "version": "0.0.0",
+  "dependencies": {
+    "@semhub/core": "*"
+  },
+  "scripts": {
+    "shell": "sst shell tsx",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.2"
+  }
+}

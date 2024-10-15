@@ -1,0 +1,26 @@
+{
+  "name": "semhub",
+  "version": "0.0.0",
+  "main": "index.js",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "sst dev",
+    "typecheck": "bun --filter=* typecheck",
+    "deploy:prod": "sst deploy --stage prod",
+    "secret:load": "sst secret load .secrets",
+    "secret:load:prod": "sst secret load .secrets --stage prod",
+    "db": "sst shell drizzle-kit",
+    "db:generate": "sst shell drizzle-kit generate",
+    "db:migrate": "sst shell drizzle-kit migrate",
+    "db:push": "sst shell drizzle-kit push"
+  },
+  "devDependencies": {
+    "typescript": "5.6.2"
+  },
+  "dependencies": {
+    "@pulumi/pulumi": "^3.136.1",
+    "sst": "^3.2.26"
+  }
+}
