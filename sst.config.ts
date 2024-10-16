@@ -10,6 +10,7 @@ export default $config({
       providers: {
         supabase: "0.0.3",
         random: true,
+        aws: true,
       },
     };
   },

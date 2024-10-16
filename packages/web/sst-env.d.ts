@@ -9,8 +9,16 @@ declare module "sst" {
       "type": "sst.cloudflare.Worker"
       "url": string
     }
+    "Supabase": {
+      "databasePassword": string
+      "databaseUrl": string
+      "organizationId": string
+      "projectName": string
+      "region": string
+      "type": "sst.sst.Linkable"
+    }
     "Web": {
-      "type": "sst.cloudflare.StaticSite"
+      "type": "sst.aws.StaticSite"
       "url": string
     }
   }
