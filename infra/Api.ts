@@ -6,6 +6,8 @@ const hono = new sst.cloudflare.Worker("Hono", {
   link: [database],
 });
 
+export const apiUrl = hono.url;
+
 export const outputs = {
   hono: hono.url,
 };

@@ -5,23 +5,23 @@ import { Input } from "@/components/ui/input";
 
 export function Search() {
   return (
-    <div className="text-center mb-8">
-      <h1 className="text-6xl font-sans mb-4">
-        <span className="text-blue-500 font-semibold">S</span>
-        <span className="text-red-500 font-semibold">e</span>
-        <span className="text-yellow-500 font-semibold">m</span>
-        <span className="text-blue-500 font-semibold">H</span>
-        <span className="text-green-500 font-semibold">u</span>
-        <span className="text-red-500 font-semibold">b</span>
+    <div className="mb-8 text-center">
+      <h1 className="mb-4 font-sans text-6xl">
+        <span className="font-semibold text-blue-500">S</span>
+        <span className="font-semibold text-red-500">e</span>
+        <span className="font-semibold text-yellow-500">m</span>
+        <span className="font-semibold text-blue-500">H</span>
+        <span className="font-semibold text-green-500">u</span>
+        <span className="font-semibold text-red-500">b</span>
       </h1>
-      <div className="relative w-full max-w-xl mx-auto">
+      <div className="relative mx-auto w-full max-w-xl">
         <Input
           type="text"
           // placeholder="Search SemHub"
-          className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full rounded-full border border-gray-300 py-2 pl-10 pr-4 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <SearchIcon
-          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
           size={20}
         />
       </div>

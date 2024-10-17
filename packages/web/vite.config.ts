@@ -5,20 +5,23 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [TanStackRouterVite({}), react()],
   resolve: {
     alias: {
-      "@/shared": path.resolve(__dirname, "../shared"),
+      "@/core": path.resolve(__dirname, "../core"),
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  server: {
-    proxy: {
-      "/api": {
-        target: "http://localhost:3000",
-        changeOrigin: true,
-      },
-    },
-  },
-});
+  server:
+    command === "serve"
+      ? {
+          proxy: {
+            "/api": {
+              target: `${import.meta.env.VITE_API_URL}/api`,
+              changeOrigin: true,
+            },
+          },
+        }
+      : undefined,
+}));

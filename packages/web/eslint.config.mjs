@@ -31,6 +31,9 @@ export default [
   eslintConfigPrettier,
   {
     settings: {
+      react: {
+        version: "detect", // Automatically detect the React version
+      },
       tailwindcss: {
         config: "tailwind.config.js",
         callees: ["cn", "cva"],

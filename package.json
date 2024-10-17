@@ -11,6 +11,7 @@
     "format:write": "prettier . --write",
     "format:check": "prettier . --check",
     "lint": "cd packages/web && eslint .",
+    "lint:fix": "cd packages/web && eslint . --fix",
     "deploy:prod": "sst deploy --stage prod",
     "secret:load": "sst secret load .secrets",
     "secret:load:prod": "sst secret load .secrets --stage prod",

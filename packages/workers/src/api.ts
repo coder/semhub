@@ -1,4 +1,4 @@
-import { app } from "@semhub/core/router";
+import { app } from "@/core/src/router";
 
 export default {
   fetch: app.fetch,
