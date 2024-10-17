@@ -25,7 +25,7 @@
   },
   "scripts": {
     "dev": "vite --port=3001",
-    "build": "sst shell vite build",
+    "build": "vite build",
     "serve": "vite preview",
     "start": "vite",
     "shell": "sst shell tsx",

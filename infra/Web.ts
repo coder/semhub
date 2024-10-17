@@ -3,7 +3,12 @@ import { apiUrl } from "./Api";
 const web = new sst.aws.StaticSite("Web", {
   path: "packages/web",
   environment: {
-    VITE_API_URL: apiUrl.apply((url) => url || ""),
+    VITE_API_URL: apiUrl.apply((url) => {
+      if (typeof url !== "string") {
+        throw new Error("API URL must be a string");
+      }
+      return url;
+    }),
   },
   build: {
     command: "vite build",
