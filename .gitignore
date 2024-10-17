@@ -17,3 +17,10 @@ node_modules
 
 # misc
 .DS_Store
+
+# tsbuildinfo
+*.tsbuildinfo
+
+# built JS files
+**/dist/
+**/build/

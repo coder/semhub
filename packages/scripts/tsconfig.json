@@ -3,6 +3,19 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "noUncheckedIndexedAccess": true
-  }
+    "noUncheckedIndexedAccess": true,
+    "paths": {
+      "@/core/*": [
+        "../core/*"
+      ],
+      "@/*": [
+        "./src/*"
+      ]
+    },
+  },
+  "references": [
+    {
+      "path": "../core"
+    }
+  ]
 }

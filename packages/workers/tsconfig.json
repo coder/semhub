@@ -4,6 +4,19 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "noUncheckedIndexedAccess": true,
-    "types": ["@cloudflare/workers-types"]
-  }
+    "types": ["@cloudflare/workers-types"],
+    "paths": {
+      "@/core/*": [
+        "../core/*"
+      ],
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "references": [
+    {
+      "path": "../core"
+    }
+  ]
 }
