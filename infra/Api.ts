@@ -1,4 +1,4 @@
-import { database } from "./supabase";
+import { database } from "./Supabase";
 
 const hono = new sst.cloudflare.Worker("Hono", {
   url: true,

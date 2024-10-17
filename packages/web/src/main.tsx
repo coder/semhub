@@ -1,12 +1,18 @@
-import React from "react";
+import "./globals.css";
+
 import ReactDOM from "react-dom/client";
+
+import { Layout } from "./components/Layout";
+import { Providers } from "./components/Providers";
+import { Search } from "./components/Search";
 
 const App = () => {
   return (
-    <div>
-      <h1>Hello, World!</h1>
-      <p>Welcome to my React application!</p>
-    </div>
+    <Providers>
+      <Layout>
+        <Search />
+      </Layout>
+    </Providers>
   );
 };
 
