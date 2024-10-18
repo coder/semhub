@@ -14,14 +14,15 @@ export default {
     },
     extend: {
       colors: {
-        "primary-dark": "#3B82F6", // Example: a darker shade of blue
-        "primary-dark-foreground": "#FFFFFF",
-        "destructive-dark": "#EF4444", // Example: a darker shade of red
-        "destructive-dark-foreground": "#FFFFFF",
-        "secondary-dark": "#6B7280", // Example: a darker shade of gray
-        "secondary-dark-foreground": "#FFFFFF",
-        "accent-dark": "#4B5563", // Example: a darker accent color
-        "accent-dark-foreground": "#FFFFFF",
+        "primary-dark": "hsl(var(--primary-dark))",
+        "primary-dark-foreground": "hsl(var(--primary-dark-foreground))",
+        "destructive-dark": "hsl(var(--destructive-dark))",
+        "destructive-dark-foreground":
+          "hsl(var(--destructive-dark-foreground))",
+        "secondary-dark": "hsl(var(--secondary-dark))",
+        "secondary-dark-foreground": "hsl(var(--secondary-dark-foreground))",
+        "accent-dark": "hsl(var(--accent-dark))",
+        "accent-dark-foreground": "hsl(var(--accent-dark-foreground))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -34,6 +35,8 @@ export default {
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
+          hover: "hsl(var(--secondary-hover))",
+          "hover-foreground": "hsl(var(--secondary-hover-foreground))",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
