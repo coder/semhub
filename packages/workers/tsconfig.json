@@ -7,7 +7,7 @@
     "types": ["@cloudflare/workers-types"],
     "paths": {
       "@/core/*": [
-        "../core/*"
+        "../core/src/*"
       ],
       "@/*": [
         "./src/*"

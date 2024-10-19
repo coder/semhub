@@ -15,7 +15,7 @@ const web = new sst.aws.StaticSite("Web", {
     output: "./dist",
   },
 });
-// not officially launched yet, to switch over when it is?
+// not officially launched and not really working, to switch over when it is?
 // const web = new sst.cloudflare.StaticSite("Web", {
 //   // TODO: domain and DNS stuf
 //   path: "packages/web",

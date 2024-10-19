@@ -4,12 +4,6 @@ import { useQueryErrorResetBoundary } from "@tanstack/react-query";
 
 import { AlertTriangleIcon } from "lucide-react";
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "./ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { Button } from "./ui/button";
 
@@ -47,21 +41,14 @@ export function Error({ error }: { error: Error }) {
             <Link to="/">Go home</Link>
           </Button>
           {isDev ? (
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="error-details">
-                <AccordionTrigger>View error details</AccordionTrigger>
-                <AccordionContent>
-                  <div className="rounded-md bg-muted p-4">
-                    <h3 className="mb-2 font-semibold">Error Message:</h3>
-                    <p className="mb-4 text-sm">{error.message}</p>
-                    <h3 className="mb-2 font-semibold">Stack Trace:</h3>
-                    <pre className="overflow-x-auto whitespace-pre-wrap text-xs">
-                      {error.stack}
-                    </pre>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+            <div className="rounded-md bg-muted p-4">
+              <h3 className="mb-2 font-semibold">Error Message:</h3>
+              <p className="mb-4 text-sm">{error.message}</p>
+              <h3 className="mb-2 font-semibold">Stack Trace:</h3>
+              <pre className="overflow-x-auto whitespace-pre-wrap text-xs">
+                {error.stack}
+              </pre>
+            </div>
           ) : null}
         </div>
       </div>

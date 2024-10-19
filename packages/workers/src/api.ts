@@ -1,4 +1,4 @@
-import { app } from "@/core/src/router";
+import { app } from "@/core/router";
 
 export default {
   fetch: app.fetch,

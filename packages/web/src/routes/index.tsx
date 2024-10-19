@@ -1,11 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { Search } from "@/components/Search";
-
-const Root = () => {
-  return <Search />;
-};
+import { FullSearch } from "@/components/FullSearch";
 
 export const Route = createFileRoute("/")({
-  component: () => <Root />,
+  component: FullSearch,
 });
