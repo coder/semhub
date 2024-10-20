@@ -6,7 +6,7 @@
     "noUncheckedIndexedAccess": true,
     "paths": {
       "@/core/*": [
-        "../core/*"
+        "../core/src/*"
       ],
       "@/*": [
         "./src/*"

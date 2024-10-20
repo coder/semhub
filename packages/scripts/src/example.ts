@@ -1,4 +1,3 @@
-import { Example } from "@semhub/core/example";
-import { Resource } from "sst";
+import { GitHubRepo } from "@/core/github/repo";
 
-// console.log(`${Example.hello()} Linked to ${Resource.MyBucket.name}.`);
+GitHubRepo.loadIssuesFromCoderRepos();

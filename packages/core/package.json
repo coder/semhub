@@ -1,6 +1,7 @@
 {
   "name": "@semhub/core",
   "version": "0.0.0",
+  "type": "module",
   "scripts": {
     "test": "sst shell vitest",
     "typecheck": "tsc"
@@ -12,9 +13,10 @@
     ]
   },
   "dependencies": {
-    "hono": "^4.6.5",
     "drizzle-orm": "^0.33.0",
     "drizzle-zod": "^0.5.1",
+    "hono": "^4.6.5",
+    "octokit": "^4.0.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {

@@ -1,6 +1,7 @@
 {
   "name": "@semhub/scripts",
   "version": "0.0.0",
+  "type": "module",
   "dependencies": {
     "@semhub/core": "*"
   },

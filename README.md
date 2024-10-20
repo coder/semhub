@@ -1,36 +1,29 @@
-# Monorepo Template
+# Semhub
 
-A template to create a monorepo SST ❍ Ion project.
+## Development
 
-## Get started
+To develop using this repo, make sure you have installed the following:
 
-1. Use this template to
-   [create your own repo](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template).
+- [Bun](https://bun.sh/docs/installation)
+- [SST](https://github.com/sst/ion)
 
-2. Clone the new repo.
+You also need the following environment variables (see `.env.example`) and secrets (see `.secrets.example`):
 
-   ```bash
-   git clone MY_APP
-   cd MY_APP
-   ```
+Environment variables:
 
-3. Rename the files in the project to the name of your app.
+- `CLOUDFLARE_API_TOKEN`: Cloudflare API token to deploy Cloudflare workers and manage DNS
+- `SUPABASE_ACCESS_TOKEN`: we use Supabase as our database, you can get this from the Supabase dashboard
+- `SUPABASE_ORG_ID`: needed as part of IaC to create the Supabase project
 
-   ```bash
-   npx replace-in-file '/semhub/g' MY_APP **/*.* --verbose
-   ```
+Secrets:
 
-4. Deploy!
+- `GITHUB_APP_ID`: GitHub App ID for the `coder/semhub` GitHub App
+- `GITHUB_APP_PRIVATE_KEY`: GitHub App private key; to save this as a single string, you must (1) keep the header and footer `-----BEGIN RSA PRIVATE KEY-----` and `-----END RSA PRIVATE KEY-----` and (2) concatenate the lines and replace the newlines with `\n`
+- `GITHUB_APP_INSTALLATION_ID`: GitHub App installation ID. You can install the app on your user or your organization. The installation ID is in the URL of the installation page (i.e. `https://github.com/settings/installations/{installation_id}`)
 
-   ```bash
-   npm install
-   npx sst deploy
-   ```
+Make a copy of `.secrets.example` and name it `.secrets` and a copy of `.env.example` and name it `.env` and fill in the values above. To load the secrets into SST, run `bun secret:load`.
 
-5. Optionally, enable
-   [_git push to deploy_](https://ion.sst.dev/docs/console/#autodeploy).
-
-## Usage
+## Codebase
 
 This template uses
 [npm Workspaces](https://docs.npmjs.com/cli/v8/using-npm/workspaces). It has 3
@@ -59,7 +52,7 @@ packages to start with and you can add more it.
 
 2. `functions/`
 
-   This is for your Lambda functions and it uses the `core` package as a local
+   This is for your Cloudflare Workers and it uses the `core` package as a local
    dependency.
 
 3. `scripts/`
@@ -79,8 +72,3 @@ app into separate files. This can be helpful as your app grows.
 
 In the template, we have an `api.ts`, and `storage.ts`. These export the created
 resources. And are imported in the `sst.config.ts`.
-
----
-
-Join the SST community over on [Discord](https://discord.gg/sst) and follow us
-on [Twitter](https://twitter.com/SST_dev).
