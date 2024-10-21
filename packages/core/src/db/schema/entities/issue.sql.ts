@@ -92,49 +92,15 @@ const labelSchema: z.ZodType<Label> = z.object({
 });
 
 export const createIssueSchema = createInsertSchema(issues, {
-  issueCreatedAt: z
-    .string()
-    .datetime()
-    .transform((date) => new Date(date)),
-  issueUpdatedAt: z
-    .string()
-    .datetime()
-    .transform((date) => new Date(date)),
-  issueClosedAt: z
-    .string()
-    .datetime()
-    .nullable()
-    .transform((date) => (date ? new Date(date) : null)),
-  author: z
-    .object({
-      login: z.string(),
-      html_url: z.string().url(),
-      node_id: z.string(),
-    })
-    .strip()
-    .transform(({ login, html_url, node_id }) => ({
-      name: login,
-      htmlUrl: html_url,
-      nodeId: node_id,
-    }))
-    .pipe(authorSchema),
-  labels: z
-    .array(
-      z
-        .object({
-          node_id: z.string(),
-          name: z.string(),
-          color: z.string(),
-          description: z.string().nullable().optional(),
-        })
-        .strip()
-        .transform(({ node_id, ...rest }) => ({ nodeId: node_id, ...rest }))
-        .pipe(labelSchema),
-    )
-    .optional(),
+  issueCreatedAt: z.date(),
+  issueUpdatedAt: z.date(),
+  issueClosedAt: z.date().nullable(),
+  author: authorSchema,
+  labels: z.array(labelSchema).optional(),
 }).omit({
   id: true,
-  repoId: true,
   createdAt: true,
   updatedAt: true,
 });
+
+export type CreateIssue = z.infer<typeof createIssueSchema>;

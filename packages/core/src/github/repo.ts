@@ -2,29 +2,29 @@ import { createAppAuth } from "@octokit/auth-app";
 import { Octokit } from "octokit";
 import { Resource } from "sst";
 
-import { and, db, eq, sql, type InferInsertModel } from "../db";
+import { and, db, eq } from "../db";
 import { conflictUpdateAllExcept } from "../db/helper";
 import {
-  createIssueSchema,
   issues as issueTable,
+  type CreateIssue,
 } from "../db/schema/entities/issue.sql";
 import { createRepoSchema, repos } from "../db/schema/entities/repo.sql";
+import { githubIssueSchema, type GitHubIssue } from "./schema";
 
 const appId = Resource.GITHUB_APP_ID.value;
 const privateKey = Resource.GITHUB_APP_PRIVATE_KEY.value;
 const installationId = Resource.GITHUB_APP_INSTALLATION_ID.value;
 
-// const coderRepos = [
-//   "coder",
-//   "vscode-coder",
-//   "jetbrains-coder",
-//   "internal",
-//   // "envbuilder", // private
-//   // "customers", // private
-// ];
+const coderRepos = [
+  "coder",
+  "vscode-coder",
+  "jetbrains-coder",
+  "internal",
+  // "envbuilder", // private
+  // "customers", // private
+];
 // for testing
 // const coderRepos = ["nexus"];
-const coderRepos = ["internal"];
 
 const octokit = new Octokit({
   authStrategy: createAppAuth,
@@ -62,7 +62,7 @@ export module GitHubRepo {
         .values(repoDataParsed)
         .onConflictDoUpdate({
           target: [repos.nodeId],
-          set: conflictUpdateAllExcept(repos, ["nodeId"]),
+          set: conflictUpdateAllExcept(repos, ["nodeId", "id", "createdAt"]),
         });
     }
   }
@@ -111,70 +111,20 @@ export module GitHubRepo {
         const lastIssueUpdatedAt = new Date(
           issues[issues.length - 1]!.updated_at,
         );
-        const issuesToInsert: InferInsertModel<typeof issueTable>[] = [];
+        const issuesToInsert: CreateIssue[] = [];
         for (const issue of issues) {
-          const {
-            node_id: nodeId,
-            number,
-            title,
-            state,
-            user: author,
-            pull_request: pullRequest,
-            created_at: issueCreatedAt,
-            updated_at: issueUpdatedAt,
-            labels,
-            closed_at: issueClosedAt,
-            html_url: htmlUrl,
-            body,
-            draft,
-            state: issueState,
-            state_reason,
-          } = issue;
-          const issueType = pullRequest ? "pr" : "issue";
-          const issueStateReason = state_reason ? state_reason : null;
-          const isDraft = !!draft;
-          const { success, data, error } = createIssueSchema.safeParse({
-            nodeId,
-            number,
-            title,
-            state,
-            issueType,
-            issueState,
-            issueStateReason,
-            issueCreatedAt,
-            issueUpdatedAt,
-            issueClosedAt,
-            htmlUrl,
-            author,
-            labels,
-            isDraft,
-            body,
-          });
-          if (!success) {
-            console.error(error);
-            console.log({
-              nodeId,
-              number,
-              title,
-              state,
-              issueType,
-              issueState,
-              issueStateReason,
-              issueCreatedAt,
-              issueUpdatedAt,
-              issueClosedAt,
-              htmlUrl,
-              author,
-              labels,
-              isDraft,
-              body,
-            });
+          const parsedIssue = githubIssueSchema.safeParse(issue);
+          if (!parsedIssue.success) {
+            console.log("error parsing data from GitHub");
+            console.error(parsedIssue.error);
+            console.log(issue);
             break outerLoop; // Break out of both loops
           }
-          issuesToInsert.push({
-            ...data,
+          const transformedIssue = transformGitHubIssue(
+            parsedIssue.data,
             repoId,
-          });
+          );
+          issuesToInsert.push(transformedIssue);
         }
         await db.transaction(async (tx) => {
           await tx
@@ -182,7 +132,11 @@ export module GitHubRepo {
             .values(issuesToInsert)
             .onConflictDoUpdate({
               target: [issueTable.nodeId],
-              set: conflictUpdateAllExcept(issueTable, ["nodeId"]),
+              set: conflictUpdateAllExcept(issueTable, [
+                "nodeId",
+                "id",
+                "createdAt",
+              ]),
             });
           await tx
             .update(repos)
@@ -194,4 +148,33 @@ export module GitHubRepo {
       }
     }
   }
+}
+
+function transformGitHubIssue(issue: GitHubIssue, repoId: string): CreateIssue {
+  return {
+    repoId,
+    nodeId: issue.node_id,
+    number: issue.number,
+    author: {
+      name: issue.user.login,
+      htmlUrl: issue.user.html_url,
+      nodeId: issue.user.node_id,
+    },
+    issueType: issue.pull_request ? "pr" : "issue",
+    issueState: issue.state,
+    issueStateReason: issue.state_reason ?? "null",
+    htmlUrl: issue.html_url,
+    title: issue.title,
+    body: issue.body ?? undefined,
+    labels: issue.labels.map((label) => ({
+      nodeId: label.node_id,
+      name: label.name,
+      color: label.color,
+      description: label.description,
+    })),
+    isDraft: issue.draft ?? false,
+    issueCreatedAt: new Date(issue.created_at),
+    issueUpdatedAt: new Date(issue.updated_at),
+    issueClosedAt: issue.closed_at ? new Date(issue.closed_at) : null,
+  };
 }
