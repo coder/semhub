@@ -1,5 +1,5 @@
-import { app } from "@/core/router";
+import { Router } from "@semhub/core/router";
 
 export default {
-  fetch: app.fetch,
+  fetch: Router.app.fetch,
 };

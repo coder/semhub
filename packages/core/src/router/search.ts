@@ -3,10 +3,10 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 
-import { Context } from "../router";
-import { PaginatedResponse, paginationSchema } from "./schema";
+import { Router } from "..";
+import { RouterSchema } from "./schema";
 
-const issuesSearchSchema = paginationSchema.extend({
+const issuesSearchSchema = RouterSchema.paginationSchema.extend({
   q: z.string(),
 });
 
@@ -18,7 +18,7 @@ export type Issue = {
   updatedAt: Date;
 };
 
-export const searchRouter = new Hono<Context>().get(
+export const searchRouter = new Hono<Router.Context>().get(
   "/",
   zValidator("query", issuesSearchSchema),
   async (c) => {
@@ -37,7 +37,7 @@ export const searchRouter = new Hono<Context>().get(
     ];
     const totalResults = data.length;
     // infer type from data in future
-    return c.json<PaginatedResponse<Issue[]>>(
+    return c.json<RouterSchema.PaginatedResponse<Issue[]>>(
       {
         data,
         success: true,

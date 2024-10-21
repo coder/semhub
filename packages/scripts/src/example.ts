@@ -1,3 +1,3 @@
-import { GitHubRepo } from "@/core/github/repo";
+import { GitHubRepo } from "@semhub/core/github/repo";
 
 GitHubRepo.loadIssuesFromCoderRepos();

@@ -5,7 +5,7 @@
     "moduleResolution": "Bundler",
     "noUncheckedIndexedAccess": true,
     "paths": {
-      "@/core/*": [
+      "@semhub/core/*": [
         "../core/src/*"
       ],
       "@/*": [

@@ -6,7 +6,7 @@
     "noUncheckedIndexedAccess": true,
     "types": ["@cloudflare/workers-types"],
     "paths": {
-      "@/core/*": [
+      "@semhub/core/*": [
         "../core/src/*"
       ],
       "@/*": [

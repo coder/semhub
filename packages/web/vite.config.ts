@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
     plugins: [TanStackRouterVite({}), react()],
     resolve: {
       alias: {
-        "@/core": path.resolve(__dirname, "../core/src"),
+        "@semhub/core": path.resolve(__dirname, "../core/src"),
         "@": path.resolve(__dirname, "./src"),
       },
     },
