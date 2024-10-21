@@ -17,6 +17,8 @@
     "drizzle-zod": "^0.5.1",
     "hono": "^4.6.5",
     "octokit": "^4.0.2",
+    "postgres": "^3.4.4",
+    "ulid": "^2.3.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

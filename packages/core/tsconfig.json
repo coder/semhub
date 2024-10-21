@@ -7,8 +7,5 @@
     "emitDeclarationOnly": true,
     "outDir": "./dist",
     "noUncheckedIndexedAccess": true,
-    "paths": {
-      "@/*": ["./src/*"]
-    }
   }
 }

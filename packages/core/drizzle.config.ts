@@ -1,5 +1,6 @@
 import { defineConfig } from "drizzle-kit";
 import { Resource } from "sst";
+import path from "path";
 
 export default defineConfig({
   strict: true,
@@ -8,6 +9,6 @@ export default defineConfig({
   dbCredentials: {
     url: Resource.Supabase.databaseUrl,
   },
-  schema: "./src/**/*.sql.ts",
-  out: "./migrations",
+  schema: path.join(__dirname, "src/**/*.sql.ts"),
+  out: path.join(__dirname, "migrations"),
 });
