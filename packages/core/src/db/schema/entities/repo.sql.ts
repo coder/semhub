@@ -1,4 +1,4 @@
-import { boolean, index, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -14,6 +14,7 @@ export const repos = pgTable(
     nodeId: text("node_id").notNull().unique(),
     htmlUrl: text("html_url").notNull(),
     isPrivate: boolean("is_private").notNull(),
+    issuesLastUpdatedAt: timestamp("issues_last_updated_at"), // if null, it means issues have not been loaded for this repo yet
   },
   (table) => ({
     // probably could be unique index, but small chance that org / repo names can change
@@ -23,10 +24,9 @@ export const repos = pgTable(
 
 export const createRepoSchema = createInsertSchema(repos, {
   htmlUrl: z.string().url(),
-}).pick({
-  owner: true,
-  name: true,
-  nodeId: true,
-  htmlUrl: true,
-  isPrivate: true,
+}).omit({
+  createdAt: true,
+  updatedAt: true,
+  id: true,
+  issuesLastUpdatedAt: true,
 });
