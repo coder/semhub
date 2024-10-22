@@ -9,6 +9,8 @@ function mapTableNameToPrefix(tableName: string) {
       return "rep";
     case "issues":
       return "iss";
+    case "comments":
+      return "cmt";
     default:
       return tableName;
   }

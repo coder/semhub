@@ -1,8 +1,7 @@
 import gql from "graphql-tag";
 import { z } from "zod";
 
-// unlike REST API, GraphQL API distinguishes between issues and pull requests
-export const loadIssuesWithCommentsQuery = ({
+export const getLoadRepoIssuesQuery = ({
   since,
 }: {
   since: Date | null;
@@ -38,8 +37,9 @@ export const loadIssuesWithCommentsQuery = ({
               description
             }
           }
-          comments(first: 20, orderBy: { field: UPDATED_AT, direction: ASC }) {
+          comments(first: 100, orderBy: { field: UPDATED_AT, direction: ASC }) {
             nodes {
+              id
               author {
                 login
                 url
@@ -59,11 +59,28 @@ export const loadIssuesWithCommentsQuery = ({
   }
 `;
 
-export const githubIssueQuerySchema = z.object({
+export const loadRepoIssuesQueryAuthorSchema = z
+  .object({
+    login: z.string(),
+    url: z.string().url(),
+  })
+  .nullable();
+
+export const loadRepoIssuesQueryCommentSchema = z.object({
+  id: z.string(),
+  author: loadRepoIssuesQueryAuthorSchema,
+  body: z.string(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export type GraphqlComment = z.infer<typeof loadRepoIssuesQueryCommentSchema>;
+
+export const loadRepoIssuesQueryIssueSchema = z.object({
   id: z.string(),
   number: z.number(),
   title: z.string(),
-  body: z.string().nullable(),
+  body: z.string(),
   url: z.string().url(),
   state: z.enum(["OPEN", "CLOSED"]),
   stateReason: z
@@ -72,9 +89,9 @@ export const githubIssueQuerySchema = z.object({
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   closedAt: z.string().datetime().nullable(),
-  author: z.object({
-    login: z.string(),
-    url: z.string().url(),
+  author: loadRepoIssuesQueryAuthorSchema,
+  comments: z.object({
+    nodes: z.array(loadRepoIssuesQueryCommentSchema),
   }),
   labels: z.object({
     nodes: z.array(
@@ -88,12 +105,12 @@ export const githubIssueQuerySchema = z.object({
   }),
 });
 
-export type GitHubIssue = z.infer<typeof githubIssueQuerySchema>;
+export type GraphqlIssue = z.infer<typeof loadRepoIssuesQueryIssueSchema>;
 
 export const loadIssuesWithCommentsQuerySchema = z.object({
   repository: z.object({
     issues: z.object({
-      nodes: z.array(githubIssueQuerySchema),
+      nodes: z.array(loadRepoIssuesQueryIssueSchema),
       pageInfo: z.object({
         hasNextPage: z.boolean(),
         endCursor: z.string(),
@@ -102,6 +119,16 @@ export const loadIssuesWithCommentsQuerySchema = z.object({
   }),
 });
 
+/* NB there are significant differences between GraphQL and REST:
+- unlike REST API, GraphQL API distinguishes between issues and pull requests
+- `author` object is nullable in GraphQL, whereas user is non-nullable. this is potentially problematic as it would make normalisation difficult
+- `state` is different, GraphQL uses `OPEN` and `CLOSED`, REST includes `deleted`
+- state reasons are different, GraphQL includes duplicate
+- `isDraft` is only in REST
+- I included GitHub GraphQL schema for reference
+*/
+
+// shape from REST API
 export const githubRepoSchema = z
   .object({
     owner: z
@@ -116,31 +143,30 @@ export const githubRepoSchema = z
   })
   .strip();
 
-export const githubUserSchema = z
-  .object({
-    login: z.string(),
-    html_url: z.string().url(),
-    node_id: z.string(),
-  })
-  .strip();
+// export const githubUserSchema = z
+//   .object({
+//     login: z.string(),
+//     html_url: z.string().url(),
+//     node_id: z.string(),
+//   })
+//   .strip();
 
-export const githubLabelSchema = z
-  .object({
-    node_id: z.string(),
-    name: z.string(),
-    color: z.string(),
-    description: z.string().nullable().optional(),
-  })
-  .strip();
+// export const githubLabelSchema = z
+//   .object({
+//     node_id: z.string(),
+//     name: z.string(),
+//     color: z.string(),
+//     description: z.string().nullable().optional(),
+//   })
+//   .strip();
 
-export const githubCommentSchema = z.object({
-  author: githubUserSchema,
-  body: z.string(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
-});
+// export const githubCommentSchema = z.object({
+//   author: githubUserSchema,
+//   body: z.string(),
+//   created_at: z.string().datetime(),
+//   updated_at: z.string().datetime(),
+// });
 
-// shape from REST API
 // export const githubIssueSchema = z
 //   .object({
 //     node_id: z.string(),

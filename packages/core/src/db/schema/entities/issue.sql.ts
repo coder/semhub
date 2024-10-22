@@ -1,5 +1,4 @@
 import {
-  boolean,
   index,
   integer,
   jsonb,
@@ -12,20 +11,8 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 import { getBaseColumns } from "../base.sql";
+import { authorSchema, labelSchema, type Author, type Label } from "../shared";
 import { repos } from "./repo.sql";
-
-// save as JSONB now, can normalise in the future if needed
-interface Author {
-  name: string;
-  htmlUrl: string;
-}
-
-interface Label {
-  nodeId: string;
-  name: string;
-  color: string; // hex
-  description?: string | null;
-}
 
 export const issueStateEnum = pgEnum("issue_state", ["OPEN", "CLOSED"]);
 export const issueStateReasonEnum = pgEnum("issue_state_reason", [
@@ -59,19 +46,6 @@ export const issues = pgTable(
     repoIdIdx: index("repo_id_idx").on(table.repoId),
   }),
 );
-
-// Define Zod schemas for Author and Label
-const authorSchema: z.ZodType<Author> = z.object({
-  name: z.string(),
-  htmlUrl: z.string().url(),
-});
-
-const labelSchema: z.ZodType<Label> = z.object({
-  nodeId: z.string(),
-  name: z.string(),
-  color: z.string(), // You might want to add a regex for hex color validation
-  description: z.string().nullable().optional(),
-});
 
 export const createIssueSchema = createInsertSchema(issues, {
   issueCreatedAt: z.date(),

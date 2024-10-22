@@ -1,23 +1,26 @@
-import fs from "fs";
 import { createAppAuth } from "@octokit/auth-app";
-import type { PageInfoForward } from "@octokit/plugin-paginate-graphql";
 import { paginateGraphQL } from "@octokit/plugin-paginate-graphql";
 import { print } from "graphql";
 import { Octokit } from "octokit";
 import { Resource } from "sst";
 
-import { and, db, eq } from "../db";
+import { and, db, eq, sql } from "../db";
 import { conflictUpdateAllExcept } from "../db/helper";
+import {
+  comments,
+  type CreateComment,
+} from "../db/schema/entities/comment.sql";
 import {
   issues as issueTable,
   type CreateIssue,
 } from "../db/schema/entities/issue.sql";
 import { repos } from "../db/schema/entities/repo.sql";
+import type { GraphqlComment } from "./schema";
 import {
+  getLoadRepoIssuesQuery,
   githubRepoSchema,
-  loadIssuesWithCommentsQuery,
   loadIssuesWithCommentsQuerySchema,
-  type GitHubIssue,
+  type GraphqlIssue,
 } from "./schema";
 
 const appId = Resource.GITHUB_APP_ID.value;
@@ -25,10 +28,10 @@ const privateKey = Resource.GITHUB_APP_PRIVATE_KEY.value;
 const installationId = Resource.GITHUB_APP_INSTALLATION_ID.value;
 
 const coderRepos = [
-  // "coder",
-  // "vscode-coder",
-  // "jetbrains-coder",
-  // "internal",
+  "coder",
+  "vscode-coder",
+  "jetbrains-coder",
+  "internal",
   "envbuilder",
   // "customers", // private
 ];
@@ -105,8 +108,8 @@ export module GitHubRepo {
       }
       const issuesLastUpdatedAt = repoFromDb[0].issuesLastUpdatedAt;
       const repoId = repoFromDb[0].id;
-      const iterator = await octokit.graphql.paginate.iterator(
-        print(loadIssuesWithCommentsQuery({ since: issuesLastUpdatedAt })),
+      const iterator = octokit.graphql.paginate.iterator(
+        print(getLoadRepoIssuesQuery({ since: issuesLastUpdatedAt })),
         {
           organization: "coder",
           repo,
@@ -114,32 +117,30 @@ export module GitHubRepo {
         },
       );
       for await (const response of iterator) {
-        // fs.writeFileSync(
-        //   `./${repo}-issues.json`,
-        //   JSON.stringify(response, null, 2),
-        // );
-        // console.log(
-        //   "first issue",
-        //   response.repository.issues.nodes[0]?.updatedAt,
-        // );
         const { success, data, error } =
           loadIssuesWithCommentsQuerySchema.safeParse(response);
-        console.log("success", success);
         if (!success) {
           console.error(error);
           break;
         }
         const issues = data.repository.issues.nodes;
-        console.log("last issue", issues[issues.length - 1]?.updatedAt);
-        console.log(data.repository.issues.nodes.length);
         if (issues.length === 0) {
           continue;
         }
         const lastIssueUpdatedAt = new Date(
           issues[issues.length - 1]!.updatedAt,
         );
-        const issuesToInsert = issues.map((issue) =>
-          transformGitHubIssue(issue, repoId),
+        const issuesToInsert: CreateIssue[] = issues.map((issue) =>
+          mapToCreateIssue(issue, repoId),
+        );
+        const commentsToInsert: Array<
+          Omit<CreateComment, "issueId"> & {
+            issueNodeId: string;
+          }
+        > = issues.flatMap((issue) =>
+          issue.comments.nodes.map((comment) =>
+            mapToCreateComment(comment, issue.id),
+          ),
         );
         await db.transaction(async (tx) => {
           await tx
@@ -148,6 +149,31 @@ export module GitHubRepo {
             .onConflictDoUpdate({
               target: [issueTable.nodeId],
               set: conflictUpdateAllExcept(issueTable, [
+                "nodeId",
+                "id",
+                "createdAt",
+              ]),
+            });
+          const issueIds = await tx.$with("issue_ids").as(
+            tx
+              .select({
+                id: issueTable.id,
+                nodeId: issueTable.nodeId,
+              })
+              .from(issueTable),
+          );
+          await tx
+            .with(issueIds)
+            .insert(comments)
+            .values(
+              commentsToInsert.map((comment) => ({
+                ...comment,
+                issueId: sql`((SELECT id FROM issue_ids WHERE node_id = ${comment.issueNodeId}))`,
+              })),
+            )
+            .onConflictDoUpdate({
+              target: [comments.nodeId],
+              set: conflictUpdateAllExcept(comments, [
                 "nodeId",
                 "id",
                 "createdAt",
@@ -166,15 +192,17 @@ export module GitHubRepo {
   }
 }
 
-function transformGitHubIssue(issue: GitHubIssue, repoId: string): CreateIssue {
+function mapToCreateIssue(issue: GraphqlIssue, repoId: string): CreateIssue {
   return {
     repoId,
     nodeId: issue.id,
     number: issue.number,
-    author: {
-      name: issue.author.login,
-      htmlUrl: issue.author.url,
-    },
+    author: issue.author
+      ? {
+          name: issue.author.login,
+          htmlUrl: issue.author.url,
+        }
+      : null,
     issueState: issue.state,
     issueStateReason: issue.stateReason,
     htmlUrl: issue.url,
@@ -189,5 +217,21 @@ function transformGitHubIssue(issue: GitHubIssue, repoId: string): CreateIssue {
     issueCreatedAt: new Date(issue.createdAt),
     issueUpdatedAt: new Date(issue.updatedAt),
     issueClosedAt: issue.closedAt ? new Date(issue.closedAt) : null,
+  };
+}
+
+function mapToCreateComment(comment: GraphqlComment, issueNodeId: string) {
+  return {
+    issueNodeId,
+    nodeId: comment.id,
+    author: comment.author
+      ? {
+          name: comment.author.login,
+          htmlUrl: comment.author.url,
+        }
+      : null,
+    body: comment.body,
+    commentCreatedAt: new Date(comment.createdAt),
+    commentUpdatedAt: new Date(comment.updatedAt),
   };
 }
