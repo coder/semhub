@@ -8,8 +8,12 @@ import {
   issues as issueTable,
   type CreateIssue,
 } from "../db/schema/entities/issue.sql";
-import { createRepoSchema, repos } from "../db/schema/entities/repo.sql";
-import { githubIssueSchema, type GitHubIssue } from "./schema";
+import { repos } from "../db/schema/entities/repo.sql";
+import {
+  githubIssueSchema,
+  githubRepoSchema,
+  type GitHubIssue,
+} from "./schema";
 
 const appId = Resource.GITHUB_APP_ID.value;
 const privateKey = Resource.GITHUB_APP_PRIVATE_KEY.value;
@@ -20,7 +24,7 @@ const coderRepos = [
   "vscode-coder",
   "jetbrains-coder",
   "internal",
-  // "envbuilder", // private
+  "envbuilder",
   // "customers", // private
 ];
 // for testing
@@ -42,24 +46,29 @@ export module GitHubRepo {
         owner: "coder",
         repo,
       });
-      // honestly, not sure which other fields we should store, can always revisit this in the future
+      const { success, data, error } = githubRepoSchema.safeParse(repoData);
+      if (!success) {
+        console.log("error parsing repo data from GitHub");
+        console.error(error);
+        console.log(repoData);
+        break;
+      }
       const {
         owner: { login: owner },
         name,
         node_id: nodeId,
         html_url: htmlUrl,
         private: isPrivate,
-      } = repoData;
-      const repoDataParsed = createRepoSchema.parse({
-        owner,
-        name,
-        nodeId,
-        htmlUrl,
-        isPrivate,
-      });
+      } = data;
       await db
         .insert(repos)
-        .values(repoDataParsed)
+        .values({
+          owner,
+          name,
+          nodeId,
+          htmlUrl,
+          isPrivate,
+        })
         .onConflictDoUpdate({
           target: [repos.nodeId],
           set: conflictUpdateAllExcept(repos, ["nodeId", "id", "createdAt"]),
@@ -115,7 +124,7 @@ export module GitHubRepo {
         for (const issue of issues) {
           const parsedIssue = githubIssueSchema.safeParse(issue);
           if (!parsedIssue.success) {
-            console.log("error parsing data from GitHub");
+            console.log("error parsing issues data from GitHub");
             console.error(parsedIssue.error);
             console.log(issue);
             break outerLoop; // Break out of both loops
