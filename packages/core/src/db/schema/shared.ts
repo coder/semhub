@@ -1,9 +1,10 @@
 import { z } from "zod";
 
-export interface Author {
+// deleted GitHub account will be null
+export type Author = {
   name: string;
   htmlUrl: string;
-}
+} | null;
 
 export interface Label {
   nodeId: string;
@@ -12,10 +13,12 @@ export interface Label {
   description?: string | null;
 }
 
-export const authorSchema: z.ZodType<Author> = z.object({
-  name: z.string(),
-  htmlUrl: z.string().url(),
-});
+export const authorSchema: z.ZodType<Author> = z
+  .object({
+    name: z.string(),
+    htmlUrl: z.string().url(),
+  })
+  .nullable();
 
 export const labelSchema: z.ZodType<Label> = z.object({
   nodeId: z.string(),

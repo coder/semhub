@@ -1,11 +1,10 @@
+import { print } from "graphql";
 import gql from "graphql-tag";
 import { z } from "zod";
 
-export const getLoadRepoIssuesQuery = ({
-  since,
-}: {
-  since: Date | null;
-}) => gql`
+export const getLoadRepoIssuesQuery = ({ since }: { since: Date | null }) =>
+  // doing this to get syntax highlighting for GraphQL queries at the cost of additional libraries
+  print(gql`
   query paginate($cursor: String, $organization: String!, $repo: String!) {
     repository(owner: $organization, name: $repo) {
       issues(
@@ -57,13 +56,14 @@ export const getLoadRepoIssuesQuery = ({
       }
     }
   }
-`;
+`);
 
 export const loadRepoIssuesQueryAuthorSchema = z
   .object({
     login: z.string(),
     url: z.string().url(),
   })
+  // when user is deleted, author is null
   .nullable();
 
 export const loadRepoIssuesQueryCommentSchema = z.object({
@@ -74,7 +74,7 @@ export const loadRepoIssuesQueryCommentSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 
-export type GraphqlComment = z.infer<typeof loadRepoIssuesQueryCommentSchema>;
+export type CommentGraphql = z.infer<typeof loadRepoIssuesQueryCommentSchema>;
 
 export const loadRepoIssuesQueryIssueSchema = z.object({
   id: z.string(),
@@ -105,7 +105,7 @@ export const loadRepoIssuesQueryIssueSchema = z.object({
   }),
 });
 
-export type GraphqlIssue = z.infer<typeof loadRepoIssuesQueryIssueSchema>;
+export type IssueGraphql = z.infer<typeof loadRepoIssuesQueryIssueSchema>;
 
 export const loadIssuesWithCommentsQuerySchema = z.object({
   repository: z.object({

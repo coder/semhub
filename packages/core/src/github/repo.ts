@@ -1,6 +1,5 @@
 import { createAppAuth } from "@octokit/auth-app";
 import { paginateGraphQL } from "@octokit/plugin-paginate-graphql";
-import { print } from "graphql";
 import { Octokit } from "octokit";
 import { Resource } from "sst";
 
@@ -15,12 +14,12 @@ import {
   type CreateIssue,
 } from "../db/schema/entities/issue.sql";
 import { repos } from "../db/schema/entities/repo.sql";
-import type { GraphqlComment } from "./schema";
+import type { CommentGraphql } from "./schema";
 import {
   getLoadRepoIssuesQuery,
   githubRepoSchema,
   loadIssuesWithCommentsQuerySchema,
-  type GraphqlIssue,
+  type IssueGraphql,
 } from "./schema";
 
 const appId = Resource.GITHUB_APP_ID.value;
@@ -109,7 +108,7 @@ export module GitHubRepo {
       const issuesLastUpdatedAt = repoFromDb[0].issuesLastUpdatedAt;
       const repoId = repoFromDb[0].id;
       const iterator = octokit.graphql.paginate.iterator(
-        print(getLoadRepoIssuesQuery({ since: issuesLastUpdatedAt })),
+        getLoadRepoIssuesQuery({ since: issuesLastUpdatedAt }),
         {
           organization: "coder",
           repo,
@@ -121,7 +120,8 @@ export module GitHubRepo {
           loadIssuesWithCommentsQuerySchema.safeParse(response);
         if (!success) {
           console.error(error);
-          break;
+          console.log(JSON.stringify(response, null, 2));
+          break outerLoop;
         }
         const issues = data.repository.issues.nodes;
         if (issues.length === 0) {
@@ -130,14 +130,10 @@ export module GitHubRepo {
         const lastIssueUpdatedAt = new Date(
           issues[issues.length - 1]!.updatedAt,
         );
-        const issuesToInsert: CreateIssue[] = issues.map((issue) =>
+        const issuesToInsert = issues.map((issue) =>
           mapToCreateIssue(issue, repoId),
         );
-        const commentsToInsert: Array<
-          Omit<CreateComment, "issueId"> & {
-            issueNodeId: string;
-          }
-        > = issues.flatMap((issue) =>
+        const commentsToInsert = issues.flatMap((issue) =>
           issue.comments.nodes.map((comment) =>
             mapToCreateComment(comment, issue.id),
           ),
@@ -162,15 +158,16 @@ export module GitHubRepo {
               })
               .from(issueTable),
           );
+          const commentsToInsertWithIssueId = commentsToInsert.map(
+            ({ issueNodeId, ...comment }) => ({
+              ...comment,
+              issueId: sql<string>`((SELECT id FROM issue_ids WHERE node_id = ${issueNodeId}))`,
+            }),
+          );
           await tx
             .with(issueIds)
             .insert(comments)
-            .values(
-              commentsToInsert.map((comment) => ({
-                ...comment,
-                issueId: sql`((SELECT id FROM issue_ids WHERE node_id = ${comment.issueNodeId}))`,
-              })),
-            )
+            .values(commentsToInsertWithIssueId)
             .onConflictDoUpdate({
               target: [comments.nodeId],
               set: conflictUpdateAllExcept(comments, [
@@ -186,13 +183,15 @@ export module GitHubRepo {
             })
             .where(and(eq(repos.owner, "coder"), eq(repos.name, repo)));
         });
-        // }
+        console.log(`Loaded ${issues.length} issues for ${repo}`);
+        console.log(`Loaded ${commentsToInsert.length} comments for ${repo}`);
       }
+      console.log(`Loaded all issues for ${repo}`);
     }
   }
 }
 
-function mapToCreateIssue(issue: GraphqlIssue, repoId: string): CreateIssue {
+function mapToCreateIssue(issue: IssueGraphql, repoId: string): CreateIssue {
   return {
     repoId,
     nodeId: issue.id,
@@ -207,7 +206,7 @@ function mapToCreateIssue(issue: GraphqlIssue, repoId: string): CreateIssue {
     issueStateReason: issue.stateReason,
     htmlUrl: issue.url,
     title: issue.title,
-    body: issue.body ?? undefined,
+    body: issue.body,
     labels: issue.labels.nodes.map((label) => ({
       nodeId: label.id,
       name: label.name,
@@ -220,7 +219,12 @@ function mapToCreateIssue(issue: GraphqlIssue, repoId: string): CreateIssue {
   };
 }
 
-function mapToCreateComment(comment: GraphqlComment, issueNodeId: string) {
+function mapToCreateComment(
+  comment: CommentGraphql,
+  issueNodeId: string,
+): Omit<CreateComment, "issueId"> & {
+  issueNodeId: string;
+} {
   return {
     issueNodeId,
     nodeId: comment.id,

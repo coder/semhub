@@ -36,7 +36,7 @@ export const issues = pgTable(
     issueStateReason: issueStateReasonEnum("issue_state_reason"),
     htmlUrl: text("html_url").notNull(),
     title: text("title").notNull(),
-    body: text("body"),
+    body: text("body").notNull(),
     labels: jsonb("labels").$type<Label[]>(),
     issueCreatedAt: timestamp("issue_created_at").notNull(),
     issueUpdatedAt: timestamp("issue_updated_at").notNull(),
@@ -48,15 +48,10 @@ export const issues = pgTable(
 );
 
 export const createIssueSchema = createInsertSchema(issues, {
-  issueCreatedAt: z.date(),
-  issueUpdatedAt: z.date(),
-  issueClosedAt: z.date().nullable(),
   author: authorSchema,
   labels: z.array(labelSchema).optional(),
 }).omit({
   id: true,
-  createdAt: true,
-  updatedAt: true,
 });
 
 export type CreateIssue = z.infer<typeof createIssueSchema>;

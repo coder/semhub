@@ -13,7 +13,7 @@ export const comments = pgTable("comments", {
     .notNull(),
   nodeId: text("node_id").notNull().unique(),
   author: jsonb("author").$type<Author>(),
-  body: text("body"),
+  body: text("body").notNull(),
   commentCreatedAt: timestamp("comment_created_at").notNull(),
   commentUpdatedAt: timestamp("comment_updated_at").notNull(),
 });

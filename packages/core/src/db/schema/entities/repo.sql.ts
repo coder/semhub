@@ -24,8 +24,5 @@ export const repos = pgTable(
 export const createRepoSchema = createInsertSchema(repos, {
   htmlUrl: z.string().url(),
 }).omit({
-  createdAt: true,
-  updatedAt: true,
   id: true,
-  issuesLastUpdatedAt: true,
 });
