@@ -5,13 +5,9 @@
     "moduleResolution": "Bundler",
     "noUncheckedIndexedAccess": true,
     "paths": {
-      "@semhub/core/*": [
-        "../core/src/*"
-      ],
-      "@/*": [
-        "./src/*"
-      ]
-    },
+      "@semhub/core/*": ["../core/src/*"],
+      "@/*": ["./src/*"]
+    }
   },
   "references": [
     {

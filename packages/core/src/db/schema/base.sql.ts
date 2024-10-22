@@ -1,5 +1,4 @@
 import { text, timestamp } from "drizzle-orm/pg-core";
-
 import { ulid } from "ulid";
 
 // whenever a new table is added, we need to update this function

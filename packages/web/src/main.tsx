@@ -1,8 +1,7 @@
 import "./globals.css";
 
-import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
+import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { Loader2Icon } from "lucide-react";
 import { ThemeProvider } from "next-themes";
 import ReactDOM from "react-dom/client";

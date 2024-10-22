@@ -1,9 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
 import {
   infiniteQueryOptions,
   useSuspenseInfiniteQuery,
 } from "@tanstack/react-query";
-
+import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 import { searchIssues } from "@/lib/api";

@@ -1,6 +1,5 @@
 import path from "path";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
-
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
 

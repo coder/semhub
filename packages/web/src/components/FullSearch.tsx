@@ -1,8 +1,7 @@
-import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-
 import { Search as SearchIcon } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

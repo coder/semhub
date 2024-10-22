@@ -1,7 +1,6 @@
-import { hc, type InferResponseType } from "hono/client";
-
 import type { Router } from "@semhub/core/router";
 import { RouterSchema } from "@semhub/core/router/schema";
+import { hc, type InferResponseType } from "hono/client";
 
 const client = hc<Router.ApiRoutes>("/", {
   // TODO: auth

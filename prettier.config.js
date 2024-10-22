@@ -1,12 +1,6 @@
 /** @type {import('prettier').Config} */
 module.exports = {
   importOrder: [
-    "^(react/(.*)$)|^(react$)",
-    "^(hono/(.*)$)|^(hono$)",
-    "^(drizzle-orm/(.*)$)|^(drizzle-orm$)",
-    "^(@tanstack/react-router/(.*)$)|^(@tanstack/react-router$)",
-    "^(@tanstack/(.*)$)|^(@tanstack$)",
-    "",
     "<THIRD_PARTY_MODULES>",
     "",
     "^types$",

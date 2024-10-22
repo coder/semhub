@@ -6,6 +6,6 @@
     "moduleResolution": "Bundler",
     "emitDeclarationOnly": true,
     "outDir": "./dist",
-    "noUncheckedIndexedAccess": true,
+    "noUncheckedIndexedAccess": true
   }
 }

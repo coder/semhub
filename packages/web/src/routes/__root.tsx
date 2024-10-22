@@ -1,7 +1,7 @@
-import * as React from "react";
-import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { type QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import * as React from "react";
 
 interface RouterContext {
   queryClient: QueryClient;

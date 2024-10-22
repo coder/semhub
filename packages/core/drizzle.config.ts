@@ -1,6 +1,6 @@
+import path from "path";
 import { defineConfig } from "drizzle-kit";
 import { Resource } from "sst";
-import path from "path";
 
 export default defineConfig({
   strict: true,
