@@ -1,4 +1,8 @@
+import fs from "fs";
 import { createAppAuth } from "@octokit/auth-app";
+import type { PageInfoForward } from "@octokit/plugin-paginate-graphql";
+import { paginateGraphQL } from "@octokit/plugin-paginate-graphql";
+import { print } from "graphql";
 import { Octokit } from "octokit";
 import { Resource } from "sst";
 
@@ -10,8 +14,9 @@ import {
 } from "../db/schema/entities/issue.sql";
 import { repos } from "../db/schema/entities/repo.sql";
 import {
-  githubIssueSchema,
   githubRepoSchema,
+  loadIssuesWithCommentsQuery,
+  loadIssuesWithCommentsQuerySchema,
   type GitHubIssue,
 } from "./schema";
 
@@ -20,17 +25,19 @@ const privateKey = Resource.GITHUB_APP_PRIVATE_KEY.value;
 const installationId = Resource.GITHUB_APP_INSTALLATION_ID.value;
 
 const coderRepos = [
-  "coder",
-  "vscode-coder",
-  "jetbrains-coder",
-  "internal",
+  // "coder",
+  // "vscode-coder",
+  // "jetbrains-coder",
+  // "internal",
   "envbuilder",
   // "customers", // private
 ];
 // for testing
 // const coderRepos = ["nexus"];
 
-const octokit = new Octokit({
+const OctokitWithGraphQLPaginate = Octokit.plugin(paginateGraphQL);
+
+const octokit = new OctokitWithGraphQLPaginate({
   authStrategy: createAppAuth,
   auth: {
     appId,
@@ -98,43 +105,42 @@ export module GitHubRepo {
       }
       const issuesLastUpdatedAt = repoFromDb[0].issuesLastUpdatedAt;
       const repoId = repoFromDb[0].id;
-      const iterator = octokit.paginate.iterator(
-        //  see: https://github.com/octokit/plugin-rest-endpoint-methods.js/blob/main/docs/issues/listForRepo.md
-        octokit.rest.issues.listForRepo,
+      const iterator = await octokit.graphql.paginate.iterator(
+        print(loadIssuesWithCommentsQuery({ since: issuesLastUpdatedAt })),
         {
-          owner: "coder",
+          organization: "coder",
           repo,
-          per_page: 100,
-          sort: "updated",
-          direction: "asc",
-          state: "all",
-          since: issuesLastUpdatedAt // only accepts ISO strings
-            ? issuesLastUpdatedAt.toISOString()
-            : undefined,
+          cursor: null,
         },
       );
-      for await (const { data: issues } of iterator) {
+      for await (const response of iterator) {
+        // fs.writeFileSync(
+        //   `./${repo}-issues.json`,
+        //   JSON.stringify(response, null, 2),
+        // );
+        // console.log(
+        //   "first issue",
+        //   response.repository.issues.nodes[0]?.updatedAt,
+        // );
+        const { success, data, error } =
+          loadIssuesWithCommentsQuerySchema.safeParse(response);
+        console.log("success", success);
+        if (!success) {
+          console.error(error);
+          break;
+        }
+        const issues = data.repository.issues.nodes;
+        console.log("last issue", issues[issues.length - 1]?.updatedAt);
+        console.log(data.repository.issues.nodes.length);
         if (issues.length === 0) {
           continue;
         }
         const lastIssueUpdatedAt = new Date(
-          issues[issues.length - 1]!.updated_at,
+          issues[issues.length - 1]!.updatedAt,
         );
-        const issuesToInsert: CreateIssue[] = [];
-        for (const issue of issues) {
-          const parsedIssue = githubIssueSchema.safeParse(issue);
-          if (!parsedIssue.success) {
-            console.log("error parsing issues data from GitHub");
-            console.error(parsedIssue.error);
-            console.log(issue);
-            break outerLoop; // Break out of both loops
-          }
-          const transformedIssue = transformGitHubIssue(
-            parsedIssue.data,
-            repoId,
-          );
-          issuesToInsert.push(transformedIssue);
-        }
+        const issuesToInsert = issues.map((issue) =>
+          transformGitHubIssue(issue, repoId),
+        );
         await db.transaction(async (tx) => {
           await tx
             .insert(issueTable)
@@ -154,6 +160,7 @@ export module GitHubRepo {
             })
             .where(and(eq(repos.owner, "coder"), eq(repos.name, repo)));
         });
+        // }
       }
     }
   }
@@ -162,28 +169,25 @@ export module GitHubRepo {
 function transformGitHubIssue(issue: GitHubIssue, repoId: string): CreateIssue {
   return {
     repoId,
-    nodeId: issue.node_id,
+    nodeId: issue.id,
     number: issue.number,
     author: {
-      name: issue.user.login,
-      htmlUrl: issue.user.html_url,
-      nodeId: issue.user.node_id,
+      name: issue.author.login,
+      htmlUrl: issue.author.url,
     },
-    issueType: issue.pull_request ? "pr" : "issue",
     issueState: issue.state,
-    issueStateReason: issue.state_reason ?? "null",
-    htmlUrl: issue.html_url,
+    issueStateReason: issue.stateReason,
+    htmlUrl: issue.url,
     title: issue.title,
     body: issue.body ?? undefined,
-    labels: issue.labels.map((label) => ({
-      nodeId: label.node_id,
+    labels: issue.labels.nodes.map((label) => ({
+      nodeId: label.id,
       name: label.name,
       color: label.color,
       description: label.description,
     })),
-    isDraft: issue.draft ?? false,
-    issueCreatedAt: new Date(issue.created_at),
-    issueUpdatedAt: new Date(issue.updated_at),
-    issueClosedAt: issue.closed_at ? new Date(issue.closed_at) : null,
+    issueCreatedAt: new Date(issue.createdAt),
+    issueUpdatedAt: new Date(issue.updatedAt),
+    issueClosedAt: issue.closedAt ? new Date(issue.closedAt) : null,
   };
 }

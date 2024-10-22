@@ -18,7 +18,6 @@ import { repos } from "./repo.sql";
 interface Author {
   name: string;
   htmlUrl: string;
-  nodeId: string;
 }
 
 interface Label {
@@ -28,17 +27,12 @@ interface Label {
   description?: string | null;
 }
 
-export const issueTypeEnum = pgEnum("issue_type", ["issue", "pr"]);
-export const issueStateEnum = pgEnum("issue_state", [
-  "open",
-  "closed",
-  "deleted",
-]);
+export const issueStateEnum = pgEnum("issue_state", ["OPEN", "CLOSED"]);
 export const issueStateReasonEnum = pgEnum("issue_state_reason", [
-  "null",
-  "completed",
-  "reopened",
-  "not_planned",
+  "COMPLETED",
+  "REOPENED",
+  "NOT_PLANNED",
+  "DUPLICATE",
 ]);
 
 export const issues = pgTable(
@@ -51,25 +45,15 @@ export const issues = pgTable(
     nodeId: text("node_id").notNull().unique(),
     number: integer("number").notNull(), // unique issue number for a repo
     author: jsonb("author").$type<Author>(),
-    issueType: issueTypeEnum("issue_type").notNull(),
     issueState: issueStateEnum("issue_state").notNull(),
-    issueStateReason:
-      issueStateReasonEnum("issue_state_reason").default("null"),
+    issueStateReason: issueStateReasonEnum("issue_state_reason"),
     htmlUrl: text("html_url").notNull(),
     title: text("title").notNull(),
     body: text("body"),
     labels: jsonb("labels").$type<Label[]>(),
-    isDraft: boolean("is_draft"),
     issueCreatedAt: timestamp("issue_created_at").notNull(),
     issueUpdatedAt: timestamp("issue_updated_at").notNull(),
     issueClosedAt: timestamp("issue_closed_at"),
-    // whatever we track, we will need to update via webhook in the future
-    // ignore for now:
-    // - assignees
-    // - milestones
-    // - locked and active_lock_reason
-    // - closed_by
-    // - reactions
   },
   (table) => ({
     repoIdIdx: index("repo_id_idx").on(table.repoId),
@@ -80,7 +64,6 @@ export const issues = pgTable(
 const authorSchema: z.ZodType<Author> = z.object({
   name: z.string(),
   htmlUrl: z.string().url(),
-  nodeId: z.string(),
 });
 
 const labelSchema: z.ZodType<Label> = z.object({
