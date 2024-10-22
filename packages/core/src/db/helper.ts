@@ -1,4 +1,5 @@
-import { getTableColumns, SQL, sql, Table } from "drizzle-orm";
+import type { SQL, Table } from "drizzle-orm";
+import { getTableColumns, sql } from "drizzle-orm";
 
 // from https://github.com/drizzle-team/drizzle-orm/issues/1728
 export function conflictUpdateAllExcept<

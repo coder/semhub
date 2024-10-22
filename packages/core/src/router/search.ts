@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 
-import { Router } from "..";
+import type { Router } from "..";
 import { RouterSchema } from "./schema";
 
 const issuesSearchSchema = RouterSchema.paginationSchema.extend({

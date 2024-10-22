@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { Env } from "hono";
 import { HTTPException } from "hono/http-exception";
 
-import { RouterSchema } from "./router/schema";
+import type { RouterSchema } from "./router/schema";
 import { searchRouter } from "./router/search";
 
 export module Router {

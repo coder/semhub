@@ -1,6 +1,6 @@
 import { hc, type InferResponseType } from "hono/client";
 
-import { Router } from "@semhub/core/router";
+import type { Router } from "@semhub/core/router";
 import { RouterSchema } from "@semhub/core/router/schema";
 
 const client = hc<Router.ApiRoutes>("/", {
