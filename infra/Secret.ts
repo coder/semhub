@@ -1,7 +1,5 @@
 export const secret = {
-  GithubAppId: new sst.Secret("GITHUB_APP_ID"),
-  GithubAppPrivateKey: new sst.Secret("GITHUB_APP_PRIVATE_KEY"),
-  GithubAppInstallationId: new sst.Secret("GITHUB_APP_INSTALLATION_ID"),
+  GithubPersonalAccessToken: new sst.Secret("GITHUB_PERSONAL_ACCESS_TOKEN"),
 };
 
 export const allSecrets = Object.values(secret);

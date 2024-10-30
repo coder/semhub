@@ -8,10 +8,7 @@ let client: postgres.Sql | null = null;
 
 function getClient() {
   if (client) return client;
-
-  console.log("getting client");
   const connectionString = Resource.Supabase.databaseUrl;
-  console.log("connectionString", connectionString);
   // Disable prefetch as it is not supported for "Transaction" pool mode
   client = postgres(connectionString, { prepare: false });
   return client;

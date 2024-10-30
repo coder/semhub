@@ -5,15 +5,7 @@ import "sst"
 export {}
 declare module "sst" {
   export interface Resource {
-    "GITHUB_APP_ID": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "GITHUB_APP_INSTALLATION_ID": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "GITHUB_APP_PRIVATE_KEY": {
+    "GITHUB_PERSONAL_ACCESS_TOKEN": {
       "type": "sst.sst.Secret"
       "value": string
     }

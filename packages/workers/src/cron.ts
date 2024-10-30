@@ -1,3 +1,4 @@
+import { closeConnection } from "@semhub/core/db";
 import { GitHubRepo } from "@semhub/core/github/repo";
 
 export interface Env {}
@@ -8,19 +9,23 @@ export default {
     env: Env,
     ctx: ExecutionContext,
   ) {
-    // Write code for updating your API
-    switch (controller.cron) {
-      // TODO: switch to 10 minutes
-      case "*/1 * * * *":
+    try {
+      // Write code for updating your API
+      switch (controller.cron) {
         // Every ten minutes
-        console.log("loading issues");
-        await GitHubRepo.loadIssues();
-        console.log("loaded issues");
-        break;
-      case "*/45 * * * *":
-        // await updateAPI3();
-        break;
+        case "*/10 * * * *":
+          await GitHubRepo.loadIssues();
+          console.log("loaded issues");
+          break;
+        case "*/45 * * * *":
+          // await updateAPI3();
+          break;
+      }
+      console.log("cron processed");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      await closeConnection();
     }
-    console.log("cron processed");
   },
 };

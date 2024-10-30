@@ -1,4 +1,3 @@
-import { createAppAuth } from "@octokit/auth-app";
 import { paginateGraphQL } from "@octokit/plugin-paginate-graphql";
 import { Octokit } from "octokit";
 import { Resource } from "sst";
@@ -36,22 +35,15 @@ const coderRepoNames = [
 const OctokitWithGraphQLPaginate = Octokit.plugin(paginateGraphQL);
 
 export module GitHubRepo {
-  function getOctokit() {
-    const appId = Resource.GITHUB_APP_ID.value;
-    const privateKey = Resource.GITHUB_APP_PRIVATE_KEY.value;
-    const installationId = Resource.GITHUB_APP_INSTALLATION_ID.value;
+  async function getOctokit() {
+    const token = Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value;
     return new OctokitWithGraphQLPaginate({
-      authStrategy: createAppAuth,
-      auth: {
-        appId,
-        privateKey,
-        installationId,
-      },
+      auth: token,
     });
   }
 
   export async function loadRepos() {
-    const octokit = getOctokit();
+    const octokit = await getOctokit();
     const db = getDrizzle();
     for (const repo of coderRepoNames) {
       const { data: repoData } = await octokit.rest.repos.get({
@@ -89,7 +81,7 @@ export module GitHubRepo {
   }
   // eventually we can make this general
   export async function loadIssues() {
-    const octokit = getOctokit();
+    const octokit = await getOctokit();
     // general strategy: one repo at a time, ensure idempotency, interruptible, minimise redoing work, update if conflict
     const db = getDrizzle();
     const coderRepos = await db
