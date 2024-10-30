@@ -3,7 +3,7 @@ import { paginateGraphQL } from "@octokit/plugin-paginate-graphql";
 import { Octokit } from "octokit";
 import { Resource } from "sst";
 
-import { and, db, eq, sql } from "../db";
+import { eq, getDrizzle, sql } from "../db";
 import { conflictUpdateAllExcept } from "../db/helper";
 import {
   comments,
@@ -22,10 +22,6 @@ import {
   type IssueGraphql,
 } from "./schema";
 
-const appId = Resource.GITHUB_APP_ID.value;
-const privateKey = Resource.GITHUB_APP_PRIVATE_KEY.value;
-const installationId = Resource.GITHUB_APP_INSTALLATION_ID.value;
-
 const coderRepoNames = [
   "coder",
   "vscode-coder",
@@ -39,17 +35,24 @@ const coderRepoNames = [
 
 const OctokitWithGraphQLPaginate = Octokit.plugin(paginateGraphQL);
 
-const octokit = new OctokitWithGraphQLPaginate({
-  authStrategy: createAppAuth,
-  auth: {
-    appId,
-    privateKey,
-    installationId,
-  },
-});
-
 export module GitHubRepo {
+  function getOctokit() {
+    const appId = Resource.GITHUB_APP_ID.value;
+    const privateKey = Resource.GITHUB_APP_PRIVATE_KEY.value;
+    const installationId = Resource.GITHUB_APP_INSTALLATION_ID.value;
+    return new OctokitWithGraphQLPaginate({
+      authStrategy: createAppAuth,
+      auth: {
+        appId,
+        privateKey,
+        installationId,
+      },
+    });
+  }
+
   export async function loadRepos() {
+    const octokit = getOctokit();
+    const db = getDrizzle();
     for (const repo of coderRepoNames) {
       const { data: repoData } = await octokit.rest.repos.get({
         owner: "coder",
@@ -86,11 +89,9 @@ export module GitHubRepo {
   }
   // eventually we can make this general
   export async function loadIssues() {
+    const octokit = getOctokit();
     // general strategy: one repo at a time, ensure idempotency, interruptible, minimise redoing work, update if conflict
-    // - get all issues (including pull requests) and save in database one batch at a time
-    // - for each repo, we save the latest updated_at, which we will use in the `since` parameter
-    // - if the repo already exists in the database, we get all issues since the last updated_at
-    // - for each issue we save, if it is already in database, we upsert
+    const db = getDrizzle();
     const coderRepos = await db
       .select({
         repoId: repos.id,
@@ -98,7 +99,7 @@ export module GitHubRepo {
         issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
       })
       .from(repos)
-      .where(and(eq(repos.owner, "coder")));
+      .where(eq(repos.owner, "coder"));
     outerLoop: for (const {
       repoId,
       repoName,

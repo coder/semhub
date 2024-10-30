@@ -1,5 +1,5 @@
 import { text, timestamp } from "drizzle-orm/pg-core";
-import { ulid } from "ulid";
+import { ulid } from "ulidx";
 
 // whenever a new table is added, we need to update this function
 // else it will default to the full table name, which is fine too actually

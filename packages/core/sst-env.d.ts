@@ -29,6 +29,9 @@ declare module "sst" {
       "region": string
       "type": "sst.sst.Linkable"
     }
+    "SyncRepoHandler": {
+      "type": "sst.cloudflare.Worker"
+    }
     "Web": {
       "type": "sst.aws.StaticSite"
       "url": string
