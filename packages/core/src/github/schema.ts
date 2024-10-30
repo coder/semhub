@@ -3,6 +3,7 @@ import gql from "graphql-tag";
 import { z } from "zod";
 
 export const getLoadRepoIssuesQuery = ({ since }: { since: Date | null }) =>
+  // use explorer to test GraphQL queries: https://docs.github.com/en/graphql/overview/explorer
   // doing this to get syntax highlighting for GraphQL queries at the cost of additional libraries
   print(gql`
   query paginate($cursor: String, $organization: String!, $repo: String!) {

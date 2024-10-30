@@ -26,7 +26,7 @@ const appId = Resource.GITHUB_APP_ID.value;
 const privateKey = Resource.GITHUB_APP_PRIVATE_KEY.value;
 const installationId = Resource.GITHUB_APP_INSTALLATION_ID.value;
 
-const coderRepos = [
+const coderRepoNames = [
   "coder",
   "vscode-coder",
   "jetbrains-coder",
@@ -50,7 +50,7 @@ const octokit = new OctokitWithGraphQLPaginate({
 
 export module GitHubRepo {
   export async function loadRepos() {
-    for (const repo of coderRepos) {
+    for (const repo of coderRepoNames) {
       const { data: repoData } = await octokit.rest.repos.get({
         owner: "coder",
         repo,
@@ -85,33 +85,30 @@ export module GitHubRepo {
     }
   }
   // eventually we can make this general
-  export async function loaderCoderReposIssues() {
+  export async function loadIssues() {
     // general strategy: one repo at a time, ensure idempotency, interruptible, minimise redoing work, update if conflict
     // - get all issues (including pull requests) and save in database one batch at a time
     // - for each repo, we save the latest updated_at, which we will use in the `since` parameter
     // - if the repo already exists in the database, we get all issues since the last updated_at
     // - for each issue we save, if it is already in database, we upsert
-    // TODO: after loading issues, we subscribe to repo webhooks to receive updates
-    // see: https://github.com/octokit/plugin-rest-endpoint-methods.js/blob/main/docs/repos/createWebhook.md
-    // https://docs.github.com/en/webhooks/webhook-events-and-payloads?actionType=opened#issues
-    outerLoop: for (const repo of coderRepos) {
-      const repoFromDb = await db
-        .select({
-          id: repos.id,
-          issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
-        })
-        .from(repos)
-        .where(and(eq(repos.owner, "coder"), eq(repos.name, repo)));
-      if (!repoFromDb[0]) {
-        throw new Error(`Repo ${repo} not found`);
-      }
-      const issuesLastUpdatedAt = repoFromDb[0].issuesLastUpdatedAt;
-      const repoId = repoFromDb[0].id;
+    const coderRepos = await db
+      .select({
+        repoId: repos.id,
+        repoName: repos.name,
+        issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
+      })
+      .from(repos)
+      .where(and(eq(repos.owner, "coder")));
+    outerLoop: for (const {
+      repoId,
+      repoName,
+      issuesLastUpdatedAt,
+    } of coderRepos) {
       const iterator = octokit.graphql.paginate.iterator(
         getLoadRepoIssuesQuery({ since: issuesLastUpdatedAt }),
         {
           organization: "coder",
-          repo,
+          repo: repoName,
           cursor: null,
         },
       );
@@ -181,12 +178,14 @@ export module GitHubRepo {
             .set({
               issuesLastUpdatedAt: lastIssueUpdatedAt,
             })
-            .where(and(eq(repos.owner, "coder"), eq(repos.name, repo)));
+            .where(eq(repos.id, repoId));
         });
-        console.log(`Loaded ${issues.length} issues for ${repo}`);
-        console.log(`Loaded ${commentsToInsert.length} comments for ${repo}`);
+        console.log(`Loaded ${issues.length} issues for ${repoName}`);
+        console.log(
+          `Loaded ${commentsToInsert.length} comments for ${repoName}`,
+        );
       }
-      console.log(`Loaded all issues for ${repo}`);
+      console.log(`Loaded all issues for ${repoName}`);
     }
   }
 }

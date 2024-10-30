@@ -3,7 +3,7 @@ import { GitHubRepo } from "@semhub/core/github/repo";
 
 try {
   await GitHubRepo.loadRepos();
-  await GitHubRepo.loaderCoderReposIssues();
+  await GitHubRepo.loadIssues();
 } catch (error) {
   console.error("error loading repos", error);
 } finally {
