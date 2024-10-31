@@ -5,13 +5,11 @@ import {
   pgEnum,
   pgTable,
   text,
-  timestamp,
+  vector,
 } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
 
-import { getBaseColumns } from "../base.sql";
-import { authorSchema, labelSchema, type Author, type Label } from "../shared";
+import { getBaseColumns, timestamptz } from "../base.sql";
+import { type Author, type Label } from "../shared";
 import { repos } from "./repo.sql";
 
 export const issueStateEnum = pgEnum("issue_state", ["OPEN", "CLOSED"]);
@@ -38,20 +36,17 @@ export const issues = pgTable(
     title: text("title").notNull(),
     body: text("body").notNull(),
     labels: jsonb("labels").$type<Label[]>(),
-    issueCreatedAt: timestamp("issue_created_at").notNull(),
-    issueUpdatedAt: timestamp("issue_updated_at").notNull(),
-    issueClosedAt: timestamp("issue_closed_at"),
+    issueCreatedAt: timestamptz("issue_created_at").notNull(),
+    issueUpdatedAt: timestamptz("issue_updated_at").notNull(),
+    issueClosedAt: timestamptz("issue_closed_at"),
+    embeddingModel: text("embedding_model"),
+    embedding: vector("embedding", { dimensions: 1536 }), // default number of dimensions
   },
   (table) => ({
     repoIdIdx: index("repo_id_idx").on(table.repoId),
+    embeddingIndex: index("embeddingIndex").using(
+      "hnsw",
+      table.embedding.op("vector_cosine_ops"),
+    ),
   }),
 );
-
-export const createIssueSchema = createInsertSchema(issues, {
-  author: authorSchema,
-  labels: z.array(labelSchema).optional(),
-}).omit({
-  id: true,
-});
-
-export type CreateIssue = z.infer<typeof createIssueSchema>;

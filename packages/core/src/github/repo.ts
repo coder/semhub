@@ -8,10 +8,8 @@ import {
   comments,
   type CreateComment,
 } from "../db/schema/entities/comment.sql";
-import {
-  issues as issueTable,
-  type CreateIssue,
-} from "../db/schema/entities/issue.sql";
+import type { CreateIssue } from "../db/schema/entities/issue.schema";
+import { issues as issueTable } from "../db/schema/entities/issue.sql";
 import { repos } from "../db/schema/entities/repo.sql";
 import type { CommentGraphql } from "./schema";
 import {

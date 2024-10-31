@@ -6,10 +6,6 @@
     "@semhub/core": "*"
   },
   "scripts": {
-    "db": "sst shell -- drizzle-kit --config=../core/drizzle.config.ts",
-    "db:generate": "sst shell -- drizzle-kit generate --config=../core/drizzle.config.ts",
-    "db:migrate": "sst shell -- drizzle-kit migrate --config=../core/drizzle.config.ts",
-    "db:push": "sst shell -- drizzle-kit push --config=../core/drizzle.config.ts",
     "shell": "sst shell tsx"
   },
   "devDependencies": {

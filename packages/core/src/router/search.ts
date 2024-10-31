@@ -9,6 +9,7 @@ const issuesSearchSchema = RouterSchema.paginationSchema.extend({
   q: z.string(),
 });
 
+// TODO: use type from database
 export type Issue = {
   id: string;
   title: string;

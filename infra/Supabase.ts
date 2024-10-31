@@ -29,6 +29,10 @@ const supabaseDbUrl = pulumi
     return poolerTransactionUrl.replace("[YOUR-PASSWORD]", password);
   });
 
+export const outputs = {
+  dbUrn: db.urn,
+};
+
 export const database = new sst.Linkable("Supabase", {
   properties: {
     projectName: db.name,

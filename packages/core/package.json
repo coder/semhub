@@ -4,7 +4,11 @@
   "type": "module",
   "scripts": {
     "test": "sst shell vitest",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "db": "sst shell -- drizzle-kit",
+    "db:generate": "sst shell -- drizzle-kit generate",
+    "db:migrate": "sst shell -- drizzle-kit migrate",
+    "db:push": "sst shell -- drizzle-kit push"
   },
   "exports": {
     "./*": [

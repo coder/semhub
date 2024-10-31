@@ -1,8 +1,8 @@
-import { jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { jsonb, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import type { z } from "zod";
 
-import { getBaseColumns } from "../base.sql";
+import { getBaseColumns, timestamptz } from "../base.sql";
 import { authorSchema, type Author } from "../shared";
 import { issues } from "./issue.sql";
 
@@ -14,8 +14,8 @@ export const comments = pgTable("comments", {
   nodeId: text("node_id").notNull().unique(),
   author: jsonb("author").$type<Author>(),
   body: text("body").notNull(),
-  commentCreatedAt: timestamp("comment_created_at").notNull(),
-  commentUpdatedAt: timestamp("comment_updated_at").notNull(),
+  commentCreatedAt: timestamptz("comment_created_at").notNull(),
+  commentUpdatedAt: timestamptz("comment_updated_at").notNull(),
 });
 
 export const createCommentSchema = createInsertSchema(comments, {
