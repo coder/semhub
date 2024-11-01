@@ -1,7 +1,7 @@
 import { allSecrets } from "./Secret";
 import { database } from "./Supabase";
 
-new sst.cloudflare.Cron("SyncRepo", {
+new sst.cloudflare.Cron("Sync", {
   job: {
     handler: "./packages/workers/src/cron.ts",
     link: [database, ...allSecrets],

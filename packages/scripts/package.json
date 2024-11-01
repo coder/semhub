@@ -6,6 +6,7 @@
     "@semhub/core": "*"
   },
   "scripts": {
+    "typecheck": "tsc --noEmit",
     "shell": "sst shell tsx"
   },
   "devDependencies": {

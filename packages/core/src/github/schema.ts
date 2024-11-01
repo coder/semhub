@@ -1,64 +1,6 @@
-import { print } from "graphql";
-import gql from "graphql-tag";
 import { z } from "zod";
 
-export const getLoadRepoIssuesQuery = ({ since }: { since: Date | null }) =>
-  // use explorer to test GraphQL queries: https://docs.github.com/en/graphql/overview/explorer
-  // doing this to get syntax highlighting for GraphQL queries at the cost of additional libraries
-  print(gql`
-  query paginate($cursor: String, $organization: String!, $repo: String!) {
-    repository(owner: $organization, name: $repo) {
-      issues(
-        first: 100
-        after: $cursor
-        orderBy: { field: UPDATED_AT, direction: ASC }
-        filterBy: { since: ${since ? `"${since.toISOString()}"` : "null"} }
-      ) {
-        nodes {
-          id
-          number
-          title
-          body
-          url
-          state
-          stateReason
-          createdAt
-          updatedAt
-          closedAt
-          author {
-            login
-            url
-          }
-          labels(first: 10) {
-            nodes {
-              id
-              name
-              color
-              description
-            }
-          }
-          comments(first: 100, orderBy: { field: UPDATED_AT, direction: ASC }) {
-            nodes {
-              id
-              author {
-                login
-                url
-              }
-              body
-              createdAt
-              updatedAt
-            }
-          }
-        }
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-      }
-    }
-  }
-`);
-
+// shape from GitHub GraphQL API
 export const loadRepoIssuesQueryAuthorSchema = z
   .object({
     login: z.string(),

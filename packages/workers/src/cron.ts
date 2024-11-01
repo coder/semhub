@@ -1,5 +1,6 @@
 import { closeConnection } from "@semhub/core/db";
-import { GitHubRepo } from "@semhub/core/github/repo";
+import { Embedding } from "@semhub/core/embedding";
+import { GitHubIssue } from "@semhub/core/github/issue";
 
 export interface Env {}
 
@@ -14,11 +15,9 @@ export default {
       switch (controller.cron) {
         // Every ten minutes
         case "*/10 * * * *":
-          await GitHubRepo.loadIssues();
+          await GitHubIssue.sync();
+          await Embedding.sync();
           console.log("loaded issues");
-          break;
-        case "*/45 * * * *":
-          // await updateAPI3();
           break;
       }
       console.log("cron processed");

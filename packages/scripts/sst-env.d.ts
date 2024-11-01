@@ -21,7 +21,7 @@ declare module "sst" {
       "region": string
       "type": "sst.sst.Linkable"
     }
-    "SyncRepoHandler": {
+    "SyncHandler": {
       "type": "sst.cloudflare.Worker"
     }
     "Web": {

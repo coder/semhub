@@ -8,6 +8,13 @@
       "when": 1730368005207,
       "tag": "0000_special_warbound",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1730369645210,
+      "tag": "0001_funny_miss_america",
+      "breakpoints": true
     }
   ]
 }

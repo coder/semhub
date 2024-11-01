@@ -41,6 +41,7 @@ export const issues = pgTable(
     issueClosedAt: timestamptz("issue_closed_at"),
     embeddingModel: text("embedding_model"),
     embedding: vector("embedding", { dimensions: 1536 }), // default number of dimensions
+    embeddingCreatedAt: timestamptz("embedding_created_at"),
   },
   (table) => ({
     repoIdIdx: index("repo_id_idx").on(table.repoId),

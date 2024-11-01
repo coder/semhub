@@ -19,6 +19,7 @@
   "dependencies": {
     "drizzle-orm": "^0.33.0",
     "drizzle-zod": "^0.5.1",
+    "effect": "^3.10.7",
     "graphql": "^16.9.0",
     "graphql-tag": "^2.12.6",
     "hono": "^4.6.5",
