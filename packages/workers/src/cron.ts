@@ -13,6 +13,11 @@ export default {
     try {
       // Write code for updating your API
       switch (controller.cron) {
+        // every minute
+        case "* * * * *":
+          console.log("every minute");
+          Embedding.sync();
+          break;
         // Every ten minutes
         case "*/10 * * * *":
           await GitHubIssue.sync();

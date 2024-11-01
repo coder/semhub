@@ -5,8 +5,19 @@ new sst.cloudflare.Cron("Sync", {
   job: {
     handler: "./packages/workers/src/cron.ts",
     link: [database, ...allSecrets],
+    transform: {
+      worker: {
+        serviceBindings: [
+          {
+            name: $app.stage === "prod" ? "RATE_LIMITER_PROD" : "RATE_LIMITER",
+            service: "rate_limiter",
+          },
+        ],
+      },
+    },
   },
-  schedules: ["*/1 * * * *"],
+  schedules: ["* * * * *"],
+  // schedules: ["*/10 * * * *"],
 });
 
 // export const outputs = {

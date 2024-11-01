@@ -1,0 +1,17 @@
+name = "rate-limiter"
+compatibility_date = "2024-10-22"             # keep in sync with @cloudflare/workers-types
+main = "packages/workers/src/rate-limiter.ts"
+
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RateLimiter"]
+
+[env.prod]
+name = "rate-limiter-prod"
+[[env.prod.durable_objects.bindings]]
+name = "RATE_LIMITER_PROD"
+class_name = "RateLimiter"

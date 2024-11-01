@@ -6,6 +6,8 @@
     "@semhub/core": "*"
   },
   "scripts": {
+    "deploy:cf": "sst shell -- tsx src/wrangler.ts deploy",
+    "deploy:cf:prod": "sst shell -- tsx src/wrangler.ts deploy --env production",
     "typecheck": "tsc --noEmit",
     "shell": "sst shell tsx"
   },

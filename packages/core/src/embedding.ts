@@ -29,13 +29,12 @@ export module Embedding {
           lt(issues.embeddingCreatedAt, issues.issueUpdatedAt), // (2)
         ),
       );
-    // TODO: rate limit to ensure calls to OpenAI are not exceeded
-    for (const issue of issuesWithOutdatedEmbedding) {
-      const res = await client.embeddings.create({
-        model: "text-embedding-3-large", // their best performing model with 3072 vector dimensions
-        input: formatIssueForEmbedding(issue),
-      });
-    }
+    // for (const issue of issuesWithOutdatedEmbedding) {
+    //   const res = await client.embeddings.create({
+    //     model: "text-embedding-3-large", // their best performing model with 3072 vector dimensions
+    //     input: formatIssueForEmbedding(issue),
+    //   });
+    // }
     // in this case, single worker call
     // const program = Console.log("Hello, World!");
     // Effect.runSync(program);
