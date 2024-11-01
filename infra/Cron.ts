@@ -16,9 +16,7 @@ new sst.cloudflare.Cron("Sync", {
       },
     },
   },
-  // every minute
-  schedules: ["* * * * *"],
-  // schedules: ["*/10 * * * *"],
+  schedules: ["*/10 * * * *"],
 });
 
 // export const outputs = {

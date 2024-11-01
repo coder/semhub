@@ -7,11 +7,12 @@ import type { IssueFieldsForEmbedding } from "./db/schema/entities/issue.schema"
 import { issues } from "./db/schema/entities/issue.sql";
 import { getOpenAIClient } from "./openai";
 import { embeddingsCreateSchema } from "./openai/schema";
+import type { RateLimiterName } from "./rate-limiter";
 import { sleep } from "./util";
 
 export module Embedding {
   export async function sync(rateLimiter?: {
-    getMillisecondsToNextRequest: (key: string) => Promise<number>;
+    getDurationToNextRequest: (key: RateLimiterName) => Promise<number>;
   }) {
     const client = getOpenAIClient();
     const db = getDrizzle();
@@ -45,41 +46,45 @@ export module Embedding {
 
     // Process issues in batches
     for (let i = 0; i < issuesWithOutdatedEmbedding.length; i += BATCH_SIZE) {
-      const batch = issuesWithOutdatedEmbedding.slice(i, i + BATCH_SIZE);
-      const embeddings = await Promise.all(
-        batch.map(async (issue) => {
-          // Rate limiting logic
-          if (rateLimiter) {
-            while (true) {
-              const millisecondsToNextRequest =
-                await rateLimiter.getMillisecondsToNextRequest(
-                  "openai_embedding",
-                );
-              if (millisecondsToNextRequest === 0) break;
-              console.log(
-                `Rate limit hit, waiting ${millisecondsToNextRequest}ms before processing issue #${issue.number}`,
-              );
-              await sleep(millisecondsToNextRequest);
-            }
-          }
-
-          const res = await client.embeddings.create({
-            model,
-            input: formatIssueForEmbedding(issue),
-          });
-          console.log(`created embedding for issue #${issue.number}`);
-          const result = embeddingsCreateSchema.safeParse(res);
-          if (!result.success) {
-            console.error("error creating embedding", result.error);
-            console.log(JSON.stringify(res, null, 2));
-            return null;
-          }
-          return {
-            issueId: issue.id,
-            embedding: result.data.data[0]!.embedding,
-          };
-        }),
+      const batchedIssues = issuesWithOutdatedEmbedding.slice(
+        i,
+        i + BATCH_SIZE,
       );
+      const embeddings: Array<{ issueId: string; embedding: number[] } | null> =
+        [];
+      for (const issue of batchedIssues) {
+        // Rate limiting logic
+        if (rateLimiter) {
+          while (true) {
+            const millisecondsToNextRequest =
+              await rateLimiter.getDurationToNextRequest(
+                "openai_text_embedding",
+              );
+            if (millisecondsToNextRequest === 0) break;
+            console.log(
+              `Rate limit hit, waiting ${millisecondsToNextRequest}ms before processing issue #${issue.number}`,
+            );
+            await sleep(millisecondsToNextRequest);
+          }
+        }
+
+        const res = await client.embeddings.create({
+          model,
+          input: formatIssueForEmbedding(issue),
+        });
+        console.log(`created embedding for issue #${issue.number}`);
+        const result = embeddingsCreateSchema.safeParse(res);
+        if (!result.success) {
+          console.error("error creating embedding", result.error);
+          console.log(JSON.stringify(res, null, 2));
+          embeddings.push(null);
+          continue;
+        }
+        embeddings.push({
+          issueId: issue.id,
+          embedding: result.data.data[0]!.embedding,
+        });
+      }
 
       // Bulk update the database with valid embeddings
       const validEmbeddings = embeddings.filter(

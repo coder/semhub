@@ -12,19 +12,17 @@ export default {
   async scheduled(
     controller: ScheduledController,
     env: Env,
-    ctx: ExecutionContext,
+    _ctx: ExecutionContext,
   ) {
     try {
       // Write code for updating your API
       switch (controller.cron) {
-        // every minute
-        // case "* * * * *":
         // Every ten minutes
         case "*/10 * * * *":
           await GitHubIssue.sync();
           console.log("synced issues");
-          //   await Embedding.sync(env.RATE_LIMITER);
-          // console.log("synced embeddings");
+          await Embedding.sync(env.RATE_LIMITER);
+          console.log("synced embeddings");
           break;
       }
       console.log("cron processed");

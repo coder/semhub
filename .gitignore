@@ -24,3 +24,6 @@ node_modules
 # built JS files
 **/dist/
 **/build/
+
+# wrangler
+.wrangler
