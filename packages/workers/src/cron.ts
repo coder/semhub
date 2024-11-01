@@ -2,7 +2,11 @@ import { closeConnection } from "@semhub/core/db";
 import { Embedding } from "@semhub/core/embedding";
 import { GitHubIssue } from "@semhub/core/github/issue";
 
-export interface Env {}
+import type RateLimiterWorker from "./rate-limiter";
+
+type Env = {
+  RATE_LIMITER: Service<RateLimiterWorker>;
+};
 
 export default {
   async scheduled(
@@ -14,15 +18,12 @@ export default {
       // Write code for updating your API
       switch (controller.cron) {
         // every minute
-        case "* * * * *":
-          console.log("every minute");
-          Embedding.sync();
-          break;
+        // case "* * * * *":
         // Every ten minutes
         case "*/10 * * * *":
           await GitHubIssue.sync();
           console.log("synced issues");
-          // await Embedding.sync();
+          //   await Embedding.sync(env.RATE_LIMITER);
           // console.log("synced embeddings");
           break;
       }

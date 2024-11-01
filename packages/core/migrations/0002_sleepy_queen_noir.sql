@@ -1,1 +1,0 @@
-ALTER TABLE "issues" ALTER COLUMN "embedding" SET DATA TYPE vector(3072);

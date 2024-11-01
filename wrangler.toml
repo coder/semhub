@@ -7,11 +7,11 @@ name = "RATE_LIMITER"
 class_name = "RateLimiter"
 
 [[migrations]]
-tag = "v1"
-new_sqlite_classes = ["RateLimiter"]
+tag = "v1"                           # tag must be unique for each entry
+new_sqlite_classes = ["RateLimiter"] # Array of new classes
 
-[env.prod]
-name = "rate-limiter-prod"
-[[env.prod.durable_objects.bindings]]
-name = "RATE_LIMITER_PROD"
-class_name = "RateLimiter"
+# [env.prod]
+# name = "rate-limiter-prod"
+# [[env.prod.durable_objects.bindings]]
+# name = "RATE_LIMITER_PROD"
+# class_name = "RateLimiter"

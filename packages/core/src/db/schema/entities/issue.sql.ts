@@ -40,7 +40,9 @@ export const issues = pgTable(
     issueUpdatedAt: timestamptz("issue_updated_at").notNull(),
     issueClosedAt: timestamptz("issue_closed_at"),
     embeddingModel: text("embedding_model"),
-    embedding: vector("embedding", { dimensions: 3072 }),
+    // max dimension of 2000 if we use HNSW index; see https://github.com/pgvector/pgvector/issues/461
+    // this means we cannot use text-embedding-3-large, which has 3072 dimensions
+    embedding: vector("embedding", { dimensions: 1536 }),
     embeddingCreatedAt: timestamptz("embedding_created_at"),
   },
   (table) => ({

@@ -1,59 +1,51 @@
 import { DurableObject, WorkerEntrypoint } from "cloudflare:workers";
 
-export interface Env {
-  COUNTERS: DurableObjectNamespace<RateLimiter>;
+interface Env {
+  RATE_LIMITER: DurableObjectNamespace<RateLimiter>;
 }
 
 // Worker
 export default class RateLimiterWorker extends WorkerEntrypoint<Env> {
-  async fetch(_: Request) {
+  async fetch(_request: Request) {
     return new Response(
-      JSON.stringify({ value: await this.getCounterValue("test") }),
+      JSON.stringify({
+        value: await this.getMillisecondsToNextRequest("openai_embedding"),
+      }),
     );
   }
 
-  async increment(name: string) {
-    let id = this.env.COUNTERS.idFromName(name);
-    let stub = this.env.COUNTERS.get(id);
-    return await stub.increment();
-  }
-
-  async decrement(name: string) {
-    let id = this.env.COUNTERS.idFromName(name);
-    let stub = this.env.COUNTERS.get(id);
-    return await stub.decrement();
-  }
-
-  async getCounterValue(name: string) {
-    let id = this.env.COUNTERS.idFromName(name);
-    let stub = this.env.COUNTERS.get(id);
-    return await stub.getCounterValue();
+  async getMillisecondsToNextRequest(rateLimiterName: string) {
+    let id = this.env.RATE_LIMITER.idFromName(rateLimiterName);
+    let stub = this.env.RATE_LIMITER.get(id);
+    // if greater than 0, wait and retry
+    return await stub.getMillisecondsToNextRequest();
   }
 }
 
+// Durable Object
 export class RateLimiter extends DurableObject {
-  async fetch(_: Request) {
-    return new Response(
-      JSON.stringify({ value: await this.getCounterValue() }),
-    );
+  // see https://platform.openai.com#free-tier-rate-limits
+  // OpenAI rate limits: requests per minute
+  // static textEmbedding3Large = 3000;
+  static textEmbedding3Large = 60;
+  textEmbedding3LargeNextAllowedTime: number;
+
+  constructor(ctx: DurableObjectState, env: Env) {
+    // future: initialize using Storage API: https://developers.cloudflare.com/durable-objects/best-practices/access-durable-objects-storage/
+    super(ctx, env);
+    this.textEmbedding3LargeNextAllowedTime = 0;
   }
 
-  async getCounterValue() {
-    let value = (await this.ctx.storage.get("value")) || 0;
-    return value;
-  }
+  async getMillisecondsToNextRequest() {
+    const now = Date.now();
+    const millisecondsPerRequest =
+      (60 * 1000) / RateLimiter.textEmbedding3Large;
 
-  async increment(amount = 1) {
-    let value: number = (await this.ctx.storage.get("value")) || 0;
-    value += amount;
-    await this.ctx.storage.put("value", value);
-    return value;
-  }
-
-  async decrement(amount = 1) {
-    let value: number = (await this.ctx.storage.get("value")) || 0;
-    value -= amount;
-    await this.ctx.storage.put("value", value);
-    return value;
+    if (now >= this.textEmbedding3LargeNextAllowedTime) {
+      // Only update the next allowed time when we're actually allowing a request
+      this.textEmbedding3LargeNextAllowedTime = now + millisecondsPerRequest;
+      return 0;
+    }
+    return this.textEmbedding3LargeNextAllowedTime - now;
   }
 }

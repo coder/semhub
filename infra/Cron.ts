@@ -9,13 +9,14 @@ new sst.cloudflare.Cron("Sync", {
       worker: {
         serviceBindings: [
           {
-            name: $app.stage === "prod" ? "RATE_LIMITER_PROD" : "RATE_LIMITER",
-            service: "rate_limiter",
+            name: "RATE_LIMITER",
+            service: "rate-limiter",
           },
         ],
       },
     },
   },
+  // every minute
   schedules: ["* * * * *"],
   // schedules: ["*/10 * * * *"],
 });

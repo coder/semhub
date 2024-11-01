@@ -21,6 +21,7 @@ const selectIssueSchema = createSelectSchema(issues).extend({
 });
 
 const selectIssueForEmbedding = selectIssueSchema.pick({
+  id: true,
   number: true,
   author: true,
   title: true,
