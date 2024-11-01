@@ -1,5 +1,6 @@
 export const secret = {
-  GithubPersonalAccessToken: new sst.Secret("GITHUB_PERSONAL_ACCESS_TOKEN"),
+  githubPersonalAccessToken: new sst.Secret("GITHUB_PERSONAL_ACCESS_TOKEN"),
+  openaiApiKey: new sst.Secret("OPENAI_API_KEY"),
 };
 
 export const allSecrets = Object.values(secret);

@@ -15,11 +15,11 @@ import {
   type CommentGraphql,
   type IssueGraphql,
 } from "./schema";
-import { getGraphQLOctokit } from "./shared";
+import { getGraphqlOctokit } from "./shared";
 
 export module GitHubIssue {
   export async function sync() {
-    const octokit = getGraphQLOctokit();
+    const octokit = getGraphqlOctokit();
     // general strategy: one repo at a time, ensure idempotency, interruptible, minimise redoing work, update if conflict
     const db = getDrizzle();
     const coderRepos = await db

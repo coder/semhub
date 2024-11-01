@@ -13,6 +13,10 @@ declare module "sst" {
       "type": "sst.cloudflare.Worker"
       "url": string
     }
+    "OPENAI_API_KEY": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "Supabase": {
       "databasePassword": string
       "databaseUrl": string

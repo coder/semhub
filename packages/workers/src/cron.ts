@@ -16,8 +16,9 @@ export default {
         // Every ten minutes
         case "*/10 * * * *":
           await GitHubIssue.sync();
-          await Embedding.sync();
-          console.log("loaded issues");
+          console.log("synced issues");
+          // await Embedding.sync();
+          // console.log("synced embeddings");
           break;
       }
       console.log("cron processed");
