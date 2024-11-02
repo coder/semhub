@@ -6,19 +6,14 @@ import { getDrizzle, isNull, lt, or } from "./db";
 import type { IssueFieldsForEmbedding } from "./db/schema/entities/issue.schema";
 import { issues } from "./db/schema/entities/issue.sql";
 import { getOpenAIClient } from "./openai";
+import { isReducePromptError } from "./openai/errors";
 import { embeddingsCreateSchema } from "./openai/schema";
 import type { RateLimiterName } from "./rate-limiter";
 import { sleep } from "./util";
 
 export module Embedding {
-  function truncateText(text: string, maxTokens: number): string {
-    // Rough approximation: 1 token ≈ 4 characters
-    // TODO: use tiktoken or similar to get a more accurate count
-    const maxChars = maxTokens * 4;
-    if (text.length <= maxChars) return text;
-    return text.slice(0, maxChars) + "...";
-  }
-
+  const TRUNCATION_MAX_ATTEMPTS = 8;
+  const TRUNCATION_FACTOR = 0.75; // after 8x retry, will be 10% of original length
   export async function sync(rateLimiter?: {
     getDurationToNextRequest: (key: RateLimiterName) => Promise<number>;
   }) {
@@ -27,7 +22,7 @@ export module Embedding {
     // cannot use large model because of max dimension of 2000 in pgvector
     // see https://github.com/pgvector/pgvector/issues/461
     const model = "text-embedding-3-small";
-    const BATCH_SIZE = 100;
+    const BATCH_SIZE = 20;
 
     // get issues where (1) embedding is null (2) embedding was created BEFORE issueUpdatedAt
     const issuesWithOutdatedEmbedding: Array<IssueFieldsForEmbedding> = await db
@@ -58,40 +53,63 @@ export module Embedding {
         i,
         i + BATCH_SIZE,
       );
-      const embeddings: Array<{ issueId: string; embedding: number[] } | null> =
-        [];
-      for (const issue of batchedIssues) {
-        try {
-          // Rate limiting logic
-          if (rateLimiter) {
-            while (true) {
-              const millisecondsToNextRequest =
-                await rateLimiter.getDurationToNextRequest(
-                  "openai_text_embedding",
+      const embeddings = await Promise.all(
+        batchedIssues.map(async (issue) => {
+          try {
+            // Rate limiting logic
+            if (rateLimiter) {
+              while (true) {
+                const millisecondsToNextRequest =
+                  await rateLimiter.getDurationToNextRequest(
+                    "openai_text_embedding",
+                  );
+                if (millisecondsToNextRequest === 0) break;
+                console.log(
+                  `Rate limit hit, waiting ${millisecondsToNextRequest}ms before processing issue #${issue.number}`,
                 );
-              if (millisecondsToNextRequest === 0) break;
-              console.log(
-                `Rate limit hit, waiting ${millisecondsToNextRequest}ms before processing issue #${issue.number}`,
-              );
-              await sleep(millisecondsToNextRequest);
+                await sleep(millisecondsToNextRequest);
+              }
             }
-          }
 
-          const res = await client.embeddings.create({
-            model,
-            input: formatIssueForEmbedding(issue),
-          });
-          console.log(`created embedding for issue #${issue.number}`);
-          const result = embeddingsCreateSchema.parse(res);
-          embeddings.push({
-            issueId: issue.id,
-            embedding: result.data[0]!.embedding,
-          });
-        } catch (error) {
-          console.error(`Failed to process issue #${issue.number}:`, error);
-          embeddings.push(null);
-        }
-      }
+            const res = await (async () => {
+              let attempt = 1;
+
+              while (attempt <= TRUNCATION_MAX_ATTEMPTS) {
+                try {
+                  return await client.embeddings.create({
+                    model,
+                    input: formatIssueForEmbedding({ ...issue, attempt }),
+                  });
+                } catch (error) {
+                  if (
+                    isReducePromptError(error) &&
+                    attempt < TRUNCATION_MAX_ATTEMPTS
+                  ) {
+                    console.log(
+                      `Retrying issue #${issue.number} with truncation attempt ${attempt + 1}`,
+                    );
+                    attempt++;
+                    continue;
+                  }
+                  throw error;
+                }
+              }
+              throw new Error(
+                `Failed to create embedding after ${TRUNCATION_MAX_ATTEMPTS} attempts`,
+              );
+            })();
+            console.log(`created embedding for issue #${issue.number}`);
+            const result = embeddingsCreateSchema.parse(res);
+            return {
+              issueId: issue.id,
+              embedding: result.data[0]!.embedding,
+            };
+          } catch (error) {
+            console.error(`Failed to process issue #${issue.number}:`, error);
+            return null;
+          }
+        }),
+      );
 
       // Bulk update the database with valid embeddings
       const validEmbeddings = embeddings.filter(
@@ -124,7 +142,7 @@ export module Embedding {
           .where(inArray(issues.id, issueIds));
       }
       console.log(
-        `Processed batch ${i / BATCH_SIZE + 1} of ${issuesWithOutdatedEmbedding.length / BATCH_SIZE}`,
+        `Processed batch ${Math.ceil(i / BATCH_SIZE + 1)} of ${Math.ceil(issuesWithOutdatedEmbedding.length / BATCH_SIZE)}`,
       );
       console.log(`${validEmbeddings.length} embeddings created`);
       console.log(
@@ -142,9 +160,10 @@ export module Embedding {
     labels,
     issueCreatedAt,
     issueClosedAt,
-  }: IssueFieldsForEmbedding): string {
+    attempt = 1,
+  }: IssueFieldsForEmbedding & { attempt: number }): string {
     // Truncate body to roughly 6000 tokens to leave room for other fields
-    const truncatedBody = truncateText(body || "", 6000);
+    const truncatedBody = truncateText(body, 6000, attempt);
 
     return (
       dedent`
@@ -162,5 +181,17 @@ export module Embedding {
     ${issueClosedAt ? `Closed At: ${issueClosedAt}` : ""}
     `
     );
+  }
+  function truncateText(
+    text: string,
+    maxTokens: number,
+    attempt: number,
+  ): string {
+    // Rough approximation: 1 token ≈ 4 characters
+    const maxChars = Math.floor(
+      maxTokens * 4 * Math.pow(TRUNCATION_FACTOR, attempt - 1),
+    );
+    if (text.length <= maxChars) return text;
+    return text.slice(0, maxChars);
   }
 }
