@@ -9,7 +9,8 @@
     "deploy:cf": "sst shell -- tsx src/wrangler.ts deploy",
     "deploy:cf:prod": "sst shell -- tsx src/wrangler.ts deploy --env production",
     "typecheck": "tsc --noEmit",
-    "shell": "sst shell tsx"
+    "shell": "sst shell -- tsx",
+    "shell:prod": "sst shell --stage prod -- tsx"
   },
   "devDependencies": {
     "tsx": "^4.7.2"

@@ -17,9 +17,8 @@ Environment variables:
 
 Secrets:
 
-- `GITHUB_APP_ID`: GitHub App ID for the `coder/semhub` GitHub App
-- `GITHUB_APP_PRIVATE_KEY`: GitHub App private key; to save this as a single string, you must (1) keep the header and footer `-----BEGIN RSA PRIVATE KEY-----` and `-----END RSA PRIVATE KEY-----` and (2) concatenate the lines and replace the newlines with `\n`
-- `GITHUB_APP_INSTALLATION_ID`: GitHub App installation ID. You can install the app on your user or your organization. The installation ID is in the URL of the installation page (i.e. `https://github.com/settings/installations/{installation_id}`)
+- `GITHUB_PERSONAL_ACCESS_TOKEN`
+- `OPEN_API_KEY`
 
 Make a copy of `.secrets.example` and name it `.secrets` and a copy of `.env.example` and name it `.env` and fill in the values above. To load the secrets into SST, run `bun secret:load`.
 
@@ -58,11 +57,8 @@ packages to start with and you can add more it.
 3. `scripts/`
 
    This is for any scripts that you can run on your SST app using the
-   `sst shell` CLI and [`tsx`](https://www.npmjs.com/package/tsx). For example,
-   you can run the example script using:
+   `sst shell` CLI and [`tsx`](https://www.npmjs.com/package/tsx).
 
-   ```bash
-   npm run shell src/example.ts
    ```
 
 ### Infrastructure
@@ -70,5 +66,18 @@ packages to start with and you can add more it.
 The `infra/` directory allows you to logically split the infrastructure of your
 app into separate files. This can be helpful as your app grows.
 
-In the template, we have an `api.ts`, and `storage.ts`. These export the created
-resources. And are imported in the `sst.config.ts`.
+## Deployment
+
+Right now, deployment is manual. Eventually, will set up GitHub Actions to automate this.
+
+### Deploying to prod
+
+- Deploy Cloudflare resources via `wrangler`. If deploying for the first time, these should be run before the SST deployment as the latter resources are linked to them. From `scripts` folder, run: `bun deploy:cf`.
+  - We are using `wrangler` to deploy Durable Objects, which act as a limiter, because the same cannot be deployed via SST/Pulumi yet. (`wrangler.toml` also provides much configurability relative to SST, which is not mature yet.)
+  - Currently, we are using the same rate limiter for dev and prod, which is not ideal, but it also makes sense since I'm using the same API key (and OpenAI account) for both dev and prod.
+- First, ensure SST secrets are loaded. From root folder, run `bun secret:load:prod`. Then, deploy SST resources by running `deploy:prod`.
+- Run database migrations on prod. From `core` folder, run: `bun db:migrate:prod`. Then, from `scripts` folder, run `bun shell:prod src/init.ts` to load data into the prod db.
+
+## Misc dev notes
+
+When bulk inserting using Drizzle, make sure that the array in `values()` is not empty. Hence the various checks to either early return if the array is empty or making such insertions conditional. If we accidentally pass an empty array, an error will be thrown, disrupting the control flow. TODO: enforce this by using ESLint?

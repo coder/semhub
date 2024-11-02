@@ -8,6 +8,7 @@
     "db": "sst shell -- drizzle-kit",
     "db:generate": "sst shell -- drizzle-kit generate",
     "db:migrate": "sst shell -- drizzle-kit migrate",
+    "db:migrate:prod": "sst shell --stage prod -- drizzle-kit migrate",
     "db:push": "sst shell -- drizzle-kit push"
   },
   "exports": {

@@ -14,8 +14,6 @@ new_sqlite_classes = ["RateLimiter"] # Array of new classes
 enabled = true
 head_sampling_rate = 0.9
 
-# currently, Cloudflare resources deployed via wrangler are shared on both prod and dev
-# this is not great, will properly separate in the future?
 # [env.prod]
 # name = "rate-limiter-prod"
 # [[env.prod.durable_objects.bindings]]
