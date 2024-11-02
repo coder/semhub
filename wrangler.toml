@@ -10,6 +10,10 @@ class_name = "RateLimiter"
 tag = "v1"                           # tag must be unique for each entry
 new_sqlite_classes = ["RateLimiter"] # Array of new classes
 
+[observability]
+enabled = true
+head_sampling_rate = 0.9
+
 # [env.prod]
 # name = "rate-limiter-prod"
 # [[env.prod.durable_objects.bindings]]

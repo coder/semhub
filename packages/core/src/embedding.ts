@@ -11,6 +11,14 @@ import type { RateLimiterName } from "./rate-limiter";
 import { sleep } from "./util";
 
 export module Embedding {
+  function truncateText(text: string, maxTokens: number): string {
+    // Rough approximation: 1 token ≈ 4 characters
+    // TODO: use tiktoken or similar to get a more accurate count
+    const maxChars = maxTokens * 4;
+    if (text.length <= maxChars) return text;
+    return text.slice(0, maxChars) + "...";
+  }
+
   export async function sync(rateLimiter?: {
     getDurationToNextRequest: (key: RateLimiterName) => Promise<number>;
   }) {
@@ -53,37 +61,36 @@ export module Embedding {
       const embeddings: Array<{ issueId: string; embedding: number[] } | null> =
         [];
       for (const issue of batchedIssues) {
-        // Rate limiting logic
-        if (rateLimiter) {
-          while (true) {
-            const millisecondsToNextRequest =
-              await rateLimiter.getDurationToNextRequest(
-                "openai_text_embedding",
+        try {
+          // Rate limiting logic
+          if (rateLimiter) {
+            while (true) {
+              const millisecondsToNextRequest =
+                await rateLimiter.getDurationToNextRequest(
+                  "openai_text_embedding",
+                );
+              if (millisecondsToNextRequest === 0) break;
+              console.log(
+                `Rate limit hit, waiting ${millisecondsToNextRequest}ms before processing issue #${issue.number}`,
               );
-            if (millisecondsToNextRequest === 0) break;
-            console.log(
-              `Rate limit hit, waiting ${millisecondsToNextRequest}ms before processing issue #${issue.number}`,
-            );
-            await sleep(millisecondsToNextRequest);
+              await sleep(millisecondsToNextRequest);
+            }
           }
-        }
 
-        const res = await client.embeddings.create({
-          model,
-          input: formatIssueForEmbedding(issue),
-        });
-        console.log(`created embedding for issue #${issue.number}`);
-        const result = embeddingsCreateSchema.safeParse(res);
-        if (!result.success) {
-          console.error("error creating embedding", result.error);
-          console.log(JSON.stringify(res, null, 2));
+          const res = await client.embeddings.create({
+            model,
+            input: formatIssueForEmbedding(issue),
+          });
+          console.log(`created embedding for issue #${issue.number}`);
+          const result = embeddingsCreateSchema.parse(res);
+          embeddings.push({
+            issueId: issue.id,
+            embedding: result.data[0]!.embedding,
+          });
+        } catch (error) {
+          console.error(`Failed to process issue #${issue.number}:`, error);
           embeddings.push(null);
-          continue;
         }
-        embeddings.push({
-          issueId: issue.id,
-          embedding: result.data.data[0]!.embedding,
-        });
       }
 
       // Bulk update the database with valid embeddings
@@ -136,10 +143,13 @@ export module Embedding {
     issueCreatedAt,
     issueClosedAt,
   }: IssueFieldsForEmbedding): string {
+    // Truncate body to roughly 6000 tokens to leave room for other fields
+    const truncatedBody = truncateText(body || "", 6000);
+
     return (
       dedent`
     Issue #${number}: ${title}
-    Body: ${body}
+    Body: ${truncatedBody}
     ${labels ? `Labels: ${labels.map((label) => `${label.name}${label.description ? ` (${label.description})` : ""}`).join(", ")}` : ""}
     ` +
       // the following are "metadata" fields, but including them because conceivably
