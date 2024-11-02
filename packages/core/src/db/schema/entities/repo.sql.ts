@@ -13,7 +13,7 @@ export const repos = pgTable(
     nodeId: text("node_id").notNull().unique(),
     htmlUrl: text("html_url").notNull(),
     isPrivate: boolean("is_private").notNull(),
-    issuesLastUpdatedAt: timestamptz("issues_last_updated_at"), // if null, it means issues have not been loaded for this repo yet
+    issuesLastUpdatedAt: timestamptz("issues_last_updated_at"), // if null, it means issues have not been inserted for this repo yet
   },
   (table) => ({
     // probably could be unique index, but small chance that org / repo names can change

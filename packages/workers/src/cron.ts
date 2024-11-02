@@ -16,9 +16,11 @@ export default {
   ) {
     try {
       // Write code for updating your API
+      console.log("cron is:", controller.cron);
       switch (controller.cron) {
         // Every ten minutes
         case "*/10 * * * *":
+          console.log("matched!");
           await GitHubIssue.sync();
           console.log("synced issues");
           await Embedding.sync(env.RATE_LIMITER);

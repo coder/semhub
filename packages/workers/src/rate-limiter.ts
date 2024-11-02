@@ -1,4 +1,7 @@
-import type { RateLimiterName } from "@semhub/core/rate-limiter";
+import {
+  getRateLimits,
+  type RateLimiterName,
+} from "@semhub/core/constants/rate-limit";
 import { DurableObject, WorkerEntrypoint } from "cloudflare:workers";
 
 interface Env {
@@ -7,29 +10,24 @@ interface Env {
 
 // Worker
 export default class RateLimiterWorker extends WorkerEntrypoint<Env> {
+  // just for testing, not used in practice
   async fetch(_request: Request) {
     return new Response(
       JSON.stringify({
-        value: await this.getDurationToNextRequest("openai_text_embedding"),
+        value: await this.getDurationToNextRequest(
+          "openai-text-embedding-3-small",
+        ),
       }),
     );
   }
 
-  // in milliseconds
-  // if greater than 0, caller should sleep and try again
+  // in milliseconds. if greater than 0, caller should sleep and try again
   async getDurationToNextRequest(rateLimiterName: RateLimiterName) {
     const id = this.env.RATE_LIMITER.idFromName(rateLimiterName);
     const stub = this.env.RATE_LIMITER.get(id);
-    switch (rateLimiterName) {
-      case "openai_text_embedding":
-        // OpenAI rate limits: requests per minute
-        // see https://platform.openai.com#free-tier-rate-limits
-        stub.setRequestsPerMinute(3000);
-        break;
-      default:
-        rateLimiterName satisfies never;
-        throw new Error(`Unknown rate limiter name: ${rateLimiterName}`);
-    }
+    // TODO: implement TPM rate limit. let's see whether we hit this in practice?
+    const { rpm } = getRateLimits(rateLimiterName);
+    stub.setRequestsPerMinute(rpm);
     return await stub.getDurationToNextRequest();
   }
 }

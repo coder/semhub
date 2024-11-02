@@ -78,7 +78,7 @@ export module GitHubIssue {
                 "createdAt",
               ]),
             });
-          const issueIds = await tx.$with("issue_ids").as(
+          const issueIds = tx.$with("issue_ids").as(
             tx
               .select({
                 id: issueTable.id,
@@ -92,18 +92,20 @@ export module GitHubIssue {
               issueId: sql<string>`((SELECT id FROM issue_ids WHERE node_id = ${issueNodeId}))`,
             }),
           );
-          await tx
-            .with(issueIds)
-            .insert(comments)
-            .values(commentsToInsertWithIssueId)
-            .onConflictDoUpdate({
-              target: [comments.nodeId],
-              set: conflictUpdateAllExcept(comments, [
-                "nodeId",
-                "id",
-                "createdAt",
-              ]),
-            });
+          if (commentsToInsertWithIssueId.length > 0) {
+            await tx
+              .with(issueIds)
+              .insert(comments)
+              .values(commentsToInsertWithIssueId)
+              .onConflictDoUpdate({
+                target: [comments.nodeId],
+                set: conflictUpdateAllExcept(comments, [
+                  "nodeId",
+                  "id",
+                  "createdAt",
+                ]),
+              });
+          }
           await tx
             .update(repos)
             .set({
@@ -111,12 +113,12 @@ export module GitHubIssue {
             })
             .where(eq(repos.id, repoId));
         });
-        console.log(`Loaded ${issues.length} issues for ${repoName}`);
+        console.log(`Synced ${issues.length} issues for ${repoName}`);
         console.log(
-          `Loaded ${commentsToInsert.length} comments for ${repoName}`,
+          `Synced ${commentsToInsert.length} comments for ${repoName}`,
         );
       }
-      console.log(`Loaded all issues for ${repoName}`);
+      console.log(`Synced all issues for ${repoName}`);
     }
   }
   function mapToCreateIssue(issue: IssueGraphql, repoId: string): CreateIssue {
