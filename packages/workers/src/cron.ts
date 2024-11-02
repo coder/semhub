@@ -20,7 +20,7 @@ export default {
       switch (controller.cron) {
         // Every ten minutes
         case "*/10 * * * *":
-          console.log("matched!");
+          console.log("startig cron job");
           await GitHubIssue.sync();
           console.log("synced issues");
           await Embedding.sync(env.RATE_LIMITER);

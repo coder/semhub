@@ -1,9 +1,8 @@
 import dedent from "dedent";
 import type { SQL } from "drizzle-orm";
-import { inArray, sql } from "drizzle-orm";
 
 import type { RateLimiterName } from "./constants/rate-limit";
-import { getDrizzle, isNull, lt, or } from "./db";
+import { and, getDrizzle, inArray, isNull, lt, or, sql } from "./db";
 import type { IssueFieldsForEmbedding } from "./db/schema/entities/issue.schema";
 import { issues } from "./db/schema/entities/issue.sql";
 import { getOpenAIClient } from "./openai";
@@ -12,10 +11,10 @@ import { embeddingsCreateSchema } from "./openai/schema";
 import { sleep } from "./util";
 
 export module Embedding {
-  const TRUNCATION_MAX_ATTEMPTS = 8;
   export async function sync(rateLimiter?: {
     getDurationToNextRequest: (key: RateLimiterName) => Promise<number>;
   }) {
+    const TRUNCATION_MAX_ATTEMPTS = 8;
     const client = getOpenAIClient();
     const db = getDrizzle();
     // cannot use large model because of max dimension of 2000 in pgvector
@@ -39,7 +38,7 @@ export module Embedding {
     // Process issues in batches
     for (let i = 0; i < issueIds.length; i += BATCH_SIZE) {
       const batchIds = issueIds.slice(i, i + BATCH_SIZE);
-
+      if (batchIds.length === 0) continue;
       // Now lock only the batch we're processing
       await db.transaction(async (tx) => {
         const batchedIssues = await tx
@@ -57,13 +56,27 @@ export module Embedding {
           })
           .from(issues)
           .where(
-            inArray(
-              issues.id,
-              batchIds.map((b) => b.id),
+            and(
+              inArray(
+                issues.id,
+                batchIds.map((b) => b.id),
+              ),
+              // adding this in case there is race condition
+              // not strictly necessary
+              or(
+                isNull(issues.embedding),
+                lt(issues.embeddingCreatedAt, issues.issueUpdatedAt),
+              ),
             ),
           )
           .for("update");
 
+        if (batchedIssues.length === 0) {
+          console.log(
+            "No issues to process in this batch, likely race condition, skipping processing",
+          );
+          return;
+        }
         const embeddings = await Promise.all(
           batchedIssues.map(async (issue) => {
             try {
@@ -126,32 +139,36 @@ export module Embedding {
         const validEmbeddings = embeddings.filter(
           (e): e is NonNullable<typeof e> => e !== null,
         );
-        if (validEmbeddings.length > 0) {
-          const sqlChunks: SQL[] = [];
-          const issueIds: string[] = [];
-
-          sqlChunks.push(sql`(case`);
-
-          for (const e of validEmbeddings) {
-            sqlChunks.push(
-              sql`when ${issues.id} = ${e.issueId} then '[${sql.raw(e.embedding.join(","))}]'::vector`,
-            );
-            issueIds.push(e.issueId);
-          }
-
-          sqlChunks.push(sql`end)`);
-
-          const embeddingSql = sql.join(sqlChunks, sql.raw(" "));
-
-          await tx
-            .update(issues)
-            .set({
-              embedding: embeddingSql,
-              embeddingModel: model,
-              embeddingCreatedAt: new Date(),
-            })
-            .where(inArray(issues.id, issueIds));
+        if (validEmbeddings.length === 0) {
+          console.log(
+            "No valid embeddings to process in this batch, skipping update",
+          );
+          return;
         }
+        const sqlChunks: SQL[] = [];
+        const issueIdArray: string[] = [];
+
+        sqlChunks.push(sql`(case`);
+
+        for (const e of validEmbeddings) {
+          sqlChunks.push(
+            sql`when ${issues.id} = ${e.issueId} then '[${sql.raw(e.embedding.join(","))}]'::vector`,
+          );
+          issueIdArray.push(e.issueId);
+        }
+
+        sqlChunks.push(sql`end)`);
+
+        const embeddingSql = sql.join(sqlChunks, sql.raw(" "));
+
+        await tx
+          .update(issues)
+          .set({
+            embedding: embeddingSql,
+            embeddingModel: model,
+            embeddingCreatedAt: new Date(),
+          })
+          .where(inArray(issues.id, issueIdArray));
         console.log(
           `Processed batch ${Math.ceil(i / BATCH_SIZE + 1)} of ${Math.ceil(issueIds.length / BATCH_SIZE)}`,
         );
@@ -196,10 +213,10 @@ export module Embedding {
   }
   function truncateText(text: string, attempt: number): string {
     // DISCUSSION:
-    // could use a tokenizer to more accurately measure token length, e.g. https://github.com/dqbd/tiktoken
-    // could
+    // - could use a tokenizer to more accurately measure token length, e.g. https://github.com/dqbd/tiktoken
+    // - alternatively, the error returned by OpenAI also tells you how many token it is and hence how much it needs to be reduced
     const TRUNCATION_FACTOR = 0.75; // after 8x retry, will be 10% of original length
-    const TRUNCATION_MAX_TOKENS = 6000;
+    const TRUNCATION_MAX_TOKENS = 6000; // somewhat arbitrary
     // Rough approximation: 1 token ≈ 4 characters
     // currently, it seem like issues that have huge blocks of code and logs are being tokenized very differently from this heuristic
     const maxChars = Math.floor(
