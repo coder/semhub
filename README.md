@@ -30,11 +30,11 @@ packages to start with and you can add more it.
 
 1. `core/`
 
-   This is for any shared code. It's defined as modules. For example, there's
-   the `Example` module.
+   This is for any shared code. It's defined as namespaces. For example, there's
+   the `Example` namespace.
 
    ```ts
-   export module Example {
+   export namespace Example {
      export function hello() {
        return "Hello, world!";
      }

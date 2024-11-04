@@ -10,7 +10,7 @@ import { isReducePromptError } from "./openai/errors";
 import { embeddingsCreateSchema } from "./openai/schema";
 import { sleep } from "./util";
 
-export module Embedding {
+export namespace Embedding {
   export async function sync(rateLimiter?: {
     getDurationToNextRequest: (key: RateLimiterName) => Promise<number>;
   }) {

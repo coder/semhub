@@ -5,7 +5,7 @@ import { HTTPException } from "hono/http-exception";
 import type { RouterSchema } from "./router/schema";
 import { searchRouter } from "./router/search";
 
-export module Router {
+export namespace Router {
   export interface Context extends Env {
     Variables: {
       // user: User | null;

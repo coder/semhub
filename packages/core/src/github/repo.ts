@@ -15,7 +15,7 @@ const coderRepoNames = [
 // for testing
 // const coderRepos = ["nexus"];
 
-export module GitHubRepo {
+export namespace GitHubRepo {
   export async function load() {
     const octokit = getRestOctokit();
     const db = getDrizzle();

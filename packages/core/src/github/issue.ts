@@ -17,7 +17,7 @@ import {
 } from "./schema";
 import { getGraphqlOctokit } from "./shared";
 
-export module GitHubIssue {
+export namespace GitHubIssue {
   export async function sync() {
     const octokit = getGraphqlOctokit();
     // general strategy: one repo at a time, ensure idempotency, interruptible, minimise redoing work, update if conflict
