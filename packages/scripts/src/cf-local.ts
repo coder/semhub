@@ -1,3 +1,5 @@
+// run this script to test Cloudflare Workers functionality locally
+
 import { closeConnection } from "@semhub/core/db";
 import { Embedding } from "@semhub/core/embedding";
 
@@ -11,7 +13,7 @@ const rateLimiter = {
 };
 
 try {
-  await Embedding.sync(rateLimiter);
+  await Embedding.syncIssues(rateLimiter);
 } catch (error) {
   console.error("error:", error);
 } finally {

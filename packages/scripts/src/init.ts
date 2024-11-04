@@ -6,7 +6,7 @@ import { GitHubRepo } from "@semhub/core/github/repo";
 try {
   await GitHubRepo.load();
   await GitHubIssue.sync();
-  await Embedding.sync();
+  await Embedding.syncIssues();
 } catch (error) {
   console.error("init error", error);
 } finally {

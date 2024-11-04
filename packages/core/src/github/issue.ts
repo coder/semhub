@@ -18,6 +18,8 @@ import {
 import { getGraphqlOctokit } from "./shared";
 
 export namespace GitHubIssue {
+  // TODO: add rate limiter for calling GitHub API?
+  // TODO: add embedding sync logic to this function to ensure eventual consistency
   export async function sync() {
     const octokit = getGraphqlOctokit();
     // general strategy: one repo at a time, ensure idempotency, interruptible, minimise redoing work, update if conflict

@@ -20,11 +20,10 @@ export default {
       switch (controller.cron) {
         // Every ten minutes
         case "*/10 * * * *":
-          console.log("startig cron job");
+          console.log("sync issues and embeddings");
           await GitHubIssue.sync();
-          console.log("synced issues");
-          await Embedding.sync(env.RATE_LIMITER);
-          console.log("synced embeddings");
+          await Embedding.syncIssues(env.RATE_LIMITER);
+          console.log("done syncing issues and embeddings");
           break;
       }
       console.log("cron processed");

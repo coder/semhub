@@ -11,7 +11,7 @@ import { embeddingsCreateSchema } from "./openai/schema";
 import { sleep } from "./util";
 
 export namespace Embedding {
-  export async function sync(rateLimiter?: {
+  export async function syncIssues(rateLimiter?: {
     getDurationToNextRequest: (key: RateLimiterName) => Promise<number>;
   }) {
     const TRUNCATION_MAX_ATTEMPTS = 8;
@@ -34,6 +34,7 @@ export namespace Embedding {
       );
 
     console.log(`${issueIds.length} issues to process`);
+    // TODO: in future, add these issues to a queue and process them in separate workers to prevent timeout
 
     // Process issues in batches
     for (let i = 0; i < issueIds.length; i += BATCH_SIZE) {
