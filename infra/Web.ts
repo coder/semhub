@@ -1,7 +1,7 @@
 import { apiUrl } from "./Api";
 import { domain } from "./Dns";
 
-const web = new sst.cloudflare.StaticSite("Web", {
+const web = new sst.aws.StaticSite("Web", {
   path: "packages/web",
   environment: {
     VITE_API_URL: apiUrl.apply((url) => {
@@ -15,19 +15,38 @@ const web = new sst.cloudflare.StaticSite("Web", {
     command: "vite build",
     output: "./dist",
   },
-  domain,
+  domain: {
+    dns: false,
+    name: domain,
+    cert: "arn:aws:acm:us-east-1:522745012037:certificate/e21a712d-8ba1-418d-b04a-2504614ab453",
+  },
+  // domain: {
+  //   name: domain,
+  //   dns: sst.cloudflare.dns(),
+  // },
 });
+
 // not officially launched and not really working, to switch over when it is?
 // const web = new sst.cloudflare.StaticSite("Web", {
-//   // TODO: domain and DNS stuf
-//   path: "packages/web",
-//   environment: {},
+//  path: "packages/web",
+//   environment: {
+//     VITE_API_URL: apiUrl.apply((url) => {
+//       if (typeof url !== "string") {
+//         throw new Error("API URL must be a string");
+//       }
+//       return url;
+//     }),
+//   },
 //   build: {
 //     command: "vite build",
 //     output: "./dist",
 //   },
+//   domain: {
+//     name: domain,
+//     dns: sst.cloudflare.dns(),
+//   },
 // });
 
 export const outputs = {
-  web: web.url,
+  url: web.url,
 };
