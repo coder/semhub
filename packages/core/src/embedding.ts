@@ -94,7 +94,7 @@ export namespace Embedding {
         ),
       );
 
-    console.log(`${issueIds.length} issues to process`);
+    console.log(`${issueIds.length} issues with missing/outdated embeddings`);
     // TODO: in future, add these issues to a queue and process them in separate workers to prevent timeout
 
     // Process issues in batches

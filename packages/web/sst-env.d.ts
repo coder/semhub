@@ -29,7 +29,7 @@ declare module "sst" {
       "type": "sst.cloudflare.Worker"
     }
     "Web": {
-      "type": "sst.aws.StaticSite"
+      "type": "sst.cloudflare.StaticSite"
       "url": string
     }
   }

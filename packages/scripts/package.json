@@ -7,7 +7,7 @@
   },
   "scripts": {
     "deploy:cf": "sst shell -- bun src/wrangler.ts deploy",
-    "deploy:cf:prod": "sst shell -- bun src/wrangler.ts deploy --env production",
+    "deploy:cf:prod": "sst shell -- bun src/wrangler.ts deploy --env prod",
     "typecheck": "tsc --noEmit",
     "shell": "sst shell -- bun",
     "shell:prod": "sst shell --stage prod -- bun"

@@ -23,7 +23,7 @@ declare module "sst" {
       "type": "sst.sst.Linkable"
     }
     "Web": {
-      "type": "sst.aws.StaticSite"
+      "type": "sst.cloudflare.StaticSite"
       "url": string
     }
   }

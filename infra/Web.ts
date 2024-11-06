@@ -1,6 +1,7 @@
 import { apiUrl } from "./Api";
+import { domain } from "./Dns";
 
-const web = new sst.aws.StaticSite("Web", {
+const web = new sst.cloudflare.StaticSite("Web", {
   path: "packages/web",
   environment: {
     VITE_API_URL: apiUrl.apply((url) => {
@@ -14,6 +15,7 @@ const web = new sst.aws.StaticSite("Web", {
     command: "vite build",
     output: "./dist",
   },
+  domain,
 });
 // not officially launched and not really working, to switch over when it is?
 // const web = new sst.cloudflare.StaticSite("Web", {
