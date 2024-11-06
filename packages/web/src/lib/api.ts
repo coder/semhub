@@ -2,7 +2,9 @@ import type { ApiRoutes } from "@/workers/server";
 import { ErrorResponse, isErrorResponse } from "@/workers/server/response";
 import { hc, type InferResponseType } from "hono/client";
 
-const client = hc<ApiRoutes>("/", {
+const apiUrl = import.meta.env.VITE_API_URL;
+
+const client = hc<ApiRoutes>(apiUrl, {
   // TODO: auth
   // fetch: (input: RequestInfo | URL, init?: RequestInit) =>
   //   fetch(input, {

@@ -1,6 +1,7 @@
 import type RateLimiterWorker from "@/rate-limiter";
 import { Hono } from "hono";
 import type { Env } from "hono";
+import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 
 import type { ErrorResponse } from "./response";
@@ -18,7 +19,8 @@ export interface Context extends Env {
 
 export const app = new Hono<Context>();
 
-// TODO: set up auth and CORS
+// TODO: set up auth
+app.use("*", cors());
 
 const routes = app.basePath("/api").route("/search", searchRouter);
 

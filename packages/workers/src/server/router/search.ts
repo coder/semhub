@@ -17,7 +17,10 @@ export const searchRouter = new Hono<Context>().get(
   async (c) => {
     const { q: query, p: pageNumber } = c.req.valid("query");
     const pageSize = 30;
-    const issues = await Embedding.findSimilarIssues({ query });
+    const issues = await Embedding.findSimilarIssues({
+      query,
+      rateLimiter: c.env.RATE_LIMITER,
+    });
 
     const totalResults = issues.length;
     // infer type from data in future
