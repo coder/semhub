@@ -2,10 +2,10 @@ import { Hono } from "hono";
 import type { Env } from "hono";
 import { HTTPException } from "hono/http-exception";
 
-import type { RouterSchema } from "./router/schema";
+import type { Response } from "./response";
 import { searchRouter } from "./router/search";
 
-export namespace Router {
+export namespace Server {
   export interface Context extends Env {
     Variables: {
       // user: User | null;
@@ -25,7 +25,7 @@ export namespace Router {
     if (err instanceof HTTPException) {
       const errResponse =
         err.res ??
-        c.json<RouterSchema.ErrorResponse>(
+        c.json<Response.ErrorResponse>(
           {
             success: false,
             error: err.message,
@@ -38,7 +38,7 @@ export namespace Router {
         );
       return errResponse;
     }
-    return c.json<RouterSchema.ErrorResponse>(
+    return c.json<Response.ErrorResponse>(
       {
         success: false,
         error:

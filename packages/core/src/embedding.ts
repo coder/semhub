@@ -180,6 +180,8 @@ export namespace Embedding {
       });
     }
   }
+  /* Alternate way to format issue for embedding */
+  /* Instead of truncating the body repeatedly, we could pass the body into a LLM and obtain a summary. Then, we pass the summary into the embedding API instead. */
   function formatIssueForEmbedding({
     number,
     author,

@@ -1,8 +1,8 @@
-import type { Router } from "@semhub/core/router";
-import { RouterSchema } from "@semhub/core/router/schema";
+import type { Server } from "@semhub/core/server";
+import { Response } from "@semhub/core/server/response";
 import { hc, type InferResponseType } from "hono/client";
 
-const client = hc<Router.ApiRoutes>("/", {
+const client = hc<Server.ApiRoutes>("/", {
   // TODO: auth
   // fetch: (input: RequestInfo | URL, init?: RequestInit) =>
   //   fetch(input, {
@@ -28,8 +28,8 @@ export const searchIssues = async ({
   if (!res.ok) {
     const data = (await res.json()) as
       | SearchIssuesResponse
-      | RouterSchema.ErrorResponse;
-    if (RouterSchema.isErrorResponse(data)) {
+      | Response.ErrorResponse;
+    if (Response.isErrorResponse(data)) {
       throw new Error(data.error);
     }
     throw new Error("Unknown error");

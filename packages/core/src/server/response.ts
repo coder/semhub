@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export namespace RouterSchema {
+export namespace Response {
   export type SuccessResponse<T = void> = {
     success: true;
     message: string;
