@@ -11,9 +11,10 @@ You also need the following environment variables (see `.env.example`) and secre
 
 Environment variables:
 
-- `CLOUDFLARE_API_TOKEN`: Cloudflare API token to deploy Cloudflare workers and manage DNS
-- `SUPABASE_ACCESS_TOKEN`: we use Supabase as our database, you can get this from the Supabase dashboard
-- `SUPABASE_ORG_ID`: needed as part of IaC to create the Supabase project
+- `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare [account ID](https://developers.cloudflare.com/fundamentals/setup/find-account-and-zone-ids/).
+- `CLOUDFLARE_API_TOKEN`: Cloudflare API token to deploy Cloudflare workers and manage DNS.
+- `SUPABASE_ACCESS_TOKEN`: We use Supabase as our database, you can generate this from the Supabase dashboard, under `Dashboard > Account > Access tokens > Generate new token`.
+- `SUPABASE_ORG_ID`: Needed as part of IaC to create the Supabase project. You can find it in the URL of the Supabase dashboard when selecting your organization, i.e. `https://supabase.com/dashboard/org/{SUPABASE_ORG_ID}/general`
 
 Secrets:
 
@@ -57,7 +58,7 @@ packages to start with and you can add more it.
 3. `scripts/`
 
    This is for any scripts that you can run on your SST app using the
-   `sst shell` CLI and [`tsx`](https://www.npmjs.com/package/tsx).
+   `sst shell` CLI.
 
    ```
 

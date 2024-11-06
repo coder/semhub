@@ -1,5 +1,4 @@
 import { execSync } from "child_process";
-import { Resource } from "sst/resource";
 
 async function deploy() {
   // Get command line arguments
@@ -7,8 +6,10 @@ async function deploy() {
   console.log(`Running wrangler ${wranglerArgs}`);
 
   try {
-    execSync(`export CLOUDFLARE_API_TOKEN=${process.env.CLOUDFLARE_API_TOKEN}`);
-    execSync(`wrangler ${wranglerArgs}`, { stdio: "inherit" });
+    execSync(
+      `CF_ACCOUNT_ID=${process.env.CF_ACCOUNT_ID} CF_API_TOKEN=${process.env.CLOUDFLARE_API_TOKEN} wrangler ${wranglerArgs}`,
+      { stdio: "inherit" },
+    );
     console.log("Done!");
   } catch (error) {
     console.error("Error:", error);
