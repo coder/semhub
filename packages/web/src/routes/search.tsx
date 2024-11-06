@@ -52,7 +52,11 @@ function SearchResults() {
       {/* <SortBar sortBy={sortBy} order={order} /> */}
       <div className="space-y-4">
         {data?.pages.map((page) =>
-          page.data.map((issue) => <div key={issue.id}>{issue.title}</div>),
+          page.data.map((issue) => (
+            <div key={issue.id}>
+              <a href={issue.url}>{issue.title}</a>
+            </div>
+          )),
         )}
       </div>
       <div className="mt-6">

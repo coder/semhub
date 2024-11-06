@@ -1,8 +1,8 @@
-import type { Server } from "@semhub/core/server";
-import { Response } from "@semhub/core/server/response";
+import type { ApiRoutes } from "@/workers/server";
+import { ErrorResponse, isErrorResponse } from "@/workers/server/response";
 import { hc, type InferResponseType } from "hono/client";
 
-const client = hc<Server.ApiRoutes>("/", {
+const client = hc<ApiRoutes>("/", {
   // TODO: auth
   // fetch: (input: RequestInfo | URL, init?: RequestInit) =>
   //   fetch(input, {
@@ -26,10 +26,8 @@ export const searchIssues = async ({
     },
   });
   if (!res.ok) {
-    const data = (await res.json()) as
-      | SearchIssuesResponse
-      | Response.ErrorResponse;
-    if (Response.isErrorResponse(data)) {
+    const data = (await res.json()) as SearchIssuesResponse | ErrorResponse;
+    if (isErrorResponse(data)) {
       throw new Error(data.error);
     }
     throw new Error("Unknown error");

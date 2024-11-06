@@ -1,8 +1,18 @@
 import dedent from "dedent";
 import type { SQL } from "drizzle-orm";
 
-import type { RateLimiterName } from "./constants/rate-limit";
-import { and, getDrizzle, inArray, isNull, lt, or, sql } from "./db";
+import { EMBEDDING_MODEL, type RateLimiter } from "./constants/rate-limit";
+import {
+  and,
+  cosineDistance,
+  getDrizzle,
+  gt,
+  inArray,
+  isNull,
+  lt,
+  or,
+  sql,
+} from "./db";
 import type { IssueFieldsForEmbedding } from "./db/schema/entities/issue.schema";
 import { issues } from "./db/schema/entities/issue.sql";
 import { getOpenAIClient } from "./openai";
@@ -11,17 +21,68 @@ import { embeddingsCreateSchema } from "./openai/schema";
 import { sleep } from "./util";
 
 export namespace Embedding {
-  export async function syncIssues(rateLimiter?: {
-    getDurationToNextRequest: (key: RateLimiterName) => Promise<number>;
+  // cannot use large model because of max dimension of 2000 in pgvector
+  // see https://github.com/pgvector/pgvector/issues/461
+  async function createEmbedding({
+    input,
+    rateLimiter,
+  }: {
+    input: string;
+    rateLimiter?: RateLimiter;
   }) {
-    const TRUNCATION_MAX_ATTEMPTS = 8;
     const client = getOpenAIClient();
+    if (rateLimiter) {
+      while (true) {
+        const millisecondsToNextRequest =
+          await rateLimiter.getDurationToNextRequest(EMBEDDING_MODEL);
+        if (millisecondsToNextRequest === 0) break;
+        console.log(`Rate limit hit, waiting ${millisecondsToNextRequest}ms`);
+        await sleep(millisecondsToNextRequest);
+      }
+    }
+    const res = await client.embeddings.create({
+      model: EMBEDDING_MODEL,
+      input,
+    });
+    const result = embeddingsCreateSchema.parse(res);
+    return result.data[0]!.embedding;
+  }
+  export async function findSimilarIssues({
+    query,
+    rateLimiter,
+  }: {
+    query: string;
+    rateLimiter?: RateLimiter;
+  }) {
     const db = getDrizzle();
-    // cannot use large model because of max dimension of 2000 in pgvector
-    // see https://github.com/pgvector/pgvector/issues/461
-    const model = "text-embedding-3-small";
+    const embedding = await createEmbedding({ input: query, rateLimiter });
+    const similarity = sql<number>`1-(${cosineDistance(issues.embedding, embedding)})`;
+    const similarIssues = await db
+      .select({
+        id: issues.id,
+        number: issues.number,
+        title: issues.title,
+        body: issues.body,
+        labels: issues.labels,
+        url: issues.htmlUrl,
+        author: issues.author,
+        issueState: issues.issueState,
+        issueStateReason: issues.issueStateReason,
+        issueCreatedAt: issues.issueCreatedAt,
+        issueClosedAt: issues.issueClosedAt,
+        issueUpdatedAt: issues.issueUpdatedAt,
+        similarity,
+      })
+      .from(issues)
+      .where(gt(similarity, 0.3))
+      .limit(50);
+    console.log({ similarIssues });
+    return similarIssues;
+  }
+  export async function syncIssues(rateLimiter?: RateLimiter) {
+    const TRUNCATION_MAX_ATTEMPTS = 8;
     const BATCH_SIZE = 20;
-
+    const db = getDrizzle();
     // First, get all IDs that need processing (no lock needed)
     const issueIds = await db
       .select({ id: issues.id })
@@ -81,29 +142,13 @@ export namespace Embedding {
         const embeddings = await Promise.all(
           batchedIssues.map(async (issue) => {
             try {
-              // Rate limiting logic
-              if (rateLimiter) {
-                while (true) {
-                  const millisecondsToNextRequest =
-                    await rateLimiter.getDurationToNextRequest(
-                      "openai-text-embedding-3-small",
-                    );
-                  if (millisecondsToNextRequest === 0) break;
-                  console.log(
-                    `Rate limit hit, waiting ${millisecondsToNextRequest}ms before processing issue #${issue.number}`,
-                  );
-                  await sleep(millisecondsToNextRequest);
-                }
-              }
-
-              const res = await (async () => {
+              const embedding = await (async () => {
                 let attempt = 1;
-
                 while (attempt <= TRUNCATION_MAX_ATTEMPTS) {
                   try {
-                    return await client.embeddings.create({
-                      model,
+                    return await createEmbedding({
                       input: formatIssueForEmbedding({ ...issue, attempt }),
+                      rateLimiter,
                     });
                   } catch (error) {
                     if (
@@ -124,10 +169,9 @@ export namespace Embedding {
                 );
               })();
               console.log(`created embedding for issue #${issue.number}`);
-              const result = embeddingsCreateSchema.parse(res);
               return {
                 issueId: issue.id,
-                embedding: result.data[0]!.embedding,
+                embedding,
               };
             } catch (error) {
               console.error(`Failed to process issue #${issue.number}:`, error);
@@ -166,7 +210,7 @@ export namespace Embedding {
           .update(issues)
           .set({
             embedding: embeddingSql,
-            embeddingModel: model,
+            embeddingModel: EMBEDDING_MODEL,
             embeddingCreatedAt: new Date(),
           })
           .where(inArray(issues.id, issueIdArray));

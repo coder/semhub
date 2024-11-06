@@ -1,5 +1,7 @@
 import {
+  EMBEDDING_MODEL,
   getRateLimits,
+  type RateLimiter as IRateLimiter,
   type RateLimiterName,
 } from "@semhub/core/constants/rate-limit";
 import { DurableObject, WorkerEntrypoint } from "cloudflare:workers";
@@ -9,14 +11,15 @@ interface Env {
 }
 
 // Worker
-export default class RateLimiterWorker extends WorkerEntrypoint<Env> {
+export default class RateLimiterWorker
+  extends WorkerEntrypoint<Env>
+  implements IRateLimiter
+{
   // just for testing, not used in practice
   async fetch(_request: Request) {
     return new Response(
       JSON.stringify({
-        value: await this.getDurationToNextRequest(
-          "openai-text-embedding-3-small",
-        ),
+        value: await this.getDurationToNextRequest(EMBEDDING_MODEL),
       }),
     );
   }

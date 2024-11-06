@@ -12,12 +12,16 @@
     "skipLibCheck": true,
     "paths": {
       "@/core/*": ["../core/src/*"],
+      "@/workers/*": ["../workers/src/*"],
       "@/*": ["./src/*"]
     }
   },
   "references": [
     {
       "path": "../core"
+    },
+    {
+      "path": "../workers"
     }
   ]
 }

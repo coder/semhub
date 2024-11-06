@@ -1,5 +1,5 @@
-import { Server } from "@semhub/core/server";
+import { app } from "./server";
 
 export default {
-  fetch: Server.app.fetch,
+  fetch: app.fetch,
 };

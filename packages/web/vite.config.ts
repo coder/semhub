@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@semhub/core": path.resolve(__dirname, "../core/src"),
+        "@/workers": path.resolve(__dirname, "../workers/src"),
         "@": path.resolve(__dirname, "./src"),
       },
     },

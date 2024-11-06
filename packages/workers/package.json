@@ -2,7 +2,8 @@
   "name": "@semhub/workers",
   "version": "0.0.0",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --build"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.4.1",
