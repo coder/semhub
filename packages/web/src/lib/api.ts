@@ -1,30 +1,35 @@
 import type { ApiRoutes } from "@/workers/server";
 import { ErrorResponse, isErrorResponse } from "@/workers/server/response";
+import { IssuesSearchSchema } from "@/workers/server/router/schema";
 import { hc, type InferResponseType } from "hono/client";
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
 const client = hc<ApiRoutes>(apiUrl, {
   // TODO: auth
-  // fetch: (input: RequestInfo | URL, init?: RequestInit) =>
-  //   fetch(input, {
-  //     ...init,
-  //     credentials: "include",
-  //   }),
+  fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+    fetch(input, {
+      ...init,
+      // credentials: "include",
+      // redirect: "follow",
+    }),
 }).api;
 
 export type SearchIssuesResponse = InferResponseType<typeof client.search.$get>;
 export const searchIssues = async ({
   query,
   pageParam,
+  lucky,
 }: {
-  query: string;
-  pageParam?: number;
+  query: IssuesSearchSchema["q"];
+  pageParam?: IssuesSearchSchema["p"];
+  lucky: IssuesSearchSchema["lucky"];
 }) => {
   const res = await client.search.$get({
     query: {
       q: query,
       p: pageParam?.toString() ?? "1",
+      lucky,
     },
   });
   if (!res.ok) {

@@ -5,6 +5,7 @@ import { EMBEDDING_MODEL, type RateLimiter } from "./constants/rate-limit";
 import {
   and,
   cosineDistance,
+  eq,
   getDrizzle,
   gt,
   inArray,
@@ -15,6 +16,7 @@ import {
 } from "./db";
 import type { IssueFieldsForEmbedding } from "./db/schema/entities/issue.schema";
 import { issues } from "./db/schema/entities/issue.sql";
+import { repos } from "./db/schema/entities/repo.sql";
 import { getOpenAIClient } from "./openai";
 import { isReducePromptError } from "./openai/errors";
 import { embeddingsCreateSchema } from "./openai/schema";
@@ -50,9 +52,11 @@ export namespace Embedding {
   export async function findSimilarIssues({
     query,
     rateLimiter,
+    lucky,
   }: {
     query: string;
     rateLimiter?: RateLimiter;
+    lucky?: boolean;
   }) {
     const db = getDrizzle();
     const embedding = await createEmbedding({ input: query, rateLimiter });
@@ -64,7 +68,7 @@ export namespace Embedding {
         title: issues.title,
         body: issues.body,
         labels: issues.labels,
-        url: issues.htmlUrl,
+        issueUrl: issues.htmlUrl,
         author: issues.author,
         issueState: issues.issueState,
         issueStateReason: issues.issueStateReason,
@@ -72,11 +76,14 @@ export namespace Embedding {
         issueClosedAt: issues.issueClosedAt,
         issueUpdatedAt: issues.issueUpdatedAt,
         similarity,
+        repoName: repos.name,
+        repoUrl: repos.htmlUrl,
       })
       .from(issues)
+      // arbitrary value, to fine-tune to exact value empirically
       .where(gt(similarity, 0.3))
-      .limit(50);
-    console.log({ similarIssues });
+      .leftJoin(repos, eq(issues.repoId, repos.id))
+      .limit(lucky ? 1 : 50);
     return similarIssues;
   }
   export async function syncIssues(rateLimiter?: RateLimiter) {

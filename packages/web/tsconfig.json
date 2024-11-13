@@ -10,6 +10,7 @@
     "rootDir": ".",
     "outDir": "./build",
     "skipLibCheck": true,
+    "noUncheckedIndexedAccess": true,
     "paths": {
       "@/core/*": ["../core/src/*"],
       "@/workers/*": ["../workers/src/*"],

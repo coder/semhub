@@ -19,6 +19,14 @@ export function FullSearch() {
     }
   };
 
+  const handleLuckySearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (query.trim()) {
+      navigate({ to: "/search", search: { q: query, lucky: "true" } });
+    }
+  };
+
   return (
     <div className="mb-8 text-center">
       <Link to="/">
@@ -62,7 +70,7 @@ export function FullSearch() {
         <Button type="submit" onClick={handleSearch} variant="secondary">
           SemHub Search
         </Button>
-        <Button variant="secondary">
+        <Button variant="secondary" onClick={handleLuckySearch}>
           <span className="inline-block w-32 text-center">
             {theme === "dark" ? "Time to Get Lucky" : "I'm Feeling Lucky"}
           </span>
