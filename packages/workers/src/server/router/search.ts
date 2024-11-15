@@ -16,10 +16,10 @@ export const searchRouter = new Hono<Context>().get(
     const issues = await Embedding.findSimilarIssues({
       query,
       rateLimiter: c.env.RATE_LIMITER,
-      lucky: lucky === "true",
+      lucky: lucky === "y",
     });
     // unsure why, redirect doesn't work, redirect on client instead
-    // if (lucky && issues[0]) {
+    // if (lucky === "y" && issues[0]) {
     //   const { issueUrl } = issues[0];
     //   return c.redirect(issueUrl);
     // }

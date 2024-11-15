@@ -23,7 +23,7 @@ export function FullSearch() {
     e.preventDefault();
     e.stopPropagation();
     if (query.trim()) {
-      navigate({ to: "/search", search: { q: query, lucky: "true" } });
+      navigate({ to: "/search", search: { q: query, lucky: "y" } });
     }
   };
 

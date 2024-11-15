@@ -41,7 +41,8 @@ export const issues = pgTable(
     issueClosedAt: timestamptz("issue_closed_at"),
     embeddingModel: text("embedding_model"),
     // max dimension of 2000 if we use HNSW index; see https://github.com/pgvector/pgvector/issues/461
-    // this means we cannot use text-embedding-3-large, which has 3072 dimensions
+    // if we use text-embedding-3-large, which has 3072 dimensions, we need to reduce dimensions
+    // see https://platform.openai.com/docs/api-reference/embeddings/create#embeddings-create-dimensions
     embedding: vector("embedding", { dimensions: 1536 }),
     embeddingCreatedAt: timestamptz("embedding_created_at"),
   },

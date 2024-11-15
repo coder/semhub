@@ -49,7 +49,7 @@ function SearchResults() {
   const { data, isFetching, fetchNextPage, hasNextPage } =
     useSuspenseInfiniteQuery(issuesInfiniteQueryOptions({ q, p, lucky }));
 
-  const redirectUrl = lucky && data?.pages[0]?.data[0]?.issueUrl;
+  const redirectUrl = lucky === "y" && data?.pages[0]?.data[0]?.issueUrl;
   if (redirectUrl) {
     window.location.href = redirectUrl;
     return (
