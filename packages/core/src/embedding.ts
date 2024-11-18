@@ -6,7 +6,7 @@ import {
   and,
   cosineDistance,
   eq,
-  getDrizzle,
+  getDb,
   gt,
   inArray,
   isNull,
@@ -58,7 +58,7 @@ export namespace Embedding {
     rateLimiter?: RateLimiter;
     lucky?: boolean;
   }) {
-    const db = getDrizzle();
+    const { db } = getDb();
     const embedding = await createEmbedding({ input: query, rateLimiter });
     const similarity = sql<number>`1-(${cosineDistance(issues.embedding, embedding)})`;
     const similarIssues = await db
@@ -89,7 +89,7 @@ export namespace Embedding {
   export async function syncIssues(rateLimiter?: RateLimiter) {
     const TRUNCATION_MAX_ATTEMPTS = 8;
     const BATCH_SIZE = 20;
-    const db = getDrizzle();
+    const { db } = getDb();
     // First, get all IDs that need processing (no lock needed)
     const issueIds = await db
       .select({ id: issues.id })

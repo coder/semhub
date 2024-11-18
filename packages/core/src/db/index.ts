@@ -4,24 +4,13 @@ import { Resource } from "sst";
 
 export * from "drizzle-orm";
 
-let client: postgres.Sql | null = null;
-
-function getClient() {
-  if (client) return client;
+// Initialize db lazily
+export function getDb() {
   const connectionString = Resource.Supabase.databaseUrl;
   // Disable prefetch as it is not supported for "Transaction" pool mode
-  client = postgres(connectionString, { prepare: false });
-  return client;
+  const client = postgres(connectionString, { prepare: false });
+  return {
+    db: drizzle(client),
+    closeConnection: async () => await client.end(),
+  };
 }
-
-// Initialize db lazily
-export function getDrizzle() {
-  return drizzle(getClient());
-}
-
-export const closeConnection = async () => {
-  if (client) {
-    await client.end();
-    client = null;
-  }
-};

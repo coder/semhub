@@ -1,4 +1,4 @@
-import { closeConnection } from "@semhub/core/db";
+import { getDb } from "@semhub/core/db";
 import { Embedding } from "@semhub/core/embedding";
 import { GitHubIssue } from "@semhub/core/github/issue";
 
@@ -30,6 +30,7 @@ export default {
     } catch (e) {
       console.error(e);
     } finally {
+      const { closeConnection } = getDb();
       await closeConnection();
     }
   },

@@ -1,4 +1,4 @@
-import { getDrizzle } from "../db";
+import { getDb } from "../db";
 import { conflictUpdateAllExcept } from "../db/helper";
 import { repos } from "../db/schema/entities/repo.sql";
 import { githubRepoSchema } from "./schema";
@@ -18,7 +18,7 @@ const coderRepoNames = [
 export namespace GitHubRepo {
   export async function load() {
     const octokit = getRestOctokit();
-    const db = getDrizzle();
+    const { db } = getDb();
     for (const repo of coderRepoNames) {
       const { data: repoData } = await octokit.rest.repos.get({
         owner: "coder",
