@@ -1,6 +1,6 @@
 // run this script to test Cloudflare Workers functionality locally
 
-import { closeConnection } from "@semhub/core/db";
+import { getDb } from "@semhub/core/db";
 import { Embedding } from "@semhub/core/embedding";
 
 const rateLimiter = {
@@ -17,5 +17,6 @@ try {
 } catch (error) {
   console.error("error:", error);
 } finally {
+  const { closeConnection } = getDb();
   await closeConnection();
 }

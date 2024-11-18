@@ -1,7 +1,7 @@
 import { print } from "graphql";
 import gql from "graphql-tag";
 
-import { eq, getDrizzle, sql } from "../db";
+import { eq, getDb, sql } from "../db";
 import { conflictUpdateAllExcept } from "../db/helper";
 import {
   comments,
@@ -23,7 +23,7 @@ export namespace GitHubIssue {
   export async function sync() {
     const octokit = getGraphqlOctokit();
     // general strategy: one repo at a time, ensure idempotency, interruptible, minimise redoing work, update if conflict
-    const db = getDrizzle();
+    const { db } = getDb();
     const coderRepos = await db
       .select({
         repoId: repos.id,
