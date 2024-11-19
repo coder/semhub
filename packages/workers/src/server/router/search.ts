@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import { Embedding } from "@semhub/core/embedding";
+import { Issue } from "@semhub/core/issue";
 import { Hono } from "hono";
 
 import type { Context } from "..";
@@ -10,14 +10,25 @@ export const searchRouter = new Hono<Context>().get(
   "/",
   zValidator("query", issuesSearchSchema),
   async (c) => {
-    const { q: query, page, lucky } = c.req.valid("query");
+    const { q: rawQuery, page, lucky } = c.req.valid("query");
     const pageNumber = page ?? 1;
     const pageSize = 30;
-    const issues = await Embedding.findSimilarIssues({
-      query,
-      rateLimiter: c.env.RATE_LIMITER,
-      lucky: lucky === "y",
-    });
+
+    // Check if query is wrapped in quotes for exact match
+    const isTitleSubstringMatch =
+      rawQuery.startsWith('"') && rawQuery.endsWith('"');
+    const query = isTitleSubstringMatch ? rawQuery.slice(1, -1) : rawQuery;
+
+    const issues = isTitleSubstringMatch
+      ? await Issue.getTitleSubstringMatch({
+          query,
+          lucky: lucky === "y",
+        })
+      : await Issue.getSemanticallySimilar({
+          query,
+          rateLimiter: c.env.RATE_LIMITER,
+          lucky: lucky === "y",
+        });
     // unsure why, redirect doesn't work, redirect on client instead
     // if (lucky === "y" && issues[0]) {
     //   const { issueUrl } = issues[0];

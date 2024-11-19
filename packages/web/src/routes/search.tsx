@@ -3,11 +3,13 @@ import {
   infiniteQueryOptions,
   useSuspenseInfiniteQuery,
 } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { Loader2Icon } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Loader2Icon, SearchIcon, X } from "lucide-react";
+import { useState } from "react";
 import { z } from "zod";
 
 import { searchIssues, SearchIssuesResponse } from "@/lib/api";
+import { getDaysAgo } from "@/lib/time";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,23 +48,65 @@ function NothingMatched() {
   return <div>No issues matched your search</div>;
 }
 
-function SearchBar({ query }: { query: string }) {
-  // TODO: add search icon, make it searchable on enter
+function SearchBar({ query: initialQuery }: { query: string }) {
+  const [query, setQuery] = useState(initialQuery);
+  const navigate = useNavigate();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (query.trim()) {
+      navigate({ to: "/search", search: { q: query } });
+    }
+  };
+
+  const handleClear = () => {
+    setQuery("");
+  };
+
   return (
-    <div className="mb-6">
-      <Input
-        value={query}
-        readOnly
-        className="max-w-2xl bg-muted"
-        placeholder="Search issues..."
-      />
-    </div>
+    <form onSubmit={handleSearch} className="mb-6">
+      <div className="relative mx-auto w-full">
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="pr-20" // Make room for the icons
+          placeholder="Search issues..."
+        />
+
+        {query && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute right-8 top-1/2 -translate-y-1/2"
+            onClick={handleClear}
+          >
+            <X className="size-4 text-muted-foreground" />
+          </Button>
+        )}
+
+        <Button
+          type="submit"
+          variant="ghost"
+          size="icon"
+          className="absolute right-0 top-1/2 -translate-y-1/2"
+        >
+          <SearchIcon className="size-4 text-muted-foreground" />
+        </Button>
+      </div>
+    </form>
   );
 }
 
 type Issue = SearchIssuesResponse["data"][number];
 
 function IssueCard({ issue }: { issue: Issue }) {
+  const openedAtRelativeString = getDaysAgo(new Date(issue.issueCreatedAt));
+  const closedAtRelativeString = issue.issueClosedAt
+    ? getDaysAgo(new Date(issue.issueClosedAt))
+    : null;
+
   return (
     <div className="border-b p-4 last:border-b-0 hover:bg-muted/50">
       <div className="flex flex-col gap-2">
@@ -94,6 +138,13 @@ function IssueCard({ issue }: { issue: Issue }) {
           <div className="min-w-0 flex-1">
             <div className="inline items-center">
               <a
+                href={issue.repoUrl ?? ""}
+                className="inline-flex items-center rounded-md border bg-muted px-2 py-0.5 text-sm hover:bg-muted/80"
+              >
+                {issue.repoOwnerName}/{issue.repoName}
+              </a>
+              <span className="mx-1" />
+              <a
                 href={issue.issueUrl}
                 className="text-lg font-semibold text-foreground hover:text-primary"
               >
@@ -116,8 +167,9 @@ function IssueCard({ issue }: { issue: Issue }) {
           </div>
         </div>
         <div className="ml-6 text-sm text-muted-foreground">
-          #{issue.number} opened {issue.issueCreatedAt}
-          {issue.author && <> by {issue.author.name}</>}
+          #{issue.number} · {issue.author && <> by {issue.author.name}</>} was{" "}
+          {issue.issueState === "OPEN" && `opened ${openedAtRelativeString}`}
+          {issue.issueState === "CLOSED" && `closed ${closedAtRelativeString}`}
         </div>
       </div>
     </div>
@@ -143,17 +195,17 @@ function SearchResults() {
   return (
     <div className="mx-auto max-w-4xl p-4">
       <SearchBar query={q} />
-      <div className="divide-y rounded-lg border">
-        {data?.pages.length === 0 || data?.pages[0]?.data.length === 0 ? (
-          <NothingMatched />
-        ) : (
-          data?.pages.map((page) =>
+      {data?.pages.length === 0 || data?.pages[0]?.data.length === 0 ? (
+        <NothingMatched />
+      ) : (
+        <div className="divide-y rounded-lg border">
+          {data?.pages.map((page) =>
             page.data.map((issue) => (
               <IssueCard key={issue.id} issue={issue} />
             )),
-          )
-        )}
-      </div>
+          )}
+        </div>
+      )}
       <div className="mt-6 flex justify-center">
         <Button
           onClick={() => fetchNextPage()}
