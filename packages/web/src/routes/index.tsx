@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { FullSearch } from "@/components/FullSearch";
+import { HomepageSearch } from "@/components/HomepageSearch";
 
 export const Route = createFileRoute("/")({
-  component: FullSearch,
+  component: HomepageSearch,
 });

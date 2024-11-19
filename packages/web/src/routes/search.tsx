@@ -3,16 +3,15 @@ import {
   infiniteQueryOptions,
   useSuspenseInfiniteQuery,
 } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Loader2Icon, SearchIcon, X } from "lucide-react";
-import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { Loader2Icon } from "lucide-react";
 import { z } from "zod";
 
 import { searchIssues, SearchIssuesResponse } from "@/lib/api";
 import { getDaysAgo } from "@/lib/time";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchBar } from "@/components/SearchBars";
 
 const issuesInfiniteQueryOptions = ({
   q,
@@ -46,57 +45,6 @@ export const Route = createFileRoute("/search")({
 
 function NothingMatched() {
   return <div>No issues matched your search</div>;
-}
-
-function SearchBar({ query: initialQuery }: { query: string }) {
-  const [query, setQuery] = useState(initialQuery);
-  const navigate = useNavigate();
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (query.trim()) {
-      navigate({ to: "/search", search: { q: query } });
-    }
-  };
-
-  const handleClear = () => {
-    setQuery("");
-  };
-
-  return (
-    <form onSubmit={handleSearch} className="mb-6">
-      <div className="relative mx-auto w-full">
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="pr-20" // Make room for the icons
-          placeholder="Search issues..."
-        />
-
-        {query && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="absolute right-8 top-1/2 -translate-y-1/2"
-            onClick={handleClear}
-          >
-            <X className="size-4 text-muted-foreground" />
-          </Button>
-        )}
-
-        <Button
-          type="submit"
-          variant="ghost"
-          size="icon"
-          className="absolute right-0 top-1/2 -translate-y-1/2"
-        >
-          <SearchIcon className="size-4 text-muted-foreground" />
-        </Button>
-      </div>
-    </form>
-  );
 }
 
 type Issue = SearchIssuesResponse["data"][number];
