@@ -10,8 +10,8 @@ export const searchRouter = new Hono<Context>().get(
   "/",
   zValidator("query", issuesSearchSchema),
   async (c) => {
-    const { q: query, p, lucky } = c.req.valid("query");
-    const pageNumber = p ?? 1;
+    const { q: query, page, lucky } = c.req.valid("query");
+    const pageNumber = page ?? 1;
     const pageSize = 30;
     const issues = await Embedding.findSimilarIssues({
       query,

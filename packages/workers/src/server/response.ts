@@ -29,7 +29,7 @@ export const orderSchema = z.enum(["asc", "desc"]);
 export type Order = z.infer<typeof orderSchema>;
 
 export const paginationSchema = z.object({
-  p: z.string().pipe(z.coerce.number().int().positive()).optional(),
+  page: z.string().pipe(z.coerce.number().int().positive()).optional(),
   limit: z.string().pipe(z.coerce.number().int().positive()).optional(),
   // .default("10"),
   order: orderSchema.optional(), //.default("desc"),

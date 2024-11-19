@@ -23,8 +23,6 @@ import { embeddingsCreateSchema } from "./openai/schema";
 import { sleep } from "./util";
 
 export namespace Embedding {
-  // cannot use large model because of max dimension of 2000 in pgvector
-  // see https://github.com/pgvector/pgvector/issues/461
   async function createEmbedding({
     input,
     rateLimiter,
@@ -58,6 +56,9 @@ export namespace Embedding {
     rateLimiter?: RateLimiter;
     lucky?: boolean;
   }) {
+    // arbitrary value, to fine-tune to exact value empirically
+    const SIMILARITY_THRESHOLD = 0.2;
+
     const { db } = getDb();
     const embedding = await createEmbedding({ input: query, rateLimiter });
     const similarity = sql<number>`1-(${cosineDistance(issues.embedding, embedding)})`;
@@ -80,8 +81,7 @@ export namespace Embedding {
         repoUrl: repos.htmlUrl,
       })
       .from(issues)
-      // arbitrary value, to fine-tune to exact value empirically
-      .where(gt(similarity, 0.3))
+      .where(gt(similarity, SIMILARITY_THRESHOLD))
       .leftJoin(repos, eq(issues.repoId, repos.id))
       .limit(lucky ? 1 : 50);
     return similarIssues;
