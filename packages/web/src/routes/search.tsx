@@ -11,6 +11,7 @@ import { searchIssues, SearchIssuesResponse } from "@/lib/api";
 import { getDaysAgo } from "@/lib/time";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SearchBar } from "@/components/SearchBars";
 
 const issuesInfiniteQueryOptions = ({
@@ -36,6 +37,7 @@ export const Route = createFileRoute("/search")({
   validateSearch: issuesSearchSchema,
   loaderDeps: ({ search: { q, page, lucky } }) => ({ q, page, lucky }),
   component: () => <SearchResults />,
+  pendingComponent: () => <SearchResultsSkeleton />,
   loader: ({ context, deps: { page, q, lucky } }) => {
     context.queryClient.ensureInfiniteQueryData(
       issuesInfiniteQueryOptions({ q, page, lucky }),
@@ -44,7 +46,11 @@ export const Route = createFileRoute("/search")({
 });
 
 function NothingMatched() {
-  return <div>No issues matched your search</div>;
+  return (
+    <div className="divide-y rounded-lg border bg-background p-4">
+      <div>No issues matched your search</div>
+    </div>
+  );
 }
 
 type Issue = SearchIssuesResponse["data"][number];
@@ -56,7 +62,7 @@ function IssueCard({ issue }: { issue: Issue }) {
     : null;
 
   return (
-    <div className="border-b p-4 last:border-b-0 hover:bg-muted/50">
+    <div className="p-4 hover:bg-muted/50">
       <div className="flex flex-col gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <div className="shrink-0">
@@ -124,6 +130,41 @@ function IssueCard({ issue }: { issue: Issue }) {
   );
 }
 
+function IssuesSkeleton() {
+  return (
+    <div className="divide-y rounded-lg border bg-background">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="p-4">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <Skeleton className="size-4 rounded-full" />
+              <div className="flex-1">
+                <Skeleton className="mb-2 h-4 w-32" />
+                <Skeleton className="h-6 w-3/4" />
+              </div>
+            </div>
+            <Skeleton className="ml-6 h-4 w-48" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SearchLayout({ children }: { children: React.ReactNode }) {
+  const { q } = Route.useSearch();
+  return (
+    <div className="mx-auto max-w-4xl">
+      <div className="space-y-4">
+        <div className="w-full">
+          <SearchBar query={q} />
+        </div>
+        <div className="w-full">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 function SearchResults() {
   const { q, page, lucky } = Route.useSearch();
   const { data, isFetching, fetchNextPage, hasNextPage } =
@@ -141,32 +182,41 @@ function SearchResults() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-4">
-      <SearchBar query={q} />
+    <SearchLayout>
       {data?.pages.length === 0 || data?.pages[0]?.data.length === 0 ? (
         <NothingMatched />
       ) : (
-        <div className="divide-y rounded-lg border">
-          {data?.pages.map((page) =>
-            page.data.map((issue) => (
-              <IssueCard key={issue.id} issue={issue} />
-            )),
-          )}
-        </div>
+        <>
+          <div className="divide-y rounded-lg border">
+            {data?.pages.map((page) =>
+              page.data.map((issue) => (
+                <IssueCard key={issue.id} issue={issue} />
+              )),
+            )}
+          </div>
+          <div className="flex justify-center py-4">
+            <Button
+              onClick={() => fetchNextPage()}
+              disabled={!hasNextPage || isFetching}
+              variant="outline"
+            >
+              {isFetching
+                ? "Loading more..."
+                : hasNextPage
+                  ? "Load more issues"
+                  : "No more issues"}
+            </Button>
+          </div>
+        </>
       )}
-      <div className="mt-6 flex justify-center">
-        <Button
-          onClick={() => fetchNextPage()}
-          disabled={!hasNextPage || isFetching}
-          variant="outline"
-        >
-          {isFetching
-            ? "Loading more..."
-            : hasNextPage
-              ? "Load more issues"
-              : "No more issues"}
-        </Button>
-      </div>
-    </div>
+    </SearchLayout>
+  );
+}
+
+function SearchResultsSkeleton() {
+  return (
+    <SearchLayout>
+      <IssuesSkeleton />
+    </SearchLayout>
   );
 }

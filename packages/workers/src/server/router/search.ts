@@ -19,6 +19,7 @@ export const searchRouter = new Hono<Context>().get(
       rawQuery.startsWith('"') && rawQuery.endsWith('"');
     const query = isTitleSubstringMatch ? rawQuery.slice(1, -1) : rawQuery;
 
+    // TODO: there should only be one search issue. do substring search conditionally on all ""
     const issues = isTitleSubstringMatch
       ? await Issue.getTitleSubstringMatch({
           query,
