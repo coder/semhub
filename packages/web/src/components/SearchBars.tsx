@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandGroup,
+  CommandInput,
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
@@ -26,6 +27,7 @@ const getFilteredOperators = (word: string) =>
 export function SearchBar({ query: initialQuery }: { query: string }) {
   const { handleSearch, getWordOnCursor } = useSearch();
   const inputRef = useRef<HTMLInputElement>(null);
+  const commandInputRef = useRef<HTMLInputElement>(null);
 
   const [query, setQuery] = useState(initialQuery);
   const [showOperators, setShowOperators] = useState(false);
@@ -68,6 +70,19 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
     setQuery("");
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showOperators) return;
+
+    if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Enter") {
+      e.preventDefault();
+      const syntheticEvent = new KeyboardEvent("keydown", {
+        key: e.key,
+        bubbles: true,
+      });
+      commandInputRef.current?.dispatchEvent(syntheticEvent);
+    }
+  };
+
   return (
     <div className="relative mx-auto w-full">
       <form onSubmit={(e) => handleSearch(e, query)}>
@@ -75,6 +90,7 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
           <Input
             value={query}
             onChangeCapture={handleInputChange}
+            onKeyDown={handleKeyDown}
             ref={inputRef}
             className="pr-20"
             placeholder="Search issues..."
@@ -102,7 +118,12 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
         </div>
         {showOperators && (
           <div className="absolute z-10 w-full">
-            <Command value={cursorWord}>
+            <Command loop>
+              <CommandInput
+                ref={commandInputRef}
+                value={cursorWord}
+                className="hidden"
+              />
               <CommandList className="mt-2 rounded-lg border bg-popover shadow-lg ring-1 ring-black/5 dark:ring-white/5">
                 <CommandGroup>
                   {filteredOperators.map((operator) => (
