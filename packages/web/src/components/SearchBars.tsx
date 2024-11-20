@@ -1,73 +1,67 @@
 import { SearchIcon, X } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { useSearch } from "@/hooks/useSearch";
 import { Button } from "@/components/ui/button";
-import { Command, CommandGroup, CommandItem } from "@/components/ui/command";
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 
 const SEARCH_OPERATORS = [
   { name: "Title", description: "Search in issue titles", prefix: "title:" },
   { name: "Body", description: "Search in issue contents", prefix: "body:" },
+  { name: "Tody", description: "Search in issue contents", prefix: "tody:" },
 ];
 
+const getFilteredOperators = (word: string) =>
+  SEARCH_OPERATORS.filter((op) =>
+    op.prefix.toLowerCase().startsWith(word.toLowerCase()),
+  );
+
 export function SearchBar({ query: initialQuery }: { query: string }) {
-  const { handleSearch } = useSearch();
+  const { handleSearch, getWordOnCursor } = useSearch();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const [query, setQuery] = useState(initialQuery);
   const [showOperators, setShowOperators] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const [cursorWord, setCursorWord] = useState("");
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    const cursorPosition = e.target.selectionStart ?? 0;
     setQuery(value);
-
-    // Find the word at cursor position
-    const textBeforeCursor = value.slice(0, cursorPosition);
-    const textAfterCursor = value.slice(cursorPosition);
-
-    const beforeSpace = textBeforeCursor.lastIndexOf(" ");
-    const afterSpace = textAfterCursor.indexOf(" ");
-
-    const start = beforeSpace === -1 ? 0 : beforeSpace + 1;
-    const end = afterSpace === -1 ? value.length : cursorPosition + afterSpace;
-
-    const currentWord = value.slice(start, end);
-
-    // Calculate filteredOperators directly
-    const filteredOperators = SEARCH_OPERATORS.filter((op) =>
-      op.name.toLowerCase().startsWith(currentWord.toLowerCase()),
-    );
-
+    const currentCursorPosition = e.target.selectionStart ?? 0;
+    setCursorPosition(currentCursorPosition);
+    const currentWord = getWordOnCursor(value, currentCursorPosition);
+    setCursorWord(currentWord);
+    const filteredOperators = getFilteredOperators(currentWord);
     setShowOperators(currentWord.length > 0 && filteredOperators.length > 0);
   };
-  console.log({ showOperators });
 
-  // Move filteredOperators calculation here for use in render
-  const currentWord = (() => {
-    const cursorPosition =
-      document.activeElement instanceof HTMLInputElement
-        ? (document.activeElement.selectionStart ?? 0)
-        : 0;
-    const textBeforeCursor = query.slice(0, cursorPosition);
-    const textAfterCursor = query.slice(cursorPosition);
-    const beforeSpace = textBeforeCursor.lastIndexOf(" ");
-    const afterSpace = textAfterCursor.indexOf(" ");
-    const start = beforeSpace === -1 ? 0 : beforeSpace + 1;
-    const end = afterSpace === -1 ? query.length : cursorPosition + afterSpace;
-    return query.slice(start, end);
-  })();
-
-  const filteredOperators = SEARCH_OPERATORS.filter((op) =>
-    op.name.toLowerCase().startsWith(currentWord.toLowerCase()),
-  );
+  const filteredOperators = getFilteredOperators(cursorWord);
 
   const handleOperatorSelect = (operator: (typeof SEARCH_OPERATORS)[0]) => {
-    const words = query.split(" ");
-    words[words.length - 1] = operator.prefix;
-    setQuery(words.join(" ") + " ");
+    // Insert the operator at cursor position, replacing the current partial word
+    const newQuery =
+      query.slice(0, cursorPosition - cursorWord.length) +
+      `${operator.prefix}""` +
+      query.slice(cursorPosition);
+    setQuery(newQuery);
     setShowOperators(false);
+    // Restore cursor position after the operator
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        const newPosition =
+          cursorPosition - cursorWord.length + operator.prefix.length + 1;
+        inputRef.current.setSelectionRange(newPosition, newPosition);
+      }
+    }, 0);
   };
 
   const handleClear = () => {
@@ -75,16 +69,16 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
   };
 
   return (
-    <div className="relative">
-      <form onSubmit={(e) => handleSearch(e, query)} className="mb-6">
-        <div className="relative mx-auto w-full">
+    <div className="relative mx-auto w-full">
+      <form onSubmit={(e) => handleSearch(e, query)}>
+        <div className="relative">
           <Input
             value={query}
-            onChange={handleInputChange}
+            onChangeCapture={handleInputChange}
+            ref={inputRef}
             className="pr-20"
             placeholder="Search issues..."
           />
-
           {query && (
             <Button
               type="button"
@@ -106,29 +100,26 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
             <SearchIcon className="size-4 text-muted-foreground" />
           </Button>
         </div>
+        {showOperators && (
+          <div className="absolute z-10 w-full">
+            <Command value={cursorWord}>
+              <CommandList className="mt-2 rounded-lg border bg-popover shadow-lg ring-1 ring-black/5 dark:ring-white/5">
+                <CommandGroup>
+                  {filteredOperators.map((operator) => (
+                    <CommandItem
+                      key={operator.name}
+                      onSelect={() => handleOperatorSelect(operator)}
+                      className="px-4 py-2"
+                    >
+                      {operator.name}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </div>
+        )}
       </form>
-
-      {showOperators && (
-        <div className="absolute z-10 w-full rounded-md border bg-popover shadow-md">
-          <Command>
-            <CommandGroup>
-              {filteredOperators.map((operator) => (
-                <CommandItem
-                  key={operator.name}
-                  onSelect={() => handleOperatorSelect(operator)}
-                >
-                  <div>
-                    <div className="font-medium">{operator.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {operator.description}
-                    </div>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </Command>
-        </div>
-      )}
     </div>
   );
 }

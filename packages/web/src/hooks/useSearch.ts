@@ -19,8 +19,19 @@ export const useSearch = () => {
     }
   };
 
+  const getWordOnCursor = (input: string, cursorPosition: number) => {
+    const textBeforeCursor = input.slice(0, cursorPosition);
+    const textAfterCursor = input.slice(cursorPosition);
+    const beforeSpace = textBeforeCursor.lastIndexOf(" ");
+    const afterSpace = textAfterCursor.indexOf(" ");
+    const start = beforeSpace === -1 ? 0 : beforeSpace + 1;
+    const end = afterSpace === -1 ? input.length : cursorPosition + afterSpace;
+    return input.slice(start, end);
+  };
+
   return {
     handleSearch,
     handleLuckySearch,
+    getWordOnCursor,
   };
-}; 
+};
