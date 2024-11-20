@@ -1,7 +1,9 @@
-import { SearchIcon, X } from "lucide-react";
+import { AlignJustifyIcon, Heading1Icon, SearchIcon, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRef, useState } from "react";
 
+import { SEARCH_OPERATORS } from "@/core/constants/search";
+import { toTitleCase } from "@/core/util";
 import { useSearch } from "@/hooks/useSearch";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,15 +15,20 @@ import {
 } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 
-const SEARCH_OPERATORS = [
-  { name: "Title", description: "Search in issue titles", prefix: "title:" },
-  { name: "Body", description: "Search in issue contents", prefix: "body:" },
-  { name: "Tody", description: "Search in issue contents", prefix: "tody:" },
+const OPERATORS_WITH_ICONS = [
+  {
+    operator: toTitleCase(SEARCH_OPERATORS[0]),
+    icon: <Heading1Icon />,
+  },
+  {
+    operator: toTitleCase(SEARCH_OPERATORS[1]),
+    icon: <AlignJustifyIcon />,
+  },
 ];
 
 const getFilteredOperators = (word: string) =>
-  SEARCH_OPERATORS.filter((op) =>
-    op.prefix.toLowerCase().startsWith(word.toLowerCase()),
+  OPERATORS_WITH_ICONS.filter((o) =>
+    o.operator.toLowerCase().startsWith(word.toLowerCase()),
   );
 
 export function SearchBar({ query: initialQuery }: { query: string }) {
@@ -47,11 +54,11 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
 
   const filteredOperators = getFilteredOperators(cursorWord);
 
-  const handleOperatorSelect = (operator: (typeof SEARCH_OPERATORS)[0]) => {
+  const handleOperatorSelect = (operator: (typeof OPERATORS_WITH_ICONS)[0]) => {
     // Insert the operator at cursor position, replacing the current partial word
     const newQuery =
       query.slice(0, cursorPosition - cursorWord.length) +
-      `${operator.prefix}""` +
+      `${operator.operator.toLowerCase()}:""` +
       query.slice(cursorPosition);
     setQuery(newQuery);
     setShowOperators(false);
@@ -60,7 +67,7 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
       if (inputRef.current) {
         inputRef.current.focus();
         const newPosition =
-          cursorPosition - cursorWord.length + operator.prefix.length + 1;
+          cursorPosition - cursorWord.length + operator.operator.length + 2; // +1 for the colon, +1 to move cursor within ""
         inputRef.current.setSelectionRange(newPosition, newPosition);
       }
     }, 0);
@@ -70,6 +77,7 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
     setQuery("");
   };
 
+  // forward keypress to commandInput
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showOperators) return;
 
@@ -89,7 +97,7 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
         <div className="relative">
           <Input
             value={query}
-            onChangeCapture={handleInputChange}
+            onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             ref={inputRef}
             className="pr-20"
@@ -126,13 +134,14 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
               />
               <CommandList className="mt-2 rounded-lg border bg-popover shadow-lg ring-1 ring-black/5 dark:ring-white/5">
                 <CommandGroup>
-                  {filteredOperators.map((operator) => (
+                  {filteredOperators.map((o) => (
                     <CommandItem
-                      key={operator.name}
-                      onSelect={() => handleOperatorSelect(operator)}
+                      key={o.operator}
+                      onSelect={() => handleOperatorSelect(o)}
                       className="px-4 py-2"
                     >
-                      {operator.name}
+                      {o.icon}
+                      <span>{o.operator}</span>
                     </CommandItem>
                   ))}
                 </CommandGroup>

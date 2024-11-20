@@ -1,4 +1,5 @@
 import type { RateLimiter } from "./constants/rate-limit";
+import { SEARCH_OPERATORS } from "./constants/search";
 import { and, cosineDistance, eq, getDb, gt, ilike, or, sql } from "./db";
 import { issues } from "./db/schema/entities/issue.sql";
 import { repos } from "./db/schema/entities/repo.sql";
@@ -30,9 +31,14 @@ export namespace Issue {
   }
 
   export function parseSearchQuery(inputQuery: string): ParsedQuery {
-    // First extract and remove operator quotes to prevent interference
-    const titleMatches = inputQuery.match(/title:"([^"]*)"/g);
-    const bodyMatches = inputQuery.match(/body:"([^"]*)"/g);
+    const titleOperator = SEARCH_OPERATORS[0];
+    const titleMatches = inputQuery.match(
+      new RegExp(`${titleOperator}:"([^"]*)"`, "g"),
+    );
+    const bodyOperator = SEARCH_OPERATORS[1];
+    const bodyMatches = inputQuery.match(
+      new RegExp(`${bodyOperator}:"([^"]*)"`, "g"),
+    );
 
     // Remove the operator matches from the query before looking for general quotes
     const remainingQuery = [
@@ -45,9 +51,13 @@ export namespace Issue {
     const substringQueries = quotedMatches?.map((q) => q.slice(1, -1)) ?? [];
 
     const titleQueries =
-      titleMatches?.map((m) => m.replace(/^title:"(.*)"$/, "$1")) ?? [];
+      titleMatches?.map((m) =>
+        m.replace(new RegExp(`^${titleOperator}:"(.*)"$`), "$1"),
+      ) ?? [];
     const bodyQueries =
-      bodyMatches?.map((m) => m.replace(/^body:"(.*)"$/, "$1")) ?? [];
+      bodyMatches?.map((m) =>
+        m.replace(new RegExp(`^${bodyOperator}:"(.*)"$`), "$1"),
+      ) ?? [];
 
     return {
       substringQueries,
