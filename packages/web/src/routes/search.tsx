@@ -154,7 +154,7 @@ function IssuesSkeleton() {
 function SearchLayout({ children }: { children: React.ReactNode }) {
   const { q } = Route.useSearch();
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-4xl px-4">
       <div className="space-y-4">
         <div className="w-full">
           <SearchBar query={q} />

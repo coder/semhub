@@ -1,6 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
-import { Issue } from "@semhub/core/issue";
 import { Hono } from "hono";
+
+import { Issue } from "@/core/issue";
 
 import type { Context } from "..";
 import type { PaginatedResponse } from "../response";

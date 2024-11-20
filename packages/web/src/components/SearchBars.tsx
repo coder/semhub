@@ -1,10 +1,12 @@
-import { AlignJustifyIcon, Heading1Icon, SearchIcon, X } from "lucide-react";
+import { SearchIcon, X } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useRef, useState } from "react";
 
-import { SEARCH_OPERATORS } from "@/core/constants/search";
-import { toTitleCase } from "@/core/util";
 import { useSearch } from "@/hooks/useSearch";
+import {
+  getFilteredOperators,
+  getWordOnCursor,
+  useSearchBar,
+} from "@/hooks/useSearchBar";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -15,80 +17,24 @@ import {
 } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 
-const OPERATORS_WITH_ICONS = [
-  {
-    operator: toTitleCase(SEARCH_OPERATORS[0]),
-    icon: <Heading1Icon />,
-  },
-  {
-    operator: toTitleCase(SEARCH_OPERATORS[1]),
-    icon: <AlignJustifyIcon />,
-  },
-];
-
-const getFilteredOperators = (word: string) =>
-  OPERATORS_WITH_ICONS.filter((o) =>
-    o.operator.toLowerCase().startsWith(word.toLowerCase()),
-  );
-
 export function SearchBar({ query: initialQuery }: { query: string }) {
-  const { handleSearch, getWordOnCursor } = useSearch();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const commandInputRef = useRef<HTMLInputElement>(null);
-
-  const [query, setQuery] = useState(initialQuery);
-  const [showOperators, setShowOperators] = useState(false);
-  const [cursorPosition, setCursorPosition] = useState(0);
-  const [cursorWord, setCursorWord] = useState("");
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setQuery(value);
-    const currentCursorPosition = e.target.selectionStart ?? 0;
-    setCursorPosition(currentCursorPosition);
-    const currentWord = getWordOnCursor(value, currentCursorPosition);
-    setCursorWord(currentWord);
-    const filteredOperators = getFilteredOperators(currentWord);
-    setShowOperators(currentWord.length > 0 && filteredOperators.length > 0);
-  };
-
-  const filteredOperators = getFilteredOperators(cursorWord);
-
-  const handleOperatorSelect = (operator: (typeof OPERATORS_WITH_ICONS)[0]) => {
-    // Insert the operator at cursor position, replacing the current partial word
-    const newQuery =
-      query.slice(0, cursorPosition - cursorWord.length) +
-      `${operator.operator.toLowerCase()}:""` +
-      query.slice(cursorPosition);
-    setQuery(newQuery);
-    setShowOperators(false);
-    // Restore cursor position after the operator
-    setTimeout(() => {
-      if (inputRef.current) {
-        inputRef.current.focus();
-        const newPosition =
-          cursorPosition - cursorWord.length + operator.operator.length + 2; // +1 for the colon, +1 to move cursor within ""
-        inputRef.current.setSelectionRange(newPosition, newPosition);
-      }
-    }, 0);
-  };
+  const { handleSearch } = useSearch();
+  const {
+    query,
+    showOperators,
+    cursorWord,
+    inputRef,
+    commandInputRef,
+    handleInputChange,
+    handleOperatorSelect,
+    handleKeyDown,
+    handleFocus,
+    handleBlur,
+    setQuery,
+  } = useSearchBar(initialQuery);
 
   const handleClear = () => {
     setQuery("");
-  };
-
-  // forward keypress to commandInput
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showOperators) return;
-
-    if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Enter") {
-      e.preventDefault();
-      const syntheticEvent = new KeyboardEvent("keydown", {
-        key: e.key,
-        bubbles: true,
-      });
-      commandInputRef.current?.dispatchEvent(syntheticEvent);
-    }
   };
 
   return (
@@ -97,8 +43,10 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
         <div className="relative">
           <Input
             value={query}
-            onChange={handleInputChange}
+            onChange={(e) => handleInputChange(e, getWordOnCursor)}
             onKeyDown={handleKeyDown}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             ref={inputRef}
             className="pr-20"
             placeholder="Search issues..."
@@ -134,14 +82,14 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
               />
               <CommandList className="mt-2 rounded-lg border bg-popover shadow-lg ring-1 ring-black/5 dark:ring-white/5">
                 <CommandGroup>
-                  {filteredOperators.map((o) => (
+                  {getFilteredOperators(cursorWord).map((o) => (
                     <CommandItem
                       key={o.operator}
                       onSelect={() => handleOperatorSelect(o)}
                       className="px-4 py-2"
                     >
                       {o.icon}
-                      <span>{o.operator}</span>
+                      <span>{o.name}</span>
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -156,26 +104,65 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
 
 export function HomepageSearchBar() {
   const { theme } = useTheme();
-  const [query, setQuery] = useState("");
   const { handleSearch, handleLuckySearch } = useSearch();
+  const {
+    query,
+    showOperators,
+    cursorWord,
+    inputRef,
+    commandInputRef,
+    handleInputChange,
+    handleOperatorSelect,
+    handleKeyDown,
+    handleFocus,
+    handleBlur,
+  } = useSearchBar();
+
   return (
     <>
       <form
         onSubmit={(e) => handleSearch(e, query)}
         className="relative mx-auto w-full max-w-xl"
       >
-        {/* TODO: replace with Tanstack Form */}
         <Input
+          ref={inputRef}
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          // placeholder="Search SemHub"
+          onChange={(e) => handleInputChange(e, getWordOnCursor)}
+          onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           className="w-full rounded-full border border-gray-300 py-2 pl-10 pr-4 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <SearchIcon
           className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
           size={20}
         />
+        {showOperators && (
+          <div className="absolute z-10 w-full">
+            <Command loop>
+              <CommandInput
+                ref={commandInputRef}
+                value={cursorWord}
+                className="hidden"
+              />
+              <CommandList className="mt-2 rounded-lg border bg-popover shadow-lg ring-1 ring-black/5 dark:ring-white/5">
+                <CommandGroup>
+                  {getFilteredOperators(cursorWord).map((o) => (
+                    <CommandItem
+                      key={o.operator}
+                      onSelect={() => handleOperatorSelect(o)}
+                      className="px-4 py-2"
+                    >
+                      {o.icon}
+                      <span>{o.name}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </div>
+        )}
       </form>
       <div className="mt-8 space-x-4">
         <Button

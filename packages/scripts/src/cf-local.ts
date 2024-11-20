@@ -1,7 +1,7 @@
 // run this script to test Cloudflare Workers functionality locally
 
-import { getDb } from "@semhub/core/db";
-import { Embedding } from "@semhub/core/embedding";
+import { getDb } from "@/core/db";
+import { Embedding } from "@/core/embedding";
 
 const rateLimiter = {
   getDurationToNextRequest: async (key: string) => {
