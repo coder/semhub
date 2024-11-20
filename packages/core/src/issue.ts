@@ -22,6 +22,40 @@ export namespace Issue {
     repoUrl: repos.htmlUrl,
     repoOwnerName: repos.owner,
   };
+
+  interface ParsedQuery {
+    substringQueries: string[];
+    titleQueries: string[];
+    bodyQueries: string[];
+  }
+
+  export function parseSearchQuery(inputQuery: string): ParsedQuery {
+    // First extract and remove operator quotes to prevent interference
+    const titleMatches = inputQuery.match(/title:"([^"]*)"/g);
+    const bodyMatches = inputQuery.match(/body:"([^"]*)"/g);
+
+    // Remove the operator matches from the query before looking for general quotes
+    const remainingQuery = [
+      ...(titleMatches ?? []),
+      ...(bodyMatches ?? []),
+    ].reduce((query, match) => query.replace(match, ""), inputQuery);
+
+    // Now look for remaining quoted strings in the cleaned query
+    const quotedMatches = remainingQuery.match(/"([^"]*)"/g);
+    const substringQueries = quotedMatches?.map((q) => q.slice(1, -1)) ?? [];
+
+    const titleQueries =
+      titleMatches?.map((m) => m.replace(/^title:"(.*)"$/, "$1")) ?? [];
+    const bodyQueries =
+      bodyMatches?.map((m) => m.replace(/^body:"(.*)"$/, "$1")) ?? [];
+
+    return {
+      substringQueries,
+      titleQueries,
+      bodyQueries,
+    };
+  }
+
   export async function searchIssues({
     query,
     rateLimiter,
@@ -34,9 +68,8 @@ export namespace Issue {
     const SIMILARITY_THRESHOLD = 0.15;
     const { db } = getDb();
 
-    // Extract quoted substrings from query for substring matching
-    const quotedMatches = query.match(/"([^"]*)"/g);
-    const substringQueries = quotedMatches?.map((q) => q.slice(1, -1)) ?? []; // slice to remove quotes
+    const { substringQueries, titleQueries, bodyQueries } =
+      parseSearchQuery(query);
 
     // Use the entire query for semantic search
     const embedding = await Embedding.createEmbedding({
@@ -55,12 +88,19 @@ export namespace Issue {
       .where(
         and(
           gt(similarity, SIMILARITY_THRESHOLD),
+          // general substring queries match either title or body
           ...substringQueries.map((subQuery) =>
             or(
               ilike(issues.title, `%${subQuery}%`),
               ilike(issues.body, `%${subQuery}%`),
             ),
           ),
+          // title-specific queries
+          ...titleQueries.map((subQuery) =>
+            ilike(issues.title, `%${subQuery}%`),
+          ),
+          // body-specific queries
+          ...bodyQueries.map((subQuery) => ilike(issues.body, `%${subQuery}%`)),
         ),
       )
       .limit(lucky ? 1 : 50);
