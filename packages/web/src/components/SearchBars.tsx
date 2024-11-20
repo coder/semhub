@@ -21,7 +21,7 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
   const { handleSearch } = useSearch();
   const {
     query,
-    showOperators,
+    showDropdown,
     cursorWord,
     inputRef,
     commandInputRef,
@@ -31,6 +31,7 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
     handleFocus,
     handleBlur,
     setQuery,
+    commandRef,
   } = useSearchBar(initialQuery);
 
   const handleClear = () => {
@@ -72,9 +73,14 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
             <SearchIcon className="size-4 text-muted-foreground" />
           </Button>
         </div>
-        {showOperators && (
+        {showDropdown && (
           <div className="absolute z-10 w-full">
-            <Command loop>
+            <Command
+              ref={commandRef}
+              loop
+              className="w-64"
+              style={{ transform: "translateX(var(--cursor-x, 0))" }}
+            >
               <CommandInput
                 ref={commandInputRef}
                 value={cursorWord}
@@ -89,7 +95,7 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
                       className="px-4 py-2"
                     >
                       {o.icon}
-                      <span>{o.name}</span>
+                      <span className="ml-2">{o.name}</span>
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -107,7 +113,7 @@ export function HomepageSearchBar() {
   const { handleSearch, handleLuckySearch } = useSearch();
   const {
     query,
-    showOperators,
+    showDropdown,
     cursorWord,
     inputRef,
     commandInputRef,
@@ -116,6 +122,7 @@ export function HomepageSearchBar() {
     handleKeyDown,
     handleFocus,
     handleBlur,
+    commandRef,
   } = useSearchBar();
 
   return (
@@ -138,9 +145,14 @@ export function HomepageSearchBar() {
           className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
           size={20}
         />
-        {showOperators && (
+        {showDropdown && (
           <div className="absolute z-10 w-full">
-            <Command loop>
+            <Command
+              ref={commandRef}
+              loop
+              className="w-64"
+              style={{ transform: "translateX(var(--cursor-x, 0))" }}
+            >
               <CommandInput
                 ref={commandInputRef}
                 value={cursorWord}
@@ -155,7 +167,7 @@ export function HomepageSearchBar() {
                       className="px-4 py-2"
                     >
                       {o.icon}
-                      <span>{o.name}</span>
+                      <span className="ml-2">{o.name}</span>
                     </CommandItem>
                   ))}
                 </CommandGroup>

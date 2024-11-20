@@ -24,18 +24,16 @@ export namespace Issue {
     repoOwnerName: repos.owner,
   };
 
-  interface ParsedQuery {
-    substringQueries: string[];
-    titleQueries: string[];
-    bodyQueries: string[];
-  }
-
-  export function parseSearchQuery(inputQuery: string): ParsedQuery {
+  export function parseSearchQuery(inputQuery: string) {
     const titleOperator = SEARCH_OPERATORS[0];
     const titleMatches = inputQuery.match(
       new RegExp(`${titleOperator}:"([^"]*)"`, "g"),
     );
-    const bodyOperator = SEARCH_OPERATORS[1];
+    const authorOperator = SEARCH_OPERATORS[1];
+    const authorMatches = inputQuery.match(
+      new RegExp(`${authorOperator}:"([^"]*)"`, "g"),
+    );
+    const bodyOperator = SEARCH_OPERATORS[2];
     const bodyMatches = inputQuery.match(
       new RegExp(`${bodyOperator}:"([^"]*)"`, "g"),
     );
@@ -43,6 +41,7 @@ export namespace Issue {
     // Remove the operator matches from the query before looking for general quotes
     const remainingQuery = [
       ...(titleMatches ?? []),
+      ...(authorMatches ?? []),
       ...(bodyMatches ?? []),
     ].reduce((query, match) => query.replace(match, ""), inputQuery);
 
@@ -54,6 +53,10 @@ export namespace Issue {
       titleMatches?.map((m) =>
         m.replace(new RegExp(`^${titleOperator}:"(.*)"$`), "$1"),
       ) ?? [];
+    const authorQueries =
+      authorMatches?.map((m) =>
+        m.replace(new RegExp(`^${authorOperator}:"(.*)"$`), "$1"),
+      ) ?? [];
     const bodyQueries =
       bodyMatches?.map((m) =>
         m.replace(new RegExp(`^${bodyOperator}:"(.*)"$`), "$1"),
@@ -62,6 +65,7 @@ export namespace Issue {
     return {
       substringQueries,
       titleQueries,
+      authorQueries,
       bodyQueries,
     };
   }
@@ -78,7 +82,7 @@ export namespace Issue {
     const SIMILARITY_THRESHOLD = 0.15;
     const { db } = getDb();
 
-    const { substringQueries, titleQueries, bodyQueries } =
+    const { substringQueries, titleQueries, authorQueries, bodyQueries } =
       parseSearchQuery(query);
 
     // Use the entire query for semantic search
@@ -111,6 +115,10 @@ export namespace Issue {
           ),
           // body-specific queries
           ...bodyQueries.map((subQuery) => ilike(issues.body, `%${subQuery}%`)),
+          // author-specific queries
+          ...authorQueries.map((subQuery) =>
+            ilike(issues.author, `%${subQuery}%`),
+          ),
         ),
       )
       .limit(lucky ? 1 : 50);
