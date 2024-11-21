@@ -2,7 +2,11 @@ import { SearchIcon, X } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import { useSearch } from "@/hooks/useSearch";
-import { getFilteredOperators, useSearchBar } from "@/hooks/useSearchBar";
+import {
+  getFilteredOperators,
+  getFilteredStateValues,
+  useSearchBar,
+} from "@/hooks/useSearchBar";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -18,20 +22,22 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
   const {
     query,
     shouldShowDropdown,
-    cursorWord,
     inputRef,
     commandInputRef,
     handleInputChange,
     handleOperatorSelect,
+    handleValueSelect,
     handleKeyDown,
     handleKeyUp,
     handleFocus,
     handleBlur,
     handleClear,
     commandRef,
-    cursorPosition,
+    commandInputValue,
+    subMenu,
   } = useSearchBar(initialQuery);
-  console.log({ shouldShowDropdown, cursorWord, cursorPosition });
+  // console.log({ shouldShowDropdown, cursorWord, cursorPosition });
+  console.log({ commandInputValue, subMenu, shouldShowDropdown });
 
   return (
     <div className="relative mx-auto w-full">
@@ -81,21 +87,34 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
             >
               <CommandInput
                 ref={commandInputRef}
-                value={cursorWord}
+                value={commandInputValue}
                 className="hidden"
               />
               <CommandList className="mt-2 rounded-lg border bg-popover shadow-lg ring-1 ring-black/5 dark:ring-white/5">
                 <CommandGroup>
-                  {getFilteredOperators(cursorWord).map((o) => (
-                    <CommandItem
-                      key={o.operator}
-                      onSelect={() => handleOperatorSelect(o)}
-                      className="px-4 py-2"
-                    >
-                      {o.icon}
-                      <span className="ml-2">{o.name}</span>
-                    </CommandItem>
-                  ))}
+                  {!subMenu &&
+                    getFilteredOperators(commandInputValue).map((o) => (
+                      <CommandItem
+                        key={o.operator}
+                        onSelect={() => handleOperatorSelect(o)}
+                        className="px-4 py-2"
+                      >
+                        {o.icon}
+                        <span className="ml-2">{o.name}</span>
+                      </CommandItem>
+                    ))}
+                  {subMenu === "state" &&
+                    getFilteredStateValues(commandInputValue, subMenu).map(
+                      (s) => (
+                        <CommandItem
+                          key={s.value}
+                          onSelect={() => handleValueSelect(s)}
+                        >
+                          {s.icon}
+                          <span className="ml-2">{s.name}</span>
+                        </CommandItem>
+                      ),
+                    )}
                 </CommandGroup>
               </CommandList>
             </Command>
@@ -112,7 +131,6 @@ export function HomepageSearchBar() {
   const {
     query,
     shouldShowDropdown,
-    cursorWord,
     inputRef,
     commandInputRef,
     handleInputChange,
@@ -121,6 +139,7 @@ export function HomepageSearchBar() {
     handleFocus,
     handleBlur,
     commandRef,
+    commandInputValue,
   } = useSearchBar();
 
   return (
@@ -155,12 +174,12 @@ export function HomepageSearchBar() {
             >
               <CommandInput
                 ref={commandInputRef}
-                value={cursorWord}
+                value={commandInputValue}
                 className="hidden"
               />
               <CommandList className="mt-2 rounded-lg border bg-popover shadow-lg ring-1 ring-black/5 dark:ring-white/5">
                 <CommandGroup>
-                  {getFilteredOperators(cursorWord).map((o) => (
+                  {getFilteredOperators(commandInputValue).map((o) => (
                     <CommandItem
                       key={o.operator}
                       onSelect={() => handleOperatorSelect(o)}

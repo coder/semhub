@@ -1,13 +1,15 @@
 import {
   AlignJustifyIcon,
   CircleDashedIcon,
+  CircleIcon,
+  CircleXIcon,
   FolderGit2Icon,
   Heading1Icon,
   UserIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { SEARCH_OPERATORS } from "@/core/constants/search";
+import { SEARCH_OPERATORS, SearchOperator } from "@/core/constants/search";
 
 export const OPERATORS_WITH_ICONS = [
   {
@@ -39,12 +41,34 @@ export const OPERATORS_WITH_ICONS = [
 
 type OperatorWithIcon = (typeof OPERATORS_WITH_ICONS)[number];
 
+export const STATE_VALUES = [
+  { name: "Open", value: "open", icon: <CircleIcon /> },
+  { name: "Closed", value: "closed", icon: <CircleXIcon /> },
+];
+
+type StateValue = (typeof STATE_VALUES)[number];
+
 export const getFilteredOperators = (word: string) =>
   OPERATORS_WITH_ICONS.filter(
     (o) =>
       o.operator.toLowerCase().startsWith(word.toLowerCase()) ||
       o.name.toLowerCase().startsWith(word.toLowerCase()),
   );
+
+export const getFilteredStateValues = (
+  word: string,
+  subMenu: SearchOperator | null,
+) => {
+  if (!subMenu) return [];
+  switch (subMenu) {
+    case "state":
+      return STATE_VALUES.filter((s) =>
+        s.name.toLowerCase().startsWith(word.toLowerCase()),
+      );
+    default:
+      return [];
+  }
+};
 
 const getCursorWord = (input: string, cursorPosition: number) => {
   const textBeforeCursor = input.slice(0, cursorPosition);
@@ -60,8 +84,8 @@ const getCursorWord = (input: string, cursorPosition: number) => {
   };
 };
 
-const getNewQuery = (
-  operator: Omit<OperatorWithIcon, "name" | "icon">,
+const getOpSelectQuery = (
+  operator: Pick<OperatorWithIcon, "operator" | "enclosedInQuotes">,
   query: string,
   cursorPosition: number,
   cursorWord: string,
@@ -73,8 +97,22 @@ const getNewQuery = (
     query.slice(cursorPosition);
   return newQuery;
 };
-const getNewCursorPosition = (
-  operator: Omit<OperatorWithIcon, "name" | "icon">,
+
+const getValSelectQuery = (
+  val: Pick<StateValue, "value">,
+  query: string,
+  cursorPosition: number,
+  commandInputValue: string,
+) => {
+  const newQuery =
+    query.slice(0, cursorPosition - commandInputValue.length) +
+    val.value +
+    query.slice(cursorPosition);
+  return newQuery;
+};
+
+const getOpSelectCursorPosition = (
+  operator: Pick<OperatorWithIcon, "operator" | "enclosedInQuotes">,
   cursorPosition: number,
   cursorWord: string,
 ) => {
@@ -83,6 +121,15 @@ const getNewCursorPosition = (
   const offset = operator.enclosedInQuotes ? 2 : 1;
   return cursorPosition - cursorWord.length + operator.operator.length + offset;
 };
+
+const getValSelectCursorPosition = (
+  value: string,
+  cursorPosition: number,
+  commandInputValue: string,
+) => {
+  return cursorPosition - commandInputValue.length + value.length;
+};
+
 export function useSearchBar(initialQuery: string = "") {
   const [query, setQuery] = useState(initialQuery);
 
@@ -102,16 +149,35 @@ export function useSearchBar(initialQuery: string = "") {
   const cursorWord = useMemo(() => {
     return getCursorWord(query, cursorPosition).cursorWord;
   }, [query, cursorPosition]);
+  const subMenu = useMemo(() => {
+    if (!cursorWord || !cursorWord.includes(":")) return null;
+    const op = cursorWord.slice(0, cursorWord.indexOf(":")).toLowerCase();
+    const val = cursorWord.slice(cursorWord.indexOf(":") + 1).toLowerCase();
+    const matchedOp = SEARCH_OPERATORS.some(({ operator }) => operator === op);
+    if (!matchedOp) return null;
+    const matchedVal = STATE_VALUES.some(({ value }) => value === val);
+    // when value is fully typed, revert to main menu
+    if (matchedVal) return null;
+    return op as SearchOperator; // safe to cast because matchedOp is true
+  }, [cursorWord]);
+  const commandInputValue = useMemo(() => {
+    // default menu to show
+    if (!subMenu) return cursorWord;
+    const sliceLength = subMenu.length + 1; // +1 for the colon
+    return cursorWord.slice(sliceLength);
+  }, [cursorWord, subMenu]);
   const shouldShowDropdown = useMemo(() => {
-    const filteredOperators = getFilteredOperators(cursorWord);
+    const relevantList = subMenu
+      ? getFilteredStateValues(commandInputValue, subMenu)
+      : getFilteredOperators(commandInputValue);
     // true if cursor is at beginning or after a whitespace
     return (
       showDropdown &&
       isFocused &&
       isTouched &&
-      (query === "" || cursorWord === "" || filteredOperators.length > 0)
+      (query === "" || commandInputValue === "" || relevantList.length > 0)
     );
-  }, [showDropdown, isFocused, isTouched, query, cursorWord]);
+  }, [showDropdown, isFocused, isTouched, query, commandInputValue, subMenu]);
 
   const handleFocus = () => {
     setIsFocused(true);
@@ -160,16 +226,42 @@ export function useSearchBar(initialQuery: string = "") {
   }, [shouldShowDropdown, menuCursorOffsetX]);
 
   const handleOperatorSelect = (operator: OperatorWithIcon) => {
-    const newQuery = getNewQuery(operator, query, cursorPosition, cursorWord);
+    const newQuery = getOpSelectQuery(
+      operator,
+      query,
+      cursorPosition,
+      cursorWord,
+    );
     setQuery(newQuery);
     // setTimeout is necessary to set cursor position AFTER the rendering is done
     setTimeout(() => {
       if (inputRef.current) {
         inputRef.current.focus();
-        const newPosition = getNewCursorPosition(
+        const newPosition = getOpSelectCursorPosition(
           operator,
           cursorPosition,
           cursorWord,
+        );
+        inputRef.current.setSelectionRange(newPosition, newPosition);
+      }
+    }, 0);
+  };
+
+  const handleValueSelect = (val: StateValue) => {
+    const newQuery = getValSelectQuery(
+      val,
+      query,
+      cursorPosition,
+      commandInputValue,
+    );
+    setQuery(newQuery);
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        const newPosition = getValSelectCursorPosition(
+          val.value,
+          cursorPosition,
+          commandInputValue,
         );
         inputRef.current.setSelectionRange(newPosition, newPosition);
       }
@@ -199,14 +291,16 @@ export function useSearchBar(initialQuery: string = "") {
 
   return {
     query,
-    cursorWord,
     inputRef,
     commandInputRef,
     commandRef,
+    commandInputValue,
+    subMenu,
     shouldShowDropdown,
     handleClear,
     handleInputChange,
     handleOperatorSelect,
+    handleValueSelect,
     handleKeyDown,
     handleKeyUp,
     handleFocus,
