@@ -15,28 +15,35 @@ const OPERATORS_WITH_ICONS = [
     name: "Title",
     operator: SEARCH_OPERATORS[0],
     icon: <Heading1Icon />,
+    enclosedInQuotes: true,
   },
   {
     name: "Author",
     operator: SEARCH_OPERATORS[1],
     icon: <UserIcon />,
+    enclosedInQuotes: false,
   },
   {
     name: "Body",
     operator: SEARCH_OPERATORS[2],
     icon: <AlignJustifyIcon />,
+    enclosedInQuotes: true,
   },
   {
     name: "Issue State",
     operator: SEARCH_OPERATORS[3],
     icon: <CircleDashedIcon />,
+    enclosedInQuotes: false,
   },
   {
     name: "Repository",
     operator: SEARCH_OPERATORS[4],
     icon: <FolderGit2Icon />,
+    enclosedInQuotes: false,
   },
 ];
+
+type OperatorWithIcon = (typeof OPERATORS_WITH_ICONS)[number];
 
 export const getFilteredOperators = (word: string) =>
   OPERATORS_WITH_ICONS.filter(
@@ -52,7 +59,8 @@ export function useSearchBar(initialQuery: string = "") {
   const [cursorWord, setCursorWord] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [isTouched, setIsTouched] = useState(false);
-  const [cursorX, setCursorX] = useState(0);
+  // offset dropdown menu relative to where the user's currently typed word is
+  const [menuCursorOffsetX, setMenuCursorOffsetX] = useState(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const commandInputRef = useRef<HTMLInputElement>(null);
@@ -84,9 +92,11 @@ export function useSearchBar(initialQuery: string = "") {
   };
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target;
+    setQuery(input.value);
     const currentCursorPosition = input.selectionStart ?? 0;
     setCursorPosition(currentCursorPosition);
     const { word, start } = getCursorWord(input.value, currentCursorPosition);
+    setCursorWord(word);
 
     // Get input's computed styles
     const inputStyles = window.getComputedStyle(input);
@@ -105,12 +115,9 @@ export function useSearchBar(initialQuery: string = "") {
 
     // Get the actual width of the text plus padding
     const textWidth = span.offsetWidth + paddingLeft;
+    setMenuCursorOffsetX(textWidth);
     document.body.removeChild(span);
 
-    setCursorX(textWidth);
-
-    setQuery(input.value);
-    setCursorWord(word);
     const filteredOperators = getFilteredOperators(word);
     setShowDropdown(
       isFocused &&
@@ -119,30 +126,49 @@ export function useSearchBar(initialQuery: string = "") {
     );
   };
 
-  // Update CSS variable when dropdown is visible and cursorX changes
+  // Update CSS variable when dropdown is visible and menuCursorOffsetX changes
   useEffect(() => {
     if (showDropdown && commandRef.current) {
-      commandRef.current.style.setProperty("--cursor-x", `${cursorX}px`);
+      commandRef.current.style.setProperty(
+        "--menu-cursor-offset-x-x",
+        `${menuCursorOffsetX}px`,
+      );
     }
-  }, [showDropdown, cursorX]);
+  }, [showDropdown, menuCursorOffsetX]);
 
-  const handleOperatorSelect = (operator: (typeof OPERATORS_WITH_ICONS)[0]) => {
+  const getNewQuery = (operator: Omit<OperatorWithIcon, "name" | "icon">) => {
     const newQuery =
       query.slice(0, cursorPosition - cursorWord.length) +
-      `${operator.operator.toLowerCase()}:""` +
+      `${operator.operator.toLowerCase()}:` +
+      (operator.enclosedInQuotes ? '""' : "") +
       query.slice(cursorPosition);
+    return newQuery;
+  };
+  const getNewCursorPosition = (
+    operator: Omit<OperatorWithIcon, "name" | "icon">,
+  ) => {
+    // +1 offset for the colon
+    // another + 1 for quote if enclosed in quotes
+    const offset = operator.enclosedInQuotes ? 2 : 1;
+    return (
+      cursorPosition - cursorWord.length + operator.operator.length + offset
+    );
+  };
+
+  const handleOperatorSelect = (operator: OperatorWithIcon) => {
+    const newQuery = getNewQuery(operator);
     setQuery(newQuery);
     setShowDropdown(false);
     setTimeout(() => {
       if (inputRef.current) {
         inputRef.current.focus();
-        const newPosition =
-          cursorPosition - cursorWord.length + operator.operator.length + 2;
+        const newPosition = getNewCursorPosition(operator);
         inputRef.current.setSelectionRange(newPosition, newPosition);
       }
     }, 0);
   };
 
+  // Forward keyboard events to the command input so that arrows keys and enter key work
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showDropdown) return;
     if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Enter") {

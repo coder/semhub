@@ -75,7 +75,9 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
               ref={commandRef}
               loop
               className="w-64 bg-transparent"
-              style={{ transform: "translateX(var(--cursor-x, 0))" }}
+              style={{
+                transform: "translateX(var(--menu-cursor-offset-x-x, 0))",
+              }}
             >
               <CommandInput
                 ref={commandInputRef}
@@ -147,7 +149,9 @@ export function HomepageSearchBar() {
               ref={commandRef}
               loop
               className="w-64 bg-transparent"
-              style={{ transform: "translateX(var(--cursor-x, 0))" }}
+              style={{
+                transform: "translateX(var(--menu-cursor-offset-x-x, 0))",
+              }}
             >
               <CommandInput
                 ref={commandInputRef}

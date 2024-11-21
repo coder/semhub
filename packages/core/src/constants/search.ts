@@ -5,3 +5,5 @@ export const SEARCH_OPERATORS = [
   "state",
   "repo",
 ] as const;
+
+export type SearchOperator = (typeof SEARCH_OPERATORS)[number];
