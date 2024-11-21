@@ -17,22 +17,21 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
   const { handleSearch } = useSearch();
   const {
     query,
-    showDropdown,
+    shouldShowDropdown,
     cursorWord,
     inputRef,
     commandInputRef,
     handleInputChange,
     handleOperatorSelect,
     handleKeyDown,
+    handleKeyUp,
     handleFocus,
     handleBlur,
-    setQuery,
+    handleClear,
     commandRef,
+    cursorPosition,
   } = useSearchBar(initialQuery);
-
-  const handleClear = () => {
-    setQuery("");
-  };
+  console.log({ shouldShowDropdown, cursorWord, cursorPosition });
 
   return (
     <div className="relative mx-auto w-full">
@@ -42,6 +41,7 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
             value={query}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
+            onKeyUp={handleKeyUp}
             onFocus={handleFocus}
             onBlur={handleBlur}
             ref={inputRef}
@@ -69,14 +69,14 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
             <SearchIcon className="size-4 text-muted-foreground" />
           </Button>
         </div>
-        {showDropdown && (
+        {shouldShowDropdown && (
           <div className="absolute z-10 w-full">
             <Command
               ref={commandRef}
               loop
               className="w-64 bg-transparent"
               style={{
-                transform: "translateX(var(--menu-cursor-offset-x-x, 0))",
+                transform: "translateX(var(--menu-cursor-offset-x, 0))",
               }}
             >
               <CommandInput
@@ -111,7 +111,7 @@ export function HomepageSearchBar() {
   const { handleSearch, handleLuckySearch } = useSearch();
   const {
     query,
-    showDropdown,
+    shouldShowDropdown,
     cursorWord,
     inputRef,
     commandInputRef,
@@ -143,14 +143,14 @@ export function HomepageSearchBar() {
           className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
           size={20}
         />
-        {showDropdown && (
+        {shouldShowDropdown && (
           <div className="absolute z-10 w-full">
             <Command
               ref={commandRef}
               loop
               className="w-64 bg-transparent"
               style={{
-                transform: "translateX(var(--menu-cursor-offset-x-x, 0))",
+                transform: "translateX(var(--menu-cursor-offset-x, 0))",
               }}
             >
               <CommandInput

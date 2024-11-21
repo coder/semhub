@@ -5,11 +5,11 @@ import {
   Heading1Icon,
   UserIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { SEARCH_OPERATORS } from "@/core/constants/search";
 
-const OPERATORS_WITH_ICONS = [
+export const OPERATORS_WITH_ICONS = [
   {
     name: "Title",
     ...SEARCH_OPERATORS[0],
@@ -46,11 +46,50 @@ export const getFilteredOperators = (word: string) =>
       o.name.toLowerCase().startsWith(word.toLowerCase()),
   );
 
+const getCursorWord = (input: string, cursorPosition: number) => {
+  const textBeforeCursor = input.slice(0, cursorPosition);
+  const textAfterCursor = input.slice(cursorPosition);
+  const beforeSpace = textBeforeCursor.lastIndexOf(" ");
+  const afterSpace = textAfterCursor.indexOf(" ");
+  const start = beforeSpace === -1 ? 0 : beforeSpace + 1;
+  const end = afterSpace === -1 ? input.length : cursorPosition + afterSpace;
+
+  return {
+    cursorWord: input.slice(start, end),
+    start,
+  };
+};
+
+const getNewQuery = (
+  operator: Omit<OperatorWithIcon, "name" | "icon">,
+  query: string,
+  cursorPosition: number,
+  cursorWord: string,
+) => {
+  const newQuery =
+    query.slice(0, cursorPosition - cursorWord.length) +
+    `${operator.operator.toLowerCase()}:` +
+    (operator.enclosedInQuotes ? '""' : "") +
+    query.slice(cursorPosition);
+  return newQuery;
+};
+const getNewCursorPosition = (
+  operator: Omit<OperatorWithIcon, "name" | "icon">,
+  cursorPosition: number,
+  cursorWord: string,
+) => {
+  // +1 offset for the colon
+  // another + 1 for quote if enclosed in quotes
+  const offset = operator.enclosedInQuotes ? 2 : 1;
+  return cursorPosition - cursorWord.length + operator.operator.length + offset;
+};
 export function useSearchBar(initialQuery: string = "") {
   const [query, setQuery] = useState(initialQuery);
+
   const [showDropdown, setShowDropdown] = useState(false);
+
   const [cursorPosition, setCursorPosition] = useState(0);
-  const [cursorWord, setCursorWord] = useState("");
+  // const [cursorWord, setCursorWord] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [isTouched, setIsTouched] = useState(false);
   // offset dropdown menu relative to where the user's currently typed word is
@@ -60,10 +99,24 @@ export function useSearchBar(initialQuery: string = "") {
   const commandInputRef = useRef<HTMLInputElement>(null);
   const commandRef = useRef<HTMLDivElement>(null);
 
+  const cursorWord = useMemo(() => {
+    return getCursorWord(query, cursorPosition).cursorWord;
+  }, [query, cursorPosition]);
+  const shouldShowDropdown = useMemo(() => {
+    const filteredOperators = getFilteredOperators(cursorWord);
+    // true if cursor is at beginning or after a whitespace
+    return (
+      showDropdown &&
+      isFocused &&
+      isTouched &&
+      (query === "" || cursorWord === "" || filteredOperators.length > 0)
+    );
+  }, [showDropdown, isFocused, isTouched, query, cursorWord]);
+
   const handleFocus = () => {
     setIsFocused(true);
     if (!isTouched) setIsTouched(true);
-    setShowDropdown(query === "");
+    setShowDropdown(true);
   };
 
   const handleBlur = () => {
@@ -71,27 +124,11 @@ export function useSearchBar(initialQuery: string = "") {
     setShowDropdown(false);
   };
 
-  const getCursorWord = (input: string, cursorPosition: number) => {
-    const textBeforeCursor = input.slice(0, cursorPosition);
-    const textAfterCursor = input.slice(cursorPosition);
-    const beforeSpace = textBeforeCursor.lastIndexOf(" ");
-    const afterSpace = textAfterCursor.indexOf(" ");
-    const start = beforeSpace === -1 ? 0 : beforeSpace + 1;
-    const end = afterSpace === -1 ? input.length : cursorPosition + afterSpace;
-    return {
-      word: input.slice(start, end),
-      start,
-      end,
-    };
-  };
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target;
     setQuery(input.value);
     const currentCursorPosition = input.selectionStart ?? 0;
-    setCursorPosition(currentCursorPosition);
-    const { word, start } = getCursorWord(input.value, currentCursorPosition);
-    setCursorWord(word);
-
+    const { start } = getCursorWord(input.value, currentCursorPosition);
     // Get input's computed styles
     const inputStyles = window.getComputedStyle(input);
     const paddingLeft = parseFloat(inputStyles.paddingLeft);
@@ -106,57 +143,34 @@ export function useSearchBar(initialQuery: string = "") {
     span.style.position = "absolute";
     span.textContent = textBeforeCursor;
     document.body.appendChild(span);
-
     // Get the actual width of the text plus padding
     const textWidth = span.offsetWidth + paddingLeft;
     setMenuCursorOffsetX(textWidth);
     document.body.removeChild(span);
-
-    const filteredOperators = getFilteredOperators(word);
-    setShowDropdown(
-      isFocused &&
-        (input.value === "" ||
-          (word.length > 0 && filteredOperators.length > 0)),
-    );
   };
 
   // Update CSS variable when dropdown is visible and menuCursorOffsetX changes
   useEffect(() => {
-    if (showDropdown && commandRef.current) {
+    if (shouldShowDropdown && commandRef.current) {
       commandRef.current.style.setProperty(
-        "--menu-cursor-offset-x-x",
+        "--menu-cursor-offset-x",
         `${menuCursorOffsetX}px`,
       );
     }
-  }, [showDropdown, menuCursorOffsetX]);
-
-  const getNewQuery = (operator: Omit<OperatorWithIcon, "name" | "icon">) => {
-    const newQuery =
-      query.slice(0, cursorPosition - cursorWord.length) +
-      `${operator.operator.toLowerCase()}:` +
-      (operator.enclosedInQuotes ? '""' : "") +
-      query.slice(cursorPosition);
-    return newQuery;
-  };
-  const getNewCursorPosition = (
-    operator: Omit<OperatorWithIcon, "name" | "icon">,
-  ) => {
-    // +1 offset for the colon
-    // another + 1 for quote if enclosed in quotes
-    const offset = operator.enclosedInQuotes ? 2 : 1;
-    return (
-      cursorPosition - cursorWord.length + operator.operator.length + offset
-    );
-  };
+  }, [shouldShowDropdown, menuCursorOffsetX]);
 
   const handleOperatorSelect = (operator: OperatorWithIcon) => {
-    const newQuery = getNewQuery(operator);
+    const newQuery = getNewQuery(operator, query, cursorPosition, cursorWord);
     setQuery(newQuery);
-    setShowDropdown(false);
+    // setTimeout is necessary to set cursor position AFTER the rendering is done
     setTimeout(() => {
       if (inputRef.current) {
         inputRef.current.focus();
-        const newPosition = getNewCursorPosition(operator);
+        const newPosition = getNewCursorPosition(
+          operator,
+          cursorPosition,
+          cursorWord,
+        );
         inputRef.current.setSelectionRange(newPosition, newPosition);
       }
     }, 0);
@@ -164,7 +178,7 @@ export function useSearchBar(initialQuery: string = "") {
 
   // Forward keyboard events to the command input so that arrows keys and enter key work
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showDropdown) return;
+    // if (!showDropdown) return;
     if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Enter") {
       e.preventDefault();
       const syntheticEvent = new KeyboardEvent("keydown", {
@@ -175,18 +189,28 @@ export function useSearchBar(initialQuery: string = "") {
     }
   };
 
+  const handleKeyUp = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    setCursorPosition(event.currentTarget.selectionStart ?? 0);
+  };
+
+  const handleClear = () => {
+    setQuery("");
+  };
+
   return {
     query,
-    setQuery,
-    showDropdown,
     cursorWord,
     inputRef,
     commandInputRef,
     commandRef,
+    shouldShowDropdown,
+    handleClear,
     handleInputChange,
     handleOperatorSelect,
     handleKeyDown,
+    handleKeyUp,
     handleFocus,
     handleBlur,
+    cursorPosition,
   };
 }
