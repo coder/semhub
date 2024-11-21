@@ -11,6 +11,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { SEARCH_OPERATORS, SearchOperator } from "@/core/constants/search";
 
+import { useCursorPosition } from "./useCursorPosition";
+
 export const OPERATORS_WITH_ICONS = [
   {
     name: "Title",
@@ -141,47 +143,22 @@ const getValSelectCursorPosition = (
   return cursorPosition - commandInputValue.length + value.length;
 };
 
-export function useSearchBar(initialQuery: string = "") {
+export function useSearchBar(initialQuery = "") {
   const [query, setQuery] = useState(initialQuery);
-
+  const commandInputRef = useRef<HTMLInputElement>(null);
+  const commandRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const [cursorPosition, setCursorPosition] = useState(0);
-
-  const handleCursorPosition = () => {
-    if (inputRef.current) {
-      setCursorPosition(inputRef.current.selectionStart ?? 0);
-    }
-  };
-
-  useEffect(() => {
-    const input = inputRef.current;
-    if (!input) return;
-
-    // Keep only click handler for when user clicks to change cursor position
-    input.addEventListener("click", handleCursorPosition);
-    input.addEventListener("keyup", handleCursorPosition);
-    input.addEventListener("select", handleCursorPosition);
-
-    return () => {
-      input.removeEventListener("click", handleCursorPosition);
-      input.removeEventListener("keyup", handleCursorPosition);
-      input.removeEventListener("select", handleCursorPosition);
-    };
-  }, []);
+  const { cursorPosition, setCursorPosition } = useCursorPosition(inputRef);
 
   const [isFocused, setIsFocused] = useState(false);
   const [isTouched, setIsTouched] = useState(false);
-  // offset dropdown menu relative to where the user's currently typed word is
-  const [menuCursorOffsetX, setMenuCursorOffsetX] = useState(0);
-
-  const inputRef = useRef<HTMLInputElement>(null);
-  const commandInputRef = useRef<HTMLInputElement>(null);
-  const commandRef = useRef<HTMLDivElement>(null);
 
   const cursorWord = useMemo(() => {
     return getCursorWord(query, cursorPosition).cursorWord;
   }, [query, cursorPosition]);
+
   const subMenu = useMemo(() => {
     if (!cursorWord || !cursorWord.includes(":")) return null;
     const op = cursorWord.slice(0, cursorWord.indexOf(":")).toLowerCase();
@@ -193,12 +170,14 @@ export function useSearchBar(initialQuery: string = "") {
     if (matchedVal) return null;
     return op as SearchOperator; // safe to cast because matchedOp is true
   }, [cursorWord]);
+
   const commandInputValue = useMemo(() => {
     // default menu to show
     if (!subMenu) return cursorWord;
     const sliceLength = subMenu.length + 1; // +1 for the colon
     return cursorWord.slice(sliceLength);
   }, [cursorWord, subMenu]);
+
   const shouldShowDropdown = useMemo(() => {
     const relevantList = subMenu
       ? getFilteredStateValues(commandInputValue, subMenu)
@@ -211,6 +190,18 @@ export function useSearchBar(initialQuery: string = "") {
       (query === "" || commandInputValue === "" || relevantList.length > 0)
     );
   }, [showDropdown, isFocused, isTouched, query, commandInputValue, subMenu]);
+
+  // offset dropdown menu relative to where the user's currently typed word is
+  const [menuCursorOffsetX, setMenuCursorOffsetX] = useState(0);
+  // Update CSS variable when dropdown is visible and menuCursorOffsetX changes
+  useEffect(() => {
+    if (shouldShowDropdown && commandRef.current) {
+      commandRef.current.style.setProperty(
+        "--menu-cursor-offset-x",
+        `${menuCursorOffsetX}px`,
+      );
+    }
+  }, [shouldShowDropdown, menuCursorOffsetX]);
 
   const handleFocus = () => {
     setIsFocused(true);
@@ -248,16 +239,6 @@ export function useSearchBar(initialQuery: string = "") {
     setMenuCursorOffsetX(textWidth);
     document.body.removeChild(span);
   };
-
-  // Update CSS variable when dropdown is visible and menuCursorOffsetX changes
-  useEffect(() => {
-    if (shouldShowDropdown && commandRef.current) {
-      commandRef.current.style.setProperty(
-        "--menu-cursor-offset-x",
-        `${menuCursorOffsetX}px`,
-      );
-    }
-  }, [shouldShowDropdown, menuCursorOffsetX]);
 
   const handleOperatorSelect = (operator: OperatorWithIcon) => {
     const newQuery = getOpSelectQuery(
