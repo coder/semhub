@@ -2,20 +2,10 @@ import { SearchIcon, X } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import { useSearch } from "@/hooks/useSearch";
-import {
-  getFilteredOperators,
-  getFilteredStateValues,
-  useSearchBar,
-} from "@/hooks/useSearchBar";
+import { useSearchBar } from "@/hooks/useSearchBar";
 import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
+import { SearchDropdownMenu } from "@/components/SearchDropdownMenu";
 
 export function SearchBar({ query: initialQuery }: { query: string }) {
   const { handleSearch } = useSearch();
@@ -73,47 +63,14 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
         </div>
         {shouldShowDropdown && (
           <div className="absolute z-10 w-full">
-            <Command
-              ref={commandRef}
-              loop
-              className="w-64 bg-transparent"
-              style={{
-                transform: "translateX(var(--menu-cursor-offset-x, 0))",
-              }}
-            >
-              <CommandInput
-                ref={commandInputRef}
-                value={commandInputValue}
-                className="hidden"
-              />
-              <CommandList className="mt-2 rounded-lg border bg-popover shadow-lg ring-1 ring-black/5 dark:ring-white/5">
-                <CommandGroup>
-                  {!subMenu &&
-                    getFilteredOperators(commandInputValue).map((o) => (
-                      <CommandItem
-                        key={o.operator}
-                        onSelect={() => handleOperatorSelect(o)}
-                        className="px-4 py-2"
-                      >
-                        {o.icon}
-                        <span className="ml-2">{o.name}</span>
-                      </CommandItem>
-                    ))}
-                  {subMenu === "state" &&
-                    getFilteredStateValues(commandInputValue, subMenu).map(
-                      (s) => (
-                        <CommandItem
-                          key={s.value}
-                          onSelect={() => handleValueSelect(s)}
-                        >
-                          {s.icon}
-                          <span className="ml-2">{s.name}</span>
-                        </CommandItem>
-                      ),
-                    )}
-                </CommandGroup>
-              </CommandList>
-            </Command>
+            <SearchDropdownMenu
+              commandRef={commandRef}
+              commandInputRef={commandInputRef}
+              commandInputValue={commandInputValue}
+              subMenu={subMenu}
+              handleOperatorSelect={handleOperatorSelect}
+              handleValueSelect={handleValueSelect}
+            />
           </div>
         )}
       </form>
@@ -131,11 +88,13 @@ export function HomepageSearchBar() {
     commandInputRef,
     handleInputChange,
     handleOperatorSelect,
+    handleValueSelect,
     handleKeyDown,
     handleFocus,
     handleBlur,
     commandRef,
     commandInputValue,
+    subMenu,
   } = useSearchBar();
 
   return (
@@ -160,34 +119,14 @@ export function HomepageSearchBar() {
         />
         {shouldShowDropdown && (
           <div className="absolute z-10 w-full">
-            <Command
-              ref={commandRef}
-              loop
-              className="w-64 bg-transparent"
-              style={{
-                transform: "translateX(var(--menu-cursor-offset-x, 0))",
-              }}
-            >
-              <CommandInput
-                ref={commandInputRef}
-                value={commandInputValue}
-                className="hidden"
-              />
-              <CommandList className="mt-2 rounded-lg border bg-popover shadow-lg ring-1 ring-black/5 dark:ring-white/5">
-                <CommandGroup>
-                  {getFilteredOperators(commandInputValue).map((o) => (
-                    <CommandItem
-                      key={o.operator}
-                      onSelect={() => handleOperatorSelect(o)}
-                      className="px-4 py-2"
-                    >
-                      {o.icon}
-                      <span className="ml-2">{o.name}</span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
+            <SearchDropdownMenu
+              commandRef={commandRef}
+              commandInputRef={commandInputRef}
+              commandInputValue={commandInputValue}
+              subMenu={subMenu}
+              handleOperatorSelect={handleOperatorSelect}
+              handleValueSelect={handleValueSelect}
+            />
           </div>
         )}
       </form>

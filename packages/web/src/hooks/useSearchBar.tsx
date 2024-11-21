@@ -39,14 +39,14 @@ export const OPERATORS_WITH_ICONS = [
   },
 ] as const;
 
-type OperatorWithIcon = (typeof OPERATORS_WITH_ICONS)[number];
+export type OperatorWithIcon = (typeof OPERATORS_WITH_ICONS)[number];
 
 export const STATE_VALUES = [
   { name: "Open", value: "open", icon: <CircleIcon /> },
   { name: "Closed", value: "closed", icon: <CircleXIcon /> },
 ];
 
-type StateValue = (typeof STATE_VALUES)[number];
+export type StateValue = (typeof STATE_VALUES)[number];
 
 export const getFilteredOperators = (word: string) =>
   OPERATORS_WITH_ICONS.filter(
