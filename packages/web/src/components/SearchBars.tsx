@@ -28,7 +28,6 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
     handleOperatorSelect,
     handleValueSelect,
     handleKeyDown,
-    handleKeyUp,
     handleFocus,
     handleBlur,
     handleClear,
@@ -36,8 +35,6 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
     commandInputValue,
     subMenu,
   } = useSearchBar(initialQuery);
-  // console.log({ shouldShowDropdown, cursorWord, cursorPosition });
-  console.log({ commandInputValue, subMenu, shouldShowDropdown });
 
   return (
     <div className="relative mx-auto w-full">
@@ -47,7 +44,6 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
             value={query}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            onKeyUp={handleKeyUp}
             onFocus={handleFocus}
             onBlur={handleBlur}
             ref={inputRef}

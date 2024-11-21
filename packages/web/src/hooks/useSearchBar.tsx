@@ -62,8 +62,10 @@ export const getFilteredStateValues = (
   if (!subMenu) return [];
   switch (subMenu) {
     case "state":
-      return STATE_VALUES.filter((s) =>
-        s.name.toLowerCase().startsWith(word.toLowerCase()),
+      return STATE_VALUES.filter(
+        (s) =>
+          s.name.toLowerCase().startsWith(word.toLowerCase()) ||
+          s.value.toLowerCase().startsWith(word.toLowerCase()),
       );
     default:
       return [];
@@ -73,13 +75,22 @@ export const getFilteredStateValues = (
 const getCursorWord = (input: string, cursorPosition: number) => {
   const textBeforeCursor = input.slice(0, cursorPosition);
   const textAfterCursor = input.slice(cursorPosition);
-  const beforeSpace = textBeforeCursor.lastIndexOf(" ");
+
+  // Trim only the text before cursor to preserve spaces after cursor
+  const beforeSpace = textBeforeCursor.trimStart().lastIndexOf(" ");
   const afterSpace = textAfterCursor.indexOf(" ");
-  const start = beforeSpace === -1 ? 0 : beforeSpace + 1;
+
+  // Adjust start position to account for leading spaces
+  const leadingSpaces =
+    textBeforeCursor.length - textBeforeCursor.trimStart().length;
+  const start =
+    beforeSpace === -1 ? leadingSpaces : leadingSpaces + beforeSpace + 1;
   const end = afterSpace === -1 ? input.length : cursorPosition + afterSpace;
 
+  const cursorWord = input.slice(start, end);
+  console.log({ cursorWord, leadingSpaces });
   return {
-    cursorWord: input.slice(start, end),
+    cursorWord,
     start,
   };
 };
@@ -136,7 +147,29 @@ export function useSearchBar(initialQuery: string = "") {
   const [showDropdown, setShowDropdown] = useState(false);
 
   const [cursorPosition, setCursorPosition] = useState(0);
-  // const [cursorWord, setCursorWord] = useState("");
+
+  const handleCursorPosition = () => {
+    if (inputRef.current) {
+      setCursorPosition(inputRef.current.selectionStart ?? 0);
+    }
+  };
+
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+
+    // Keep only click handler for when user clicks to change cursor position
+    input.addEventListener("click", handleCursorPosition);
+    input.addEventListener("keyup", handleCursorPosition);
+    input.addEventListener("select", handleCursorPosition);
+
+    return () => {
+      input.removeEventListener("click", handleCursorPosition);
+      input.removeEventListener("keyup", handleCursorPosition);
+      input.removeEventListener("select", handleCursorPosition);
+    };
+  }, []);
+
   const [isFocused, setIsFocused] = useState(false);
   const [isTouched, setIsTouched] = useState(false);
   // offset dropdown menu relative to where the user's currently typed word is
@@ -194,6 +227,7 @@ export function useSearchBar(initialQuery: string = "") {
     const input = e.target;
     setQuery(input.value);
     const currentCursorPosition = input.selectionStart ?? 0;
+    setCursorPosition(currentCursorPosition);
     const { start } = getCursorWord(input.value, currentCursorPosition);
     // Get input's computed styles
     const inputStyles = window.getComputedStyle(input);
@@ -281,9 +315,9 @@ export function useSearchBar(initialQuery: string = "") {
     }
   };
 
-  const handleKeyUp = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    setCursorPosition(event.currentTarget.selectionStart ?? 0);
-  };
+  // const handleKeyUp = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  //   setCursorPosition(event.currentTarget.selectionStart ?? 0);
+  // };
 
   const handleClear = () => {
     setQuery("");
@@ -302,9 +336,7 @@ export function useSearchBar(initialQuery: string = "") {
     handleOperatorSelect,
     handleValueSelect,
     handleKeyDown,
-    handleKeyUp,
     handleFocus,
     handleBlur,
-    cursorPosition,
   };
 }
