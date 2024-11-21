@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { SEARCH_OPERATORS } from "@/core/constants/search";
 
+// additional field: whether to automatically add quotes around the value
 const OPERATORS_WITH_ICONS = [
   {
     name: "Title",
@@ -38,19 +39,11 @@ const OPERATORS_WITH_ICONS = [
 ];
 
 export const getFilteredOperators = (word: string) =>
-  OPERATORS_WITH_ICONS.filter((o) =>
-    o.operator.toLowerCase().startsWith(word.toLowerCase()),
+  OPERATORS_WITH_ICONS.filter(
+    (o) =>
+      o.operator.toLowerCase().startsWith(word.toLowerCase()) ||
+      o.name.toLowerCase().startsWith(word.toLowerCase()),
   );
-
-export const getWordOnCursor = (input: string, cursorPosition: number) => {
-  const textBeforeCursor = input.slice(0, cursorPosition);
-  const textAfterCursor = input.slice(cursorPosition);
-  const beforeSpace = textBeforeCursor.lastIndexOf(" ");
-  const afterSpace = textAfterCursor.indexOf(" ");
-  const start = beforeSpace === -1 ? 0 : beforeSpace + 1;
-  const end = afterSpace === -1 ? input.length : cursorPosition + afterSpace;
-  return input.slice(start, end);
-};
 
 export function useSearchBar(initialQuery: string = "") {
   const [query, setQuery] = useState(initialQuery);
@@ -76,19 +69,31 @@ export function useSearchBar(initialQuery: string = "") {
     setShowDropdown(false);
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    getWordOnCursor: (value: string, position: number) => string,
-  ) => {
+  const getCursorWord = (input: string, cursorPosition: number) => {
+    const textBeforeCursor = input.slice(0, cursorPosition);
+    const textAfterCursor = input.slice(cursorPosition);
+    const beforeSpace = textBeforeCursor.lastIndexOf(" ");
+    const afterSpace = textAfterCursor.indexOf(" ");
+    const start = beforeSpace === -1 ? 0 : beforeSpace + 1;
+    const end = afterSpace === -1 ? input.length : cursorPosition + afterSpace;
+    return {
+      word: input.slice(start, end),
+      start,
+      end,
+    };
+  };
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target;
     const currentCursorPosition = input.selectionStart ?? 0;
+    setCursorPosition(currentCursorPosition);
+    const { word, start } = getCursorWord(input.value, currentCursorPosition);
 
     // Get input's computed styles
     const inputStyles = window.getComputedStyle(input);
     const paddingLeft = parseFloat(inputStyles.paddingLeft);
 
-    // Get the text up to the cursor
-    const textBeforeCursor = input.value.slice(0, currentCursorPosition);
+    // Get the text up to the start of the word, this is where dropdown menu should start
+    const textBeforeCursor = input.value.slice(0, start);
 
     // Create a temporary span to measure text width
     const span = document.createElement("span");
@@ -105,14 +110,12 @@ export function useSearchBar(initialQuery: string = "") {
     setCursorX(textWidth);
 
     setQuery(input.value);
-    setCursorPosition(currentCursorPosition);
-    const currentWord = getWordOnCursor(input.value, currentCursorPosition);
-    setCursorWord(currentWord);
-    const filteredOperators = getFilteredOperators(currentWord);
+    setCursorWord(word);
+    const filteredOperators = getFilteredOperators(word);
     setShowDropdown(
       isFocused &&
         (input.value === "" ||
-          (currentWord.length > 0 && filteredOperators.length > 0)),
+          (word.length > 0 && filteredOperators.length > 0)),
     );
   };
 

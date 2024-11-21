@@ -2,11 +2,7 @@ import { SearchIcon, X } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import { useSearch } from "@/hooks/useSearch";
-import {
-  getFilteredOperators,
-  getWordOnCursor,
-  useSearchBar,
-} from "@/hooks/useSearchBar";
+import { getFilteredOperators, useSearchBar } from "@/hooks/useSearchBar";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -44,7 +40,7 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
         <div className="relative">
           <Input
             value={query}
-            onChange={(e) => handleInputChange(e, getWordOnCursor)}
+            onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             onBlur={handleBlur}
@@ -78,7 +74,7 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
             <Command
               ref={commandRef}
               loop
-              className="w-64"
+              className="w-64 bg-transparent"
               style={{ transform: "translateX(var(--cursor-x, 0))" }}
             >
               <CommandInput
@@ -135,7 +131,7 @@ export function HomepageSearchBar() {
           ref={inputRef}
           type="text"
           value={query}
-          onChange={(e) => handleInputChange(e, getWordOnCursor)}
+          onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
           onBlur={handleBlur}
@@ -150,7 +146,7 @@ export function HomepageSearchBar() {
             <Command
               ref={commandRef}
               loop
-              className="w-64"
+              className="w-64 bg-transparent"
               style={{ transform: "translateX(var(--cursor-x, 0))" }}
             >
               <CommandInput
