@@ -13,6 +13,7 @@ import { type Author, type Label } from "../shared";
 import { repos } from "./repo.sql";
 
 export const issueStateEnum = pgEnum("issue_state", ["OPEN", "CLOSED"]);
+export type IssueState = typeof issueStateEnum.enumValues[number];
 export const issueStateReasonEnum = pgEnum("issue_state_reason", [
   "COMPLETED",
   "REOPENED",

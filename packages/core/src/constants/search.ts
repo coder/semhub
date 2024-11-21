@@ -1,9 +1,9 @@
 export const SEARCH_OPERATORS = [
-  "title",
-  "author",
-  "body",
-  "state",
-  "repo",
+  { operator: "title", enclosedInQuotes: true },
+  { operator: "author", enclosedInQuotes: false },
+  { operator: "body", enclosedInQuotes: true },
+  { operator: "state", enclosedInQuotes: false },
+  { operator: "repo", enclosedInQuotes: false },
 ] as const;
 
-export type SearchOperator = (typeof SEARCH_OPERATORS)[number];
+export type SearchOperator = (typeof SEARCH_OPERATORS)[number]["operator"];

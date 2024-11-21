@@ -9,39 +9,33 @@ import { useEffect, useRef, useState } from "react";
 
 import { SEARCH_OPERATORS } from "@/core/constants/search";
 
-// additional field: whether to automatically add quotes around the value
 const OPERATORS_WITH_ICONS = [
   {
     name: "Title",
-    operator: SEARCH_OPERATORS[0],
+    ...SEARCH_OPERATORS[0],
     icon: <Heading1Icon />,
-    enclosedInQuotes: true,
   },
   {
     name: "Author",
-    operator: SEARCH_OPERATORS[1],
+    ...SEARCH_OPERATORS[1],
     icon: <UserIcon />,
-    enclosedInQuotes: false,
   },
   {
     name: "Body",
-    operator: SEARCH_OPERATORS[2],
+    ...SEARCH_OPERATORS[2],
     icon: <AlignJustifyIcon />,
-    enclosedInQuotes: true,
   },
   {
     name: "Issue State",
-    operator: SEARCH_OPERATORS[3],
+    ...SEARCH_OPERATORS[3],
     icon: <CircleDashedIcon />,
-    enclosedInQuotes: false,
   },
   {
     name: "Repository",
-    operator: SEARCH_OPERATORS[4],
+    ...SEARCH_OPERATORS[4],
     icon: <FolderGit2Icon />,
-    enclosedInQuotes: false,
   },
-];
+] as const;
 
 type OperatorWithIcon = (typeof OPERATORS_WITH_ICONS)[number];
 
