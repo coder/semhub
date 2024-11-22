@@ -22,13 +22,13 @@ export const searchIssues = async ({
   lucky,
 }: {
   query: IssuesSearchSchema["q"];
-  pageParam?: IssuesSearchSchema["p"];
+  pageParam?: IssuesSearchSchema["page"];
   lucky: IssuesSearchSchema["lucky"];
 }) => {
   const res = await client.search.$get({
     query: {
       q: query,
-      p: pageParam?.toString() ?? "1",
+      page: pageParam?.toString() ?? "1",
       lucky,
     },
   });

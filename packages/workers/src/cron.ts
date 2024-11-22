@@ -1,6 +1,6 @@
-import { getDb } from "@semhub/core/db";
-import { Embedding } from "@semhub/core/embedding";
-import { GitHubIssue } from "@semhub/core/github/issue";
+import { getDb } from "@/core/db";
+import { Embedding } from "@/core/embedding";
+import { GitHubIssue } from "@/core/github/issue";
 
 import type RateLimiterWorker from "./rate-limiter";
 

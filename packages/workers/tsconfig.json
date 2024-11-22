@@ -11,7 +11,7 @@
     "noUncheckedIndexedAccess": true,
     "types": ["@cloudflare/workers-types"],
     "paths": {
-      "@semhub/core/*": ["../core/src/*"],
+      "@/core/*": ["../core/src/*"],
       "@/*": ["./src/*"]
     }
   },

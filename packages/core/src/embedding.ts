@@ -2,30 +2,16 @@ import dedent from "dedent";
 import type { SQL } from "drizzle-orm";
 
 import { EMBEDDING_MODEL, type RateLimiter } from "./constants/rate-limit";
-import {
-  and,
-  cosineDistance,
-  eq,
-  getDb,
-  gt,
-  inArray,
-  isNull,
-  lt,
-  or,
-  sql,
-} from "./db";
+import { and, getDb, inArray, isNull, lt, or, sql } from "./db";
 import type { IssueFieldsForEmbedding } from "./db/schema/entities/issue.schema";
 import { issues } from "./db/schema/entities/issue.sql";
-import { repos } from "./db/schema/entities/repo.sql";
 import { getOpenAIClient } from "./openai";
 import { isReducePromptError } from "./openai/errors";
 import { embeddingsCreateSchema } from "./openai/schema";
 import { sleep } from "./util";
 
 export namespace Embedding {
-  // cannot use large model because of max dimension of 2000 in pgvector
-  // see https://github.com/pgvector/pgvector/issues/461
-  async function createEmbedding({
+  export async function createEmbedding({
     input,
     rateLimiter,
   }: {
@@ -48,43 +34,6 @@ export namespace Embedding {
     });
     const result = embeddingsCreateSchema.parse(res);
     return result.data[0]!.embedding;
-  }
-  export async function findSimilarIssues({
-    query,
-    rateLimiter,
-    lucky,
-  }: {
-    query: string;
-    rateLimiter?: RateLimiter;
-    lucky?: boolean;
-  }) {
-    const { db } = getDb();
-    const embedding = await createEmbedding({ input: query, rateLimiter });
-    const similarity = sql<number>`1-(${cosineDistance(issues.embedding, embedding)})`;
-    const similarIssues = await db
-      .select({
-        id: issues.id,
-        number: issues.number,
-        title: issues.title,
-        body: issues.body,
-        labels: issues.labels,
-        issueUrl: issues.htmlUrl,
-        author: issues.author,
-        issueState: issues.issueState,
-        issueStateReason: issues.issueStateReason,
-        issueCreatedAt: issues.issueCreatedAt,
-        issueClosedAt: issues.issueClosedAt,
-        issueUpdatedAt: issues.issueUpdatedAt,
-        similarity,
-        repoName: repos.name,
-        repoUrl: repos.htmlUrl,
-      })
-      .from(issues)
-      // arbitrary value, to fine-tune to exact value empirically
-      .where(gt(similarity, 0.3))
-      .leftJoin(repos, eq(issues.repoId, repos.id))
-      .limit(lucky ? 1 : 50);
-    return similarIssues;
   }
   export async function syncIssues(rateLimiter?: RateLimiter) {
     const TRUNCATION_MAX_ATTEMPTS = 8;

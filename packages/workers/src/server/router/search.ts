@@ -1,6 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
-import { Embedding } from "@semhub/core/embedding";
 import { Hono } from "hono";
+
+import { Issue } from "@/core/issue";
 
 import type { Context } from "..";
 import type { PaginatedResponse } from "../response";
@@ -10,10 +11,11 @@ export const searchRouter = new Hono<Context>().get(
   "/",
   zValidator("query", issuesSearchSchema),
   async (c) => {
-    const { q: query, p, lucky } = c.req.valid("query");
-    const pageNumber = p ?? 1;
+    const { q: query, page, lucky } = c.req.valid("query");
+    const pageNumber = page ?? 1;
     const pageSize = 30;
-    const issues = await Embedding.findSimilarIssues({
+
+    const issues = await Issue.searchIssues({
       query,
       rateLimiter: c.env.RATE_LIMITER,
       lucky: lucky === "y",

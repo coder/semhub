@@ -1,10 +1,11 @@
+import { DurableObject, WorkerEntrypoint } from "cloudflare:workers";
+
 import {
   EMBEDDING_MODEL,
   getRateLimits,
   type RateLimiter as IRateLimiter,
   type RateLimiterName,
-} from "@semhub/core/constants/rate-limit";
-import { DurableObject, WorkerEntrypoint } from "cloudflare:workers";
+} from "@/core/constants/rate-limit";
 
 interface Env {
   RATE_LIMITER: DurableObjectNamespace<RateLimiter>;
