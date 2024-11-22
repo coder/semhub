@@ -11,19 +11,19 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
   const { handleSearch } = useSearch();
   const {
     query,
-    shouldShowDropdown,
     inputRef,
     commandInputRef,
+    commandRef,
+    commandInputValue,
+    subMenu,
+    shouldShowDropdown,
+    handleClear,
     handleInputChange,
     handleOperatorSelect,
     handleValueSelect,
     handleKeyDown,
     handleFocus,
     handleBlur,
-    handleClear,
-    commandRef,
-    commandInputValue,
-    subMenu,
   } = useSearchBar(initialQuery);
 
   return (
@@ -83,18 +83,19 @@ export function HomepageSearchBar() {
   const { handleSearch, handleLuckySearch } = useSearch();
   const {
     query,
-    shouldShowDropdown,
     inputRef,
     commandInputRef,
+    commandRef,
+    commandInputValue,
+    subMenu,
+    shouldShowDropdown,
+    handleClear,
     handleInputChange,
     handleOperatorSelect,
     handleValueSelect,
     handleKeyDown,
     handleFocus,
     handleBlur,
-    commandRef,
-    commandInputValue,
-    subMenu,
   } = useSearchBar();
 
   return (
@@ -128,6 +129,17 @@ export function HomepageSearchBar() {
               handleValueSelect={handleValueSelect}
             />
           </div>
+        )}
+        {query && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 top-1/2 -translate-y-1/2"
+            onClick={handleClear}
+          >
+            <X className="size-4 text-muted-foreground" />
+          </Button>
         )}
       </form>
       <div className="mt-8 space-x-4">

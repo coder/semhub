@@ -63,10 +63,6 @@ export namespace Issue {
           remainingQuery,
         );
       }
-      if (operator === "state") {
-        console.log({ matches });
-        console.log({ remainingQuery });
-      }
     });
 
     // Look for remaining quoted strings in the cleaned query
@@ -107,7 +103,7 @@ export namespace Issue {
     rateLimiter?: RateLimiter;
     lucky?: boolean;
   }) {
-    const SIMILARITY_THRESHOLD = 0.15;
+    const SIMILARITY_THRESHOLD = 0.15; // arbitrary threshold, to be tuned
     const { db } = getDb();
 
     const {

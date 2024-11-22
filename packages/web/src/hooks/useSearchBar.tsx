@@ -43,12 +43,21 @@ export const OPERATORS_WITH_ICONS = [
 
 export type OperatorWithIcon = (typeof OPERATORS_WITH_ICONS)[number];
 
-export const STATE_VALUES = [
-  { name: "Open", value: "open", icon: <CircleIcon /> },
-  { name: "Closed", value: "closed", icon: <CircleXIcon /> },
-];
+export interface SubmenuValue {
+  name: string;
+  value: string;
+  icon: React.ReactNode;
+}
 
-export type StateValue = (typeof STATE_VALUES)[number];
+export const OPERATOR_SUBMENU_VALUES = new Map<SearchOperator, SubmenuValue[]>([
+  [
+    SEARCH_OPERATORS[3].operator, // "state"
+    [
+      { name: "Open", value: "open", icon: <CircleIcon /> },
+      { name: "Closed", value: "closed", icon: <CircleXIcon /> },
+    ],
+  ],
+]);
 
 export const getFilteredOperators = (word: string) =>
   OPERATORS_WITH_ICONS.filter(
@@ -57,21 +66,18 @@ export const getFilteredOperators = (word: string) =>
       o.name.toLowerCase().startsWith(word.toLowerCase()),
   );
 
-export const getFilteredStateValues = (
+export const getFilteredSubmenuValues = (
   word: string,
   subMenu: SearchOperator | null,
 ) => {
   if (!subMenu) return [];
-  switch (subMenu) {
-    case "state":
-      return STATE_VALUES.filter(
-        (s) =>
-          s.name.toLowerCase().startsWith(word.toLowerCase()) ||
-          s.value.toLowerCase().startsWith(word.toLowerCase()),
-      );
-    default:
-      return [];
-  }
+  const submenuValues = OPERATOR_SUBMENU_VALUES.get(subMenu);
+  if (!submenuValues) return [];
+  return submenuValues.filter(
+    (s) =>
+      s.name.toLowerCase().startsWith(word.toLowerCase()) ||
+      s.value.toLowerCase().startsWith(word.toLowerCase()),
+  );
 };
 
 const getCursorWord = (input: string, cursorPosition: number) => {
@@ -90,7 +96,6 @@ const getCursorWord = (input: string, cursorPosition: number) => {
   const end = afterSpace === -1 ? input.length : cursorPosition + afterSpace;
 
   const cursorWord = input.slice(start, end);
-  console.log({ cursorWord, leadingSpaces });
   return {
     cursorWord,
     start,
@@ -112,7 +117,7 @@ const getOpSelectQuery = (
 };
 
 const getValSelectQuery = (
-  val: Pick<StateValue, "value">,
+  val: Pick<SubmenuValue, "value">,
   query: string,
   cursorPosition: number,
   commandInputValue: string,
@@ -163,12 +168,18 @@ export function useSearchBar(initialQuery = "") {
     if (!cursorWord || !cursorWord.includes(":")) return null;
     const op = cursorWord.slice(0, cursorWord.indexOf(":")).toLowerCase();
     const val = cursorWord.slice(cursorWord.indexOf(":") + 1).toLowerCase();
-    const matchedOp = SEARCH_OPERATORS.some(({ operator }) => operator === op);
+    const matchedOp = SEARCH_OPERATORS.find(
+      ({ operator }) => operator === op,
+    )?.operator;
+    // user has not fully typed an operator, show main menu
     if (!matchedOp) return null;
-    const matchedVal = STATE_VALUES.some(({ value }) => value === val);
-    // when value is fully typed, revert to main menu
-    if (matchedVal) return null;
-    return op as SearchOperator; // safe to cast because matchedOp is true
+    const matchedVal = OPERATOR_SUBMENU_VALUES.get(matchedOp)?.find(
+      ({ value }) => value.toLowerCase() === val,
+    );
+    // user has not fully typed an operator's submenu value, show submenu for autocomplete
+    if (!matchedVal) return matchedOp;
+    // finally, revert to main menu when operator's submenu value is fully typed
+    return null;
   }, [cursorWord]);
 
   const commandInputValue = useMemo(() => {
@@ -180,7 +191,7 @@ export function useSearchBar(initialQuery = "") {
 
   const shouldShowDropdown = useMemo(() => {
     const relevantList = subMenu
-      ? getFilteredStateValues(commandInputValue, subMenu)
+      ? getFilteredSubmenuValues(commandInputValue, subMenu)
       : getFilteredOperators(commandInputValue);
     // true if cursor is at beginning or after a whitespace
     return (
@@ -262,7 +273,7 @@ export function useSearchBar(initialQuery = "") {
     }, 0);
   };
 
-  const handleValueSelect = (val: StateValue) => {
+  const handleValueSelect = (val: SubmenuValue) => {
     const newQuery = getValSelectQuery(
       val,
       query,
@@ -295,10 +306,6 @@ export function useSearchBar(initialQuery = "") {
       commandInputRef.current?.dispatchEvent(syntheticEvent);
     }
   };
-
-  // const handleKeyUp = (event: React.KeyboardEvent<HTMLInputElement>) => {
-  //   setCursorPosition(event.currentTarget.selectionStart ?? 0);
-  // };
 
   const handleClear = () => {
     setQuery("");

@@ -1,9 +1,9 @@
 import { type SearchOperator } from "@/core/constants/search";
 import {
   getFilteredOperators,
-  getFilteredStateValues,
+  getFilteredSubmenuValues,
   type OperatorWithIcon,
-  type StateValue,
+  type SubmenuValue,
 } from "@/hooks/useSearchBar";
 import {
   Command,
@@ -19,7 +19,7 @@ interface SearchDropdownMenuProps {
   commandInputValue: string;
   subMenu: SearchOperator | null;
   handleOperatorSelect: (operator: OperatorWithIcon) => void;
-  handleValueSelect?: (value: StateValue) => void;
+  handleValueSelect?: (value: SubmenuValue) => void;
 }
 
 function OperatorItems({
@@ -41,14 +41,16 @@ function OperatorItems({
   ));
 }
 
-function StateValueItems({
+function SubmenuValueItems({
   commandInputValue,
   onSelect,
+  subMenu,
 }: {
   commandInputValue: string;
-  onSelect: (value: StateValue) => void;
+  onSelect: (value: SubmenuValue) => void;
+  subMenu: SearchOperator;
 }) {
-  return getFilteredStateValues(commandInputValue, "state").map((s) => (
+  return getFilteredSubmenuValues(commandInputValue, subMenu).map((s) => (
     <CommandItem key={s.value} onSelect={() => onSelect(s)}>
       {s.icon}
       <span className="ml-2">{s.name}</span>
@@ -87,9 +89,10 @@ export function SearchDropdownMenu({
             />
           )}
           {subMenu === "state" && handleValueSelect && (
-            <StateValueItems
+            <SubmenuValueItems
               commandInputValue={commandInputValue}
               onSelect={handleValueSelect}
+              subMenu={subMenu}
             />
           )}
         </CommandGroup>
