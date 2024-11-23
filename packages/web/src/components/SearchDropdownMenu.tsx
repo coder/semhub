@@ -1,10 +1,14 @@
-import { type SearchOperator } from "@/core/constants/search";
 import {
-  getFilteredOperators,
-  getFilteredSubmenuValues,
-  type OperatorWithIcon,
-  type SubmenuValue,
-} from "@/hooks/useSearchBar";
+  AlignJustifyIcon,
+  CircleDashedIcon,
+  CircleIcon,
+  CircleXIcon,
+  FolderGit2Icon,
+  Heading1Icon,
+  UserIcon,
+} from "lucide-react";
+
+import { SEARCH_OPERATORS, type SearchOperator } from "@/core/constants/search";
 import {
   Command,
   CommandGroup,
@@ -112,3 +116,70 @@ export function SearchDropdownMenu({
     </Command>
   );
 }
+
+export const OPERATORS_WITH_ICONS = [
+  {
+    name: "Title",
+    ...SEARCH_OPERATORS[0],
+    icon: <Heading1Icon />,
+  },
+  {
+    name: "Author",
+    ...SEARCH_OPERATORS[1],
+    icon: <UserIcon />,
+  },
+  {
+    name: "Body",
+    ...SEARCH_OPERATORS[2],
+    icon: <AlignJustifyIcon />,
+  },
+  {
+    name: "Issue State",
+    ...SEARCH_OPERATORS[3],
+    icon: <CircleDashedIcon />,
+  },
+  {
+    name: "Repository",
+    ...SEARCH_OPERATORS[4],
+    icon: <FolderGit2Icon />,
+  },
+] as const;
+
+export type OperatorWithIcon = (typeof OPERATORS_WITH_ICONS)[number];
+
+export interface SubmenuValue {
+  name: string;
+  value: string;
+  icon: React.ReactNode;
+}
+
+export const OPERATOR_SUBMENU_VALUES = new Map<SearchOperator, SubmenuValue[]>([
+  [
+    SEARCH_OPERATORS[3].operator, // "state"
+    [
+      { name: "Open", value: "open", icon: <CircleIcon /> },
+      { name: "Closed", value: "closed", icon: <CircleXIcon /> },
+    ],
+  ],
+]);
+
+export const getFilteredOperators = (word: string) =>
+  OPERATORS_WITH_ICONS.filter(
+    (o) =>
+      o.operator.toLowerCase().startsWith(word.toLowerCase()) ||
+      o.name.toLowerCase().startsWith(word.toLowerCase()),
+  );
+
+export const getFilteredSubmenuValues = (
+  word: string,
+  subMenu: SearchOperator | null,
+) => {
+  if (!subMenu) return [];
+  const submenuValues = OPERATOR_SUBMENU_VALUES.get(subMenu);
+  if (!submenuValues) return [];
+  return submenuValues.filter(
+    (s) =>
+      s.name.toLowerCase().startsWith(word.toLowerCase()) ||
+      s.value.toLowerCase().startsWith(word.toLowerCase()),
+  );
+};

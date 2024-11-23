@@ -23,6 +23,12 @@ Secrets:
 
 Make a copy of `.secrets.example` and name it `.secrets` and a copy of `.env.example` and name it `.env` and fill in the values above. To load the secrets into SST, run `bun secret:load`.
 
+To test on mobile, use Ngrok to create a tunnel to your local server:
+
+```zsh
+ngrok http 3001
+```
+
 ## Codebase
 
 This template uses
@@ -59,8 +65,6 @@ packages to start with and you can add more it.
 
    This is for any scripts that you can run on your SST app using the
    `sst shell` CLI.
-
-   ```
 
 ### Infrastructure
 

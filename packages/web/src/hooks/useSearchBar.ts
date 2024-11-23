@@ -1,84 +1,15 @@
-import {
-  AlignJustifyIcon,
-  CircleDashedIcon,
-  CircleIcon,
-  CircleXIcon,
-  FolderGit2Icon,
-  Heading1Icon,
-  UserIcon,
-} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { SEARCH_OPERATORS, SearchOperator } from "@/core/constants/search";
+import { SEARCH_OPERATORS } from "@/core/constants/search";
+import {
+  getFilteredOperators,
+  getFilteredSubmenuValues,
+  OPERATOR_SUBMENU_VALUES,
+  OperatorWithIcon,
+  SubmenuValue,
+} from "@/components/SearchDropdownMenu";
 
 import { useCursorPosition } from "./useCursorPosition";
-
-export const OPERATORS_WITH_ICONS = [
-  {
-    name: "Title",
-    ...SEARCH_OPERATORS[0],
-    icon: <Heading1Icon />,
-  },
-  {
-    name: "Author",
-    ...SEARCH_OPERATORS[1],
-    icon: <UserIcon />,
-  },
-  {
-    name: "Body",
-    ...SEARCH_OPERATORS[2],
-    icon: <AlignJustifyIcon />,
-  },
-  {
-    name: "Issue State",
-    ...SEARCH_OPERATORS[3],
-    icon: <CircleDashedIcon />,
-  },
-  {
-    name: "Repository",
-    ...SEARCH_OPERATORS[4],
-    icon: <FolderGit2Icon />,
-  },
-] as const;
-
-export type OperatorWithIcon = (typeof OPERATORS_WITH_ICONS)[number];
-
-export interface SubmenuValue {
-  name: string;
-  value: string;
-  icon: React.ReactNode;
-}
-
-export const OPERATOR_SUBMENU_VALUES = new Map<SearchOperator, SubmenuValue[]>([
-  [
-    SEARCH_OPERATORS[3].operator, // "state"
-    [
-      { name: "Open", value: "open", icon: <CircleIcon /> },
-      { name: "Closed", value: "closed", icon: <CircleXIcon /> },
-    ],
-  ],
-]);
-
-export const getFilteredOperators = (word: string) =>
-  OPERATORS_WITH_ICONS.filter(
-    (o) =>
-      o.operator.toLowerCase().startsWith(word.toLowerCase()) ||
-      o.name.toLowerCase().startsWith(word.toLowerCase()),
-  );
-
-export const getFilteredSubmenuValues = (
-  word: string,
-  subMenu: SearchOperator | null,
-) => {
-  if (!subMenu) return [];
-  const submenuValues = OPERATOR_SUBMENU_VALUES.get(subMenu);
-  if (!submenuValues) return [];
-  return submenuValues.filter(
-    (s) =>
-      s.name.toLowerCase().startsWith(word.toLowerCase()) ||
-      s.value.toLowerCase().startsWith(word.toLowerCase()),
-  );
-};
 
 const getCursorWord = (input: string, cursorPosition: number) => {
   const textBeforeCursor = input.slice(0, cursorPosition);
@@ -233,12 +164,21 @@ export function useSearchBar(initialQuery = "") {
     }, 100);
   };
 
+  const updateCursorPosition = (newPosition: number) => {
+    setCursorPosition(newPosition);
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.setSelectionRange(newPosition, newPosition);
+      }
+    }, 0);
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target;
     setQuery(input.value);
-    const currentCursorPosition = input.selectionStart ?? 0;
-    setCursorPosition(currentCursorPosition);
-    const { start } = getCursorWord(input.value, currentCursorPosition);
+    setCursorPosition(input.selectionStart ?? 0);
+    // Move the cursor offset calculation here
+    const { start } = getCursorWord(input.value, input.selectionStart ?? 0);
     // Get input's computed styles
     const inputStyles = window.getComputedStyle(input);
     const paddingLeft = parseFloat(inputStyles.paddingLeft);
@@ -269,17 +209,12 @@ export function useSearchBar(initialQuery = "") {
     );
     setQuery(newQuery);
     // wait for newQuery to update before setting cursor position
-    setTimeout(() => {
-      if (inputRef.current) {
-        const newPosition = getOpSelectCursorPosition(
-          operator,
-          cursorPosition,
-          cursorWord,
-        );
-        inputRef.current.focus();
-        inputRef.current.setSelectionRange(newPosition, newPosition);
-      }
-    }, 0);
+    const newPosition = getOpSelectCursorPosition(
+      operator,
+      cursorPosition,
+      cursorWord,
+    );
+    updateCursorPosition(newPosition);
   };
 
   const handleValueSelect = (val: SubmenuValue) => {
@@ -291,31 +226,56 @@ export function useSearchBar(initialQuery = "") {
       commandInputValue,
     );
     setQuery(newQuery);
-    // wait for newQuery to update before setting cursor position
-    setTimeout(() => {
-      const newPosition = getValSelectCursorPosition(
-        val.value,
-        cursorPosition,
-        commandInputValue,
-      );
-      if (inputRef.current) {
-        inputRef.current.focus();
-        inputRef.current.setSelectionRange(newPosition, newPosition);
-      }
-    }, 0);
+    const newPosition = getValSelectCursorPosition(
+      val.value,
+      cursorPosition,
+      commandInputValue,
+    );
+    updateCursorPosition(newPosition);
   };
 
   // Forward keyboard events to the command input so that arrows keys and enter key work
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // when dropdown is not visible, don't forward events. important for Enter to continue to work
-    if (!shouldShowDropdown) return;
-    if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Enter") {
+    // Handle command input forwarding first
+    if (
+      shouldShowDropdown &&
+      (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Enter")
+    ) {
       e.preventDefault();
       const syntheticEvent = new KeyboardEvent("keydown", {
         key: e.key,
         bubbles: true,
       });
       commandInputRef.current?.dispatchEvent(syntheticEvent);
+      return;
+    }
+
+    const input = e.currentTarget;
+    const currentCursorPosition = input.selectionStart ?? 0;
+
+    const notSelectingText = input.selectionStart === input.selectionEnd;
+    // Let default backspace behavior handle text selection deletion
+    // Only handle custom backspace if there's no text selection
+    if (e.key === "Backspace" && notSelectingText) {
+      e.preventDefault();
+      const newValue = handleBackspace(input.value, currentCursorPosition);
+      setQuery(newValue);
+      const newPosition = currentCursorPosition - 1;
+      updateCursorPosition(newPosition);
+      return;
+    }
+
+    if (notSelectingText && (e.key === '"' || e.key === "“" || e.key === "”")) {
+      e.preventDefault();
+      // If the key pressed is a smart quote, replace it with a regular quote
+      // NB at this point of rendering, neither value nor cursorPosition have changed
+      const { newValue, newCursorPosition } = handleQuotationMark(
+        input.value,
+        currentCursorPosition,
+        cursorWord,
+      );
+      setQuery(newValue);
+      updateCursorPosition(newCursorPosition);
     }
   };
 
@@ -338,5 +298,67 @@ export function useSearchBar(initialQuery = "") {
     handleKeyDown,
     handleFocus,
     handleBlur,
+  };
+}
+
+function handleBackspace(
+  inputValue: string,
+  currentCursorPosition: number,
+): string {
+  const nextChar = inputValue.charAt(currentCursorPosition);
+  const lastChar = inputValue.charAt(currentCursorPosition - 1);
+
+  // If deleting an opening quote with a matching closing quote, remove both
+  if (lastChar === '"' && nextChar === '"') {
+    return (
+      inputValue.slice(0, currentCursorPosition - 1) +
+      inputValue.slice(currentCursorPosition + 1)
+    );
+  }
+  return (
+    inputValue.slice(0, currentCursorPosition - 1) +
+    inputValue.slice(currentCursorPosition)
+  );
+}
+
+function handleQuotationMark(
+  prevInput: string,
+  prevCursorPosition: number,
+  cursorWord: string,
+): {
+  newValue: string;
+  newCursorPosition: number;
+} {
+  const candidateNewValue =
+    prevInput.slice(0, prevCursorPosition) +
+    '"' +
+    prevInput.slice(prevCursorPosition);
+  console.log("candidateNewValue", candidateNewValue);
+  const nextChar = candidateNewValue.charAt(prevCursorPosition + 1);
+
+  // If next character is a quote, skip over it and don't insert the current quote
+  if (nextChar === '"') {
+    return {
+      newValue: prevInput,
+      newCursorPosition: prevCursorPosition + 1,
+    };
+  }
+  // Auto-insert closing quote only if we're at the end of a word
+  // or if there's only whitespace after the cursor
+  const textAfterCursor = prevInput.slice(prevCursorPosition + 1);
+  const isAtWordBoundary = !cursorWord || /^\s*$/.test(textAfterCursor);
+  if (isAtWordBoundary) {
+    return {
+      newValue:
+        prevInput.slice(0, prevCursorPosition) +
+        '""' +
+        prevInput.slice(prevCursorPosition),
+      newCursorPosition: prevCursorPosition + 1,
+    };
+  }
+
+  return {
+    newValue: candidateNewValue,
+    newCursorPosition: prevCursorPosition + 1,
   };
 }
