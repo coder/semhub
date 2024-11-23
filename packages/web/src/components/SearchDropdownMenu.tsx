@@ -22,6 +22,11 @@ interface SearchDropdownMenuProps {
   handleValueSelect?: (value: SubmenuValue) => void;
 }
 
+const preventDefault = (e: React.MouseEvent | React.TouchEvent) => {
+  // prevent input from losing focus on touch or click
+  e.preventDefault();
+};
+
 function OperatorItems({
   commandInputValue,
   onSelect,
@@ -34,6 +39,8 @@ function OperatorItems({
       key={o.operator}
       onSelect={() => onSelect(o)}
       className="px-4 py-2"
+      onMouseDown={preventDefault}
+      onTouchStart={preventDefault}
     >
       {o.icon}
       <span className="ml-2">{o.name}</span>
@@ -51,7 +58,12 @@ function SubmenuValueItems({
   subMenu: SearchOperator;
 }) {
   return getFilteredSubmenuValues(commandInputValue, subMenu).map((s) => (
-    <CommandItem key={s.value} onSelect={() => onSelect(s)}>
+    <CommandItem
+      key={s.value}
+      onSelect={() => onSelect(s)}
+      onMouseDown={preventDefault}
+      onTouchStart={preventDefault}
+    >
       {s.icon}
       <span className="ml-2">{s.name}</span>
     </CommandItem>
