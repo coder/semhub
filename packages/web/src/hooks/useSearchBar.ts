@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { SEARCH_OPERATORS } from "@/core/constants/search";
+import type {
+  OperatorWithIcon,
+  SubmenuValue} from "@/components/SearchDropdownMenu";
 import {
   getFilteredOperators,
   getFilteredSubmenuValues,
-  OPERATOR_SUBMENU_VALUES,
-  OperatorWithIcon,
-  SubmenuValue,
+  OPERATOR_SUBMENU_VALUES
 } from "@/components/SearchDropdownMenu";
 
 import { useCursorPosition } from "./useCursorPosition";

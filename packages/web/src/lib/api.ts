@@ -1,6 +1,7 @@
 import type { ApiRoutes } from "@/workers/server";
-import { ErrorResponse, isErrorResponse } from "@/workers/server/response";
-import { IssuesSearchSchema } from "@/workers/server/router/schema";
+import type { ErrorResponse} from "@/workers/server/response";
+import { isErrorResponse } from "@/workers/server/response";
+import type { IssuesSearchSchema } from "@/workers/server/router/schema";
 import { hc, type InferResponseType } from "hono/client";
 
 const apiUrl = import.meta.env.VITE_API_URL;

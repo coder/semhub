@@ -5,9 +5,10 @@ import {
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Loader2Icon } from "lucide-react";
-import { z } from "zod";
+import type { z } from "zod";
 
-import { searchIssues, SearchIssuesResponse } from "@/lib/api";
+import type { SearchIssuesResponse } from "@/lib/api";
+import { searchIssues } from "@/lib/api";
 import { getDaysAgo } from "@/lib/time";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
