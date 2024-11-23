@@ -220,9 +220,16 @@ export function useSearchBar(initialQuery = "") {
     setShowDropdown(true);
   };
 
+  const isSelectingRef = useRef(false);
+
   const handleBlur = () => {
-    setIsFocused(false);
-    setShowDropdown(false);
+    setTimeout(() => {
+      if (!isSelectingRef.current) {
+        setIsFocused(false);
+        setShowDropdown(false);
+      }
+      isSelectingRef.current = false;
+    }, 100);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -252,6 +259,7 @@ export function useSearchBar(initialQuery = "") {
   };
 
   const handleOperatorSelect = (operator: OperatorWithIcon) => {
+    isSelectingRef.current = true;
     const newQuery = getOpSelectQuery(
       operator,
       query,
@@ -259,21 +267,21 @@ export function useSearchBar(initialQuery = "") {
       cursorWord,
     );
     setQuery(newQuery);
-    // setTimeout is necessary to set cursor position AFTER the rendering is done
+    const newPosition = getOpSelectCursorPosition(
+      operator,
+      cursorPosition,
+      cursorWord,
+    );
     setTimeout(() => {
       if (inputRef.current) {
         inputRef.current.focus();
-        const newPosition = getOpSelectCursorPosition(
-          operator,
-          cursorPosition,
-          cursorWord,
-        );
         inputRef.current.setSelectionRange(newPosition, newPosition);
       }
     }, 0);
   };
 
   const handleValueSelect = (val: SubmenuValue) => {
+    isSelectingRef.current = true;
     const newQuery = getValSelectQuery(
       val,
       query,
@@ -281,14 +289,14 @@ export function useSearchBar(initialQuery = "") {
       commandInputValue,
     );
     setQuery(newQuery);
+    const newPosition = getValSelectCursorPosition(
+      val.value,
+      cursorPosition,
+      commandInputValue,
+    );
     setTimeout(() => {
       if (inputRef.current) {
         inputRef.current.focus();
-        const newPosition = getValSelectCursorPosition(
-          val.value,
-          cursorPosition,
-          commandInputValue,
-        );
         inputRef.current.setSelectionRange(newPosition, newPosition);
       }
     }, 0);
