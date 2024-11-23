@@ -190,17 +190,18 @@ export function useSearchBar(initialQuery = "") {
   }, [cursorWord, subMenu]);
 
   const shouldShowDropdown = useMemo(() => {
-    const relevantList = subMenu
-      ? getFilteredSubmenuValues(commandInputValue, subMenu)
-      : getFilteredOperators(commandInputValue);
-    // true if cursor is at beginning or after a whitespace
+    const showOperatorList =
+      !subMenu && getFilteredOperators(commandInputValue).length > 0;
+    const showSubmenuList =
+      subMenu &&
+      getFilteredSubmenuValues(commandInputValue, subMenu).length > 0;
     return (
       showDropdown &&
       isFocused &&
       isTouched &&
-      (query === "" || commandInputValue === "" || relevantList.length > 0)
+      (showOperatorList || showSubmenuList)
     );
-  }, [showDropdown, isFocused, isTouched, query, commandInputValue, subMenu]);
+  }, [showDropdown, isFocused, isTouched, commandInputValue, subMenu]);
 
   // offset dropdown menu relative to where the user's currently typed word is
   const [menuCursorOffsetX, setMenuCursorOffsetX] = useState(0);
@@ -267,13 +268,14 @@ export function useSearchBar(initialQuery = "") {
       cursorWord,
     );
     setQuery(newQuery);
-    const newPosition = getOpSelectCursorPosition(
-      operator,
-      cursorPosition,
-      cursorWord,
-    );
+    // wait for newQuery to update before setting cursor position
     setTimeout(() => {
       if (inputRef.current) {
+        const newPosition = getOpSelectCursorPosition(
+          operator,
+          cursorPosition,
+          cursorWord,
+        );
         inputRef.current.focus();
         inputRef.current.setSelectionRange(newPosition, newPosition);
       }
@@ -289,12 +291,13 @@ export function useSearchBar(initialQuery = "") {
       commandInputValue,
     );
     setQuery(newQuery);
-    const newPosition = getValSelectCursorPosition(
-      val.value,
-      cursorPosition,
-      commandInputValue,
-    );
+    // wait for newQuery to update before setting cursor position
     setTimeout(() => {
+      const newPosition = getValSelectCursorPosition(
+        val.value,
+        cursorPosition,
+        commandInputValue,
+      );
       if (inputRef.current) {
         inputRef.current.focus();
         inputRef.current.setSelectionRange(newPosition, newPosition);
