@@ -1,5 +1,4 @@
 import { print } from "graphql";
-import gql from "graphql-tag";
 
 import { eq, getDb, sql } from "../db";
 import { conflictUpdateAllExcept } from "../db/helper";
@@ -10,6 +9,7 @@ import {
 import type { CreateIssue } from "../db/schema/entities/issue.schema";
 import { issues as issueTable } from "../db/schema/entities/issue.sql";
 import { repos } from "../db/schema/entities/repo.sql";
+import { graphql } from "./graphql";
 import {
   loadIssuesWithCommentsQuerySchema,
   type CommentGraphql,
@@ -38,11 +38,12 @@ export namespace GitHubIssue {
       issuesLastUpdatedAt,
     } of coderRepos) {
       const iterator = octokit.graphql.paginate.iterator(
-        getIssueUpsertQuery({ since: issuesLastUpdatedAt }),
+        getIssueUpsertQuery(),
         {
           organization: "coder",
           repo: repoName,
           cursor: null,
+          since: issuesLastUpdatedAt ? issuesLastUpdatedAt.toISOString() : null,
         },
       );
       for await (const response of iterator) {
@@ -172,61 +173,69 @@ export namespace GitHubIssue {
     };
   }
 
-  function getIssueUpsertQuery({ since }: { since: Date | null }) {
+  export function getIssueUpsertQuery() {
     // use explorer to test GraphQL queries: https://docs.github.com/en/graphql/overview/explorer
-    // doing this to get syntax highlighting for GraphQL queries at the cost of additional libraries
-    return print(gql`
-  query paginate($cursor: String, $organization: String!, $repo: String!) {
-    repository(owner: $organization, name: $repo) {
-      issues(
-        first: 100
-        after: $cursor
-        orderBy: { field: UPDATED_AT, direction: ASC }
-        filterBy: { since: ${since ? `"${since.toISOString()}"` : "null"} }
+    const query = graphql(`
+      query paginate(
+        $cursor: String
+        $organization: String!
+        $repo: String!
+        $since: DateTime
       ) {
-        nodes {
-          id
-          number
-          title
-          body
-          url
-          state
-          stateReason
-          createdAt
-          updatedAt
-          closedAt
-          author {
-            login
-            url
-          }
-          labels(first: 10) {
+        repository(owner: $organization, name: $repo) {
+          issues(
+            first: 100
+            after: $cursor
+            orderBy: { field: UPDATED_AT, direction: ASC }
+            filterBy: { since: $since }
+          ) {
             nodes {
               id
-              name
-              color
-              description
-            }
-          }
-          comments(first: 100, orderBy: { field: UPDATED_AT, direction: ASC }) {
-            nodes {
-              id
+              number
+              title
+              body
+              url
+              state
+              stateReason
+              createdAt
+              updatedAt
+              closedAt
               author {
                 login
                 url
               }
-              body
-              createdAt
-              updatedAt
+              labels(first: 10) {
+                nodes {
+                  id
+                  name
+                  color
+                  description
+                }
+              }
+              comments(
+                first: 100
+                orderBy: { field: UPDATED_AT, direction: ASC }
+              ) {
+                nodes {
+                  id
+                  author {
+                    login
+                    url
+                  }
+                  body
+                  createdAt
+                  updatedAt
+                }
+              }
+            }
+            pageInfo {
+              hasNextPage
+              endCursor
             }
           }
         }
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
       }
-    }
-    }
-  `);
+    `);
+    return print(query);
   }
 }
