@@ -1,6 +1,7 @@
 import { SearchIcon, X } from "lucide-react";
 import { useTheme } from "next-themes";
 
+import { cn, preventInputZoom } from "@/lib/utils";
 import { useSearch } from "@/hooks/useSearch";
 import { useSearchBar } from "@/hooks/useSearchBar";
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,7 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
             onFocus={handleFocus}
             onBlur={handleBlur}
             ref={inputRef}
-            className="pr-20"
+            className={cn("pr-20", preventInputZoom)}
             placeholder="Search issues..."
           />
           {query && (
@@ -112,7 +113,10 @@ export function HomepageSearchBar() {
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          className="w-full rounded-full border border-gray-300 py-2 pl-10 pr-4 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={cn(
+            "w-full rounded-full border border-gray-300 py-2 pl-10 pr-4 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500",
+            preventInputZoom,
+          )}
         />
         <SearchIcon
           className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
