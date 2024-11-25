@@ -7,6 +7,16 @@ const hono = new sst.cloudflare.Worker("Hono", {
   handler: "./packages/workers/src/api.ts",
   link: [database, ...allSecrets],
   domain: "api." + domain,
+  transform: {
+    worker: {
+      serviceBindings: [
+        {
+          name: "RATE_LIMITER",
+          service: "rate-limiter",
+        },
+      ],
+    },
+  },
 });
 
 export const apiUrl = hono.url;
