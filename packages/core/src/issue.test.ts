@@ -216,6 +216,17 @@ describe("Issue.parseSearchQuery", () => {
         bodyQueries: [],
       },
     },
+    {
+      query: 'author: repo: state: title:"" body:"" ""',
+      expected: {
+        authorQueries: [],
+        repoQueries: [],
+        stateQueries: [],
+        substringQueries: [],
+        titleQueries: [],
+        bodyQueries: [],
+      },
+    },
   ];
 
   testQueries.forEach(({ query, expected }) => {

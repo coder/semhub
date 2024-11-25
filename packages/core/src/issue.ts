@@ -48,14 +48,18 @@ export namespace Issue {
         // Extract the actual values based on the pattern
         operatorMatches.set(
           operator,
-          matches.map((m) =>
-            m.replace(
-              new RegExp(
-                `^${operator}:${enclosedInQuotes ? '"(.*)"' : "(.*)"}$`,
+          matches
+            .map((m) =>
+              // when adding to the map, we want the value only (without operator or quotation marks)
+              m.replace(
+                new RegExp(
+                  `^${operator}:${enclosedInQuotes ? '"(.*)"' : "(.*)"}$`,
+                ),
+                "$1",
               ),
-              "$1",
-            ),
-          ),
+            )
+            // we also don't want empty string
+            .filter((value) => value.trim().length > 0),
         );
         // Remove matches from remaining query
         remainingQuery = matches.reduce(
@@ -67,7 +71,11 @@ export namespace Issue {
 
     // Look for remaining quoted strings in the cleaned query
     const quotedMatches = remainingQuery.match(/"([^"]*)"/g);
-    const substringQueries = quotedMatches?.map((q) => q.slice(1, -1)) ?? [];
+    const substringQueries =
+      quotedMatches
+        ?.map((q) => q.slice(1, -1))
+        // ignore empty string
+        .filter((value) => value.trim().length > 0) ?? [];
 
     // extra handling for enums conversion
     const stateQueries = [
