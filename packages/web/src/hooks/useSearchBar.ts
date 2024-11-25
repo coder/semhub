@@ -256,9 +256,9 @@ export function useSearchBar(initialQuery = "") {
     const currentCursorPosition = input.selectionStart ?? 0;
 
     const notSelectingText = input.selectionStart === input.selectionEnd;
-    // Let default backspace behavior handle text selection deletion
     // Only handle custom backspace if there's no text selection
-    if (e.key === "Backspace" && notSelectingText) {
+    // Don't modify alt+backspace behavior
+    if (e.key === "Backspace" && notSelectingText && !e.altKey) {
       e.preventDefault();
       const newValue = handleBackspace(input.value, currentCursorPosition);
       setQuery(newValue);
