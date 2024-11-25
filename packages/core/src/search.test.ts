@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseSearchQuery } from "./issue.util";
+import { parseSearchQuery } from "./search.util";
 
 describe("parseSearchQuery", () => {
   const testQueries = [

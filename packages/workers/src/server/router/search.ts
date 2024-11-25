@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 
-import { Issue } from "@/core/issue";
+import { Search } from "@/core/search";
 
 import type { Context } from "..";
 import type { PaginatedResponse } from "../response";
@@ -15,7 +15,7 @@ export const searchRouter = new Hono<Context>().get(
     const pageNumber = page ?? 1;
     const pageSize = 30;
 
-    const issues = await Issue.searchIssues({
+    const issues = await Search.getIssues({
       query,
       rateLimiter: c.env.RATE_LIMITER,
       lucky: lucky === "y",

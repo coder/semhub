@@ -4,9 +4,9 @@ import { convertToIssueStateSql, issues } from "./db/schema/entities/issue.sql";
 import { repos } from "./db/schema/entities/repo.sql";
 import { jsonExtract, lower } from "./db/utils";
 import { Embedding } from "./embedding";
-import { parseSearchQuery } from "./issue.util";
+import { parseSearchQuery } from "./search.util";
 
-export namespace Issue {
+export namespace Search {
   const defaultIssuesSelect = {
     id: issues.id,
     number: issues.number,
@@ -25,7 +25,7 @@ export namespace Issue {
     repoOwnerName: repos.owner,
   };
 
-  export async function searchIssues({
+  export async function getIssues({
     query,
     rateLimiter,
     lucky = false,

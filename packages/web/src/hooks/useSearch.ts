@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 
-import { parseSearchQuery } from "@/core/issue.util";
+import { parseSearchQuery } from "@/core/search.util";
 
 export const useSearch = () => {
   const navigate = useNavigate();
