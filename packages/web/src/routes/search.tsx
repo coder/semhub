@@ -1,4 +1,3 @@
-import { issuesSearchSchema } from "@/workers/server/router/schema";
 import {
   infiniteQueryOptions,
   useSuspenseInfiniteQuery,
@@ -14,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SearchBar } from "@/components/SearchBars";
+import { issuesSearchSchema } from "@/workers/server/router/schema";
 
 const issuesInfiniteQueryOptions = ({
   q,

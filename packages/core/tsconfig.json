@@ -13,6 +13,9 @@
         "tadaOutputLocation": "src/github/schema.docs.graphql.d.ts"
       }
     ],
-    "noUncheckedIndexedAccess": true
-  },
+    "noUncheckedIndexedAccess": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
 }

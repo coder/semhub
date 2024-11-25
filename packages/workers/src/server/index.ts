@@ -1,8 +1,9 @@
-import type RateLimiterWorker from "@/rate-limiter";
 import { Hono } from "hono";
 import type { Env } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
+
+import type RateLimiterWorker from "@/rate-limiter";
 
 import type { ErrorResponse } from "./response";
 import { searchRouter } from "./router/search";
