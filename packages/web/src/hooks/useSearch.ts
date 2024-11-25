@@ -1,13 +1,23 @@
 import { useNavigate } from "@tanstack/react-router";
 
+import { parseSearchQuery } from "@/core/issue.util";
+
 export const useSearch = () => {
   const navigate = useNavigate();
+
+  const injectDefaultQueries = (query: string) => {
+    const { stateQueries } = parseSearchQuery(query);
+    if (stateQueries.length === 0) {
+      return `${query} state:open`;
+    }
+    return query;
+  };
 
   const handleSearch = (e: React.FormEvent, query: string) => {
     e.preventDefault();
     e.stopPropagation();
     if (query.trim()) {
-      navigate({ to: "/search", search: { q: query } });
+      navigate({ to: "/search", search: { q: injectDefaultQueries(query) } });
     }
   };
 
@@ -15,7 +25,10 @@ export const useSearch = () => {
     e.preventDefault();
     e.stopPropagation();
     if (query.trim()) {
-      navigate({ to: "/search", search: { q: query, lucky: "y" } });
+      navigate({
+        to: "/search",
+        search: { q: injectDefaultQueries(query), lucky: "y" },
+      });
     }
   };
 

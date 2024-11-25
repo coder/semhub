@@ -1,14 +1,10 @@
 import type { RateLimiter } from "./constants/rate-limit";
-import { SEARCH_OPERATORS } from "./constants/search";
 import { and, cosineDistance, eq, getDb, gt, ilike, or, sql } from "./db";
-import {
-  issues,
-  issueStateEnum,
-  type IssueState,
-} from "./db/schema/entities/issue.sql";
+import { convertToIssueStateSql, issues } from "./db/schema/entities/issue.sql";
 import { repos } from "./db/schema/entities/repo.sql";
 import { jsonExtract, lower } from "./db/utils";
 import { Embedding } from "./embedding";
+import { parseSearchQuery } from "./issue.util";
 
 export namespace Issue {
   const defaultIssuesSelect = {
@@ -28,79 +24,6 @@ export namespace Issue {
     repoUrl: repos.htmlUrl,
     repoOwnerName: repos.owner,
   };
-
-  export function parseSearchQuery(inputQuery: string) {
-    // Create a Map with empty arrays as default values for each operator
-    const operatorMatches = new Map(
-      SEARCH_OPERATORS.map(({ operator }) => [operator, [] as string[]]),
-    );
-    let remainingQuery = inputQuery;
-
-    // Process each operator according to its configuration
-    SEARCH_OPERATORS.forEach((opConfig) => {
-      const { operator, enclosedInQuotes } = opConfig;
-      const pattern = enclosedInQuotes
-        ? `${operator}:"([^"]*)"` // With quotes: title:"example"
-        : `${operator}:(?:"([^"]*)"|([^\\s]*))`; // Match either quoted value or non-space value
-
-      const matches = inputQuery.match(new RegExp(pattern, "g"));
-      if (matches) {
-        // Extract the actual values based on the pattern
-        operatorMatches.set(
-          operator,
-          matches
-            .map((m) =>
-              // when adding to the map, we want the value only (without operator or quotation marks)
-              m.replace(
-                new RegExp(
-                  `^${operator}:${enclosedInQuotes ? '"(.*)"' : "(.*)"}$`,
-                ),
-                "$1",
-              ),
-            )
-            // we also don't want empty string
-            .filter((value) => value.trim().length > 0),
-        );
-        // Remove matches from remaining query
-        remainingQuery = matches.reduce(
-          (query, match) => query.replace(match, ""),
-          remainingQuery,
-        );
-      }
-    });
-
-    // Look for remaining quoted strings in the cleaned query
-    const quotedMatches = remainingQuery.match(/"([^"]*)"/g);
-    const substringQueries =
-      quotedMatches
-        ?.map((q) => q.slice(1, -1))
-        // ignore empty string
-        .filter((value) => value.trim().length > 0) ?? [];
-
-    // extra handling for enums conversion
-    const stateQueries = [
-      ...new Set( // using set to remove duplicates
-        operatorMatches
-          .get("state")
-          ?.map((q): IssueState | null => {
-            const normalized = q.toUpperCase();
-            return issueStateEnum.enumValues.includes(normalized as IssueState)
-              ? (normalized as IssueState)
-              : null;
-          })
-          .filter((state): state is IssueState => state !== null) ?? [],
-      ),
-    ];
-
-    return {
-      substringQueries,
-      titleQueries: operatorMatches.get("title") ?? [],
-      authorQueries: operatorMatches.get("author") ?? [],
-      bodyQueries: operatorMatches.get("body") ?? [],
-      repoQueries: operatorMatches.get("repo") ?? [],
-      stateQueries,
-    };
-  }
 
   export async function searchIssues({
     query,
@@ -162,7 +85,7 @@ export namespace Issue {
             ),
           ),
           ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
-          ...stateQueries.map((state) => eq(issues.issueState, state)),
+          ...stateQueries.map((state) => convertToIssueStateSql(state)),
         ),
       )
       .limit(lucky ? 1 : 50);

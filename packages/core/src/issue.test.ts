@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { Issue } from "./issue";
+import { parseSearchQuery } from "./issue.util";
 
-describe("Issue.parseSearchQuery", () => {
+describe("parseSearchQuery", () => {
   const testQueries = [
     {
       query: '"simple quote" title:"test" body:"content"',
@@ -84,22 +84,22 @@ describe("Issue.parseSearchQuery", () => {
       },
     },
     {
-      query: 'state:OPEN author:"johndoe" repo:frontend',
+      query: 'state:open author:"johndoe" repo:frontend',
       expected: {
         authorQueries: ['"johndoe"'],
         repoQueries: ["frontend"],
-        stateQueries: ["OPEN"],
+        stateQueries: ["open"],
         substringQueries: [],
         titleQueries: [],
         bodyQueries: [],
       },
     },
     {
-      query: 'state:CLOSED repo:backend "urgent fix" author:janedoe',
+      query: 'state:closed repo:backend "urgent fix" author:janedoe',
       expected: {
         authorQueries: ["janedoe"],
         repoQueries: ["backend"],
-        stateQueries: ["CLOSED"],
+        stateQueries: ["closed"],
         substringQueries: ["urgent fix"],
         titleQueries: [],
         bodyQueries: [],
@@ -117,11 +117,11 @@ describe("Issue.parseSearchQuery", () => {
       },
     },
     {
-      query: 'repo:org/repo title:"bug" state:OPEN state:CLOSED',
+      query: 'repo:org/repo title:"bug" state:open state:closed',
       expected: {
         authorQueries: [],
         repoQueries: ["org/repo"],
-        stateQueries: ["OPEN", "CLOSED"],
+        stateQueries: ["open", "closed"],
         substringQueries: [],
         titleQueries: ["bug"],
         bodyQueries: [],
@@ -150,11 +150,11 @@ describe("Issue.parseSearchQuery", () => {
       },
     },
     {
-      query: "state:ClOseD state:OPEN state:closed state:CLOSED",
+      query: "state:ClOseD state:open state:closed state:CLOSED",
       expected: {
         authorQueries: [],
         repoQueries: [],
-        stateQueries: ["CLOSED", "OPEN"],
+        stateQueries: ["closed", "open"],
         substringQueries: [],
         titleQueries: [],
         bodyQueries: [],
@@ -183,34 +183,34 @@ describe("Issue.parseSearchQuery", () => {
       },
     },
     {
-      query: 'state: OPEN title:"bug" state:NOT_VALID state:closed',
+      query: 'state: open title:"bug" state:NOT_VALID state:closed',
       expected: {
         authorQueries: [],
         repoQueries: [],
-        stateQueries: ["CLOSED"],
+        stateQueries: ["closed"],
         substringQueries: [],
         titleQueries: ["bug"],
         bodyQueries: [],
       },
     },
     {
-      query: 'state:OPEN"no space" title:"unterminated',
+      query: 'state:open"no space" title:"unterminated',
       expected: {
         authorQueries: [],
         repoQueries: [],
         stateQueries: [],
-        // reasoning: state regex matches state:OPEN"no and removes that substring
+        // reasoning: state regex matches state:open"no and removes that substring
         substringQueries: [" title:"],
         titleQueries: [],
         bodyQueries: [],
       },
     },
     {
-      query: "   state:OPEN    title:  padded  ",
+      query: "   state:open    title:  padded  ",
       expected: {
         authorQueries: [],
         repoQueries: [],
-        stateQueries: ["OPEN"],
+        stateQueries: ["open"],
         substringQueries: [],
         titleQueries: [],
         bodyQueries: [],
@@ -231,7 +231,7 @@ describe("Issue.parseSearchQuery", () => {
 
   testQueries.forEach(({ query, expected }) => {
     it(`correctly parses: ${query}`, () => {
-      const result = Issue.parseSearchQuery(query);
+      const result = parseSearchQuery(query);
       console.log(query);
       expect(result).toEqual(expected);
     });

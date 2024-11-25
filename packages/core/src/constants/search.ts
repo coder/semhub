@@ -7,3 +7,6 @@ export const SEARCH_OPERATORS = [
 ] as const;
 
 export type SearchOperator = (typeof SEARCH_OPERATORS)[number]["operator"];
+
+export const STATE_SUBMENU_VALUES = ["open", "closed", "all"] as const;
+export type StateSubmenuValue = (typeof STATE_SUBMENU_VALUES)[number];

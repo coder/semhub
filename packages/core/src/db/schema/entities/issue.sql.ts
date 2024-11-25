@@ -1,3 +1,4 @@
+import { eq, sql } from "drizzle-orm";
 import {
   index,
   integer,
@@ -8,12 +9,25 @@ import {
   vector,
 } from "drizzle-orm/pg-core";
 
+import type { StateSubmenuValue } from "@/constants/search";
+
 import { getBaseColumns, timestamptz } from "../base.sql";
 import { type Author, type Label } from "../shared";
 import { repos } from "./repo.sql";
 
 export const issueStateEnum = pgEnum("issue_state", ["OPEN", "CLOSED"]);
-export type IssueState = typeof issueStateEnum.enumValues[number];
+
+export const convertToIssueStateSql = (state: StateSubmenuValue) => {
+  switch (state) {
+    case "open":
+      return eq(issues.issueState, "OPEN");
+    case "closed":
+      return eq(issues.issueState, "CLOSED");
+    case "all":
+      return sql`true`;
+  }
+};
+
 export const issueStateReasonEnum = pgEnum("issue_state_reason", [
   "COMPLETED",
   "REOPENED",

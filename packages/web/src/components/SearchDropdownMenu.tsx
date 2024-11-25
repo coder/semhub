@@ -1,14 +1,16 @@
 import {
   AlignJustifyIcon,
   CircleDashedIcon,
-  CircleIcon,
-  CircleXIcon,
   FolderGit2Icon,
   Heading1Icon,
   UserIcon,
 } from "lucide-react";
 
-import { SEARCH_OPERATORS, type SearchOperator } from "@/core/constants/search";
+import {
+  SEARCH_OPERATORS,
+  STATE_SUBMENU_VALUES,
+  type SearchOperator,
+} from "@/core/constants/search";
 import {
   Command,
   CommandGroup,
@@ -68,7 +70,6 @@ function SubmenuValueItems({
       onMouseDown={preventDefault}
       onTouchStart={preventDefault}
     >
-      {s.icon}
       <span className="ml-2">{s.name}</span>
     </CommandItem>
   ));
@@ -150,15 +151,18 @@ export type OperatorWithIcon = (typeof OPERATORS_WITH_ICONS)[number];
 export interface SubmenuValue {
   name: string;
   value: string;
-  icon: React.ReactNode;
 }
 
 export const OPERATOR_SUBMENU_VALUES = new Map<SearchOperator, SubmenuValue[]>([
   [
     SEARCH_OPERATORS[3].operator, // "state"
     [
-      { name: "Open", value: "open", icon: <CircleIcon /> },
-      { name: "Closed", value: "closed", icon: <CircleXIcon /> },
+      {
+        name: "Open",
+        value: STATE_SUBMENU_VALUES[0],
+      },
+      { name: "Closed", value: STATE_SUBMENU_VALUES[1] },
+      { name: "All", value: STATE_SUBMENU_VALUES[2] },
     ],
   ],
 ]);
