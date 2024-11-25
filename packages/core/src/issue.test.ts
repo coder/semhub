@@ -106,7 +106,19 @@ describe("parseSearchQuery", () => {
       },
     },
     {
-      query: 'state:invalid_state author:"john smith"',
+      query: "state:invalid_state",
+      expected: {
+        authorQueries: [],
+        repoQueries: [],
+        stateQueries: [],
+        substringQueries: [],
+        titleQueries: [],
+        bodyQueries: [],
+      },
+    },
+    {
+      // we match quoted value even though enclosedInQuotes is false because because it allows users to optionally use quotes even when they're not required, which is a common user expectation in search syntax.
+      query: 'author:"john smith"',
       expected: {
         authorQueries: ['"john smith"'],
         repoQueries: [],

@@ -13,7 +13,7 @@ export function parseSearchQuery(inputQuery: string) {
     const { operator, enclosedInQuotes } = opConfig;
     const pattern = enclosedInQuotes
       ? `${operator}:"([^"]*)"` // With quotes: title:"example"
-      : `${operator}:(?:"([^"]*)"|([^\\s]*))`; // Match either quoted value or non-space value
+      : `${operator}:(?:"([^"]*)"|([^\\s]*))`; // Match non-space value or quoted value (to allow users to use quotes even when not required; see query: 'author:"john smith"' in tests)
 
     const matches = inputQuery.match(new RegExp(pattern, "g"));
     if (matches) {
