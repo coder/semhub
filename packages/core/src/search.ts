@@ -51,7 +51,7 @@ export namespace Search {
 
     const selected = db
       .select({
-        // id: issues.id,
+        id: issues.id,
         number: issues.number,
         title: issues.title,
         // body: issues.body,
@@ -105,9 +105,7 @@ export namespace Search {
           ),
           ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
           ...stateQueries.map((state) => convertToIssueStateSql(state)),
-          ...(labelQueries.length > 0
-            ? [hasAllLabels(issues.id, labelQueries)]
-            : []),
+          ...[hasAllLabels(issues.id, labelQueries)],
         ),
       )
       .limit(lucky ? 1 : 50);
