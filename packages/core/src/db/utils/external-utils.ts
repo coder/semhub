@@ -10,6 +10,8 @@ import {
 import { PgTimestampString, type SelectedFields } from "drizzle-orm/pg-core";
 import { type SelectResultFields } from "drizzle-orm/query-builders/select.types";
 
+import { coalesce } from "./general";
+
 // demo https://drizzle.run/se2noay5mhdu24va3xhv0lqo
 
 export function jsonBuildObject<T extends SelectedFields>(shape: T) {
@@ -103,41 +105,39 @@ export function toArray<Values>(values: Values[], cast: PGArrayCastTypes) {
   return sql`array[${sql.join(chunks)}]::${sql.raw(cast)}`;
 }
 
-export function takeFirst<T>(items: T[]) {
-  return items.at(0);
-}
-
-export function takeFirstOrThrow<T>(items: T[]) {
-  const first = takeFirst(items);
-
-  if (!first) {
-    throw new Error("First item not found");
-  }
-
-  return first;
-}
-
-export function distinct<Column extends AnyColumn>(column: Column) {
-  return sql<Column["_"]["data"]>`distinct(${column})`;
-}
-
-export function distinctOn<Column extends AnyColumn>(column: Column) {
-  return sql<Column["_"]["data"]>`distinct on (${column}) ${column}`;
-}
-
-export function max<Column extends AnyColumn>(column: Column) {
-  return sql<Column["_"]["data"]>`max(${column})`;
-}
-
-export function count<Column extends AnyColumn>(column: Column) {
-  return sql<number>`cast(count(${column}) as integer)`;
-}
-
-/**
- * Coalesce a value to a default value if the value is null
- * Ex default array: themes: coalesce(pubThemeListQuery.themes, sql`'[]'`)
- * Ex default number: votesCount: coalesce(PubPollAnswersQuery.count, sql`0`)
- */
-export function coalesce<T>(value: SQL.Aliased<T> | SQL<T>, defaultValue: SQL) {
-  return sql<T>`coalesce(${value}, ${defaultValue})`;
+export function jsonAggBuildObjectFromJoin<
+  T extends SelectedFields,
+  Column extends AnyColumn,
+>(
+  shape: T,
+  {
+    from,
+    joinTable,
+    joinCondition,
+    whereCondition,
+    orderBy,
+  }: {
+    from: SQL;
+    joinTable: SQL;
+    joinCondition: SQL<unknown>;
+    whereCondition?: SQL<unknown>;
+    orderBy?: { colName: Column; direction: "ASC" | "DESC" };
+  },
+) {
+  return sql<SelectResultFields<T>[]>`
+    COALESCE(
+      (
+        SELECT json_agg(${jsonBuildObject(shape)}
+          ${
+            orderBy
+              ? sql`ORDER BY ${orderBy.colName} ${sql.raw(orderBy.direction)}`
+              : sql``
+          }
+        )
+        FROM ${from}
+        JOIN ${joinTable} ON ${joinCondition}
+        ${whereCondition ? sql`WHERE ${whereCondition}` : sql``}
+      ),
+      '[]'::json
+    )`;
 }

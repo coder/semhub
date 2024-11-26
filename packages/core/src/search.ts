@@ -4,6 +4,7 @@ import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
 import { convertToIssueStateSql, issues } from "./db/schema/entities/issue.sql";
 import { labels } from "./db/schema/entities/label.sql";
 import { repos } from "./db/schema/entities/repo.sql";
+import { jsonAggBuildObjectFromJoin } from "./db/utils/external-utils";
 import { lower } from "./db/utils/general";
 import { jsonContains } from "./db/utils/json";
 import { Embedding } from "./embedding";
@@ -54,21 +55,19 @@ export namespace Search {
         number: issues.number,
         title: issues.title,
         body: issues.body,
-        // TODO: use typesafe function instead
-        labels: sql<LabelSelect[]>`
-          COALESCE(
-            (
-              SELECT json_agg(json_build_object(
-                'name', l.name,
-                'color', l.color,
-                'description', l.description
-              ))
-              FROM issues_to_labels itl
-              JOIN labels l ON l.id = itl.label_id
-              WHERE itl.issue_id = ${issues.id}
-            ),
-            '[]'::json
-          )`,
+        labels: jsonAggBuildObjectFromJoin(
+          {
+            name: labels.name,
+            color: labels.color,
+            description: labels.description,
+          },
+          {
+            from: sql`${issuesToLabels}`,
+            joinTable: sql`${labels}`,
+            joinCondition: eq(labels.id, issuesToLabels.labelId),
+            whereCondition: eq(issuesToLabels.issueId, issues.id),
+          },
+        ),
         issueUrl: issues.htmlUrl,
         author: issues.author,
         issueState: issues.issueState,
