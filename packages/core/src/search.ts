@@ -1,4 +1,7 @@
+import { PgDialect } from "drizzle-orm/pg-core";
+
 import type { RateLimiter } from "./constants/rate-limit";
+import type { AnyColumn, SQL } from "./db";
 import { and, cosineDistance, eq, getDb, gt, ilike, or, sql } from "./db";
 import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
 import { convertToIssueStateSql, issues } from "./db/schema/entities/issue.sql";
@@ -10,6 +13,7 @@ import { jsonContains } from "./db/utils/json";
 import { Embedding } from "./embedding";
 import { parseSearchQuery } from "./search.util";
 
+// const pgDialect = new PgDialect();
 export namespace Search {
   interface LabelSelect {
     name: string;
@@ -45,16 +49,12 @@ export namespace Search {
     });
     const similarity = sql<number>`1-(${cosineDistance(issues.embedding, embedding)})`;
 
-    const labelQueryArray = sql.join(
-      labelQueries.map((q) => sql`${q.toLowerCase()}`),
-      sql`, `,
-    );
-    const selected = await db
+    const selected = db
       .select({
-        id: issues.id,
+        // id: issues.id,
         number: issues.number,
         title: issues.title,
-        body: issues.body,
+        // body: issues.body,
         labels: jsonAggBuildObjectFromJoin(
           {
             name: labels.name,
@@ -78,22 +78,10 @@ export namespace Search {
         repoName: repos.name,
         repoUrl: repos.htmlUrl,
         repoOwnerName: repos.owner,
-        similarity,
+        // similarity,
       })
       .from(issues)
       .leftJoin(repos, eq(issues.repoId, repos.id))
-      .leftJoin(
-        issuesToLabels,
-        labelQueries.length > 0
-          ? eq(issues.id, issuesToLabels.issueId)
-          : undefined,
-      )
-      .leftJoin(
-        labels,
-        labelQueries.length > 0
-          ? eq(issuesToLabels.labelId, labels.id)
-          : undefined,
-      )
       .where(
         and(
           gt(similarity, SIMILARITY_THRESHOLD),
@@ -118,19 +106,43 @@ export namespace Search {
           ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
           ...stateQueries.map((state) => convertToIssueStateSql(state)),
           ...(labelQueries.length > 0
-            ? [
-                sql`(
-                  SELECT COUNT(DISTINCT l.name)
-                  FROM issues_to_labels itl
-                  JOIN labels l ON l.id = itl.label_id
-                  WHERE itl.issue_id = ${issues.id}
-                  AND LOWER(l.name) = ANY(ARRAY[${labelQueryArray}])
-                ) = ${labelQueries.length}`,
-              ]
+            ? [hasAllLabels(issues.id, labelQueries)]
             : []),
         ),
       )
       .limit(lucky ? 1 : 50);
-    return selected;
+    // console.log("query", pgDialect.sqlToQuery(selected.getSQL()));
+    const result = await selected;
+    // console.log("result", result.length);
+    console.log({ result });
+    return result;
   }
+}
+
+/**
+ * Creates a condition to check if all specified labels are present for an issue
+ * @param issueId The ID of the issue to check
+ * @param labelQueries Array of label names to check for (case-insensitive)
+ */
+export function hasAllLabels(
+  issueId: SQL | AnyColumn,
+  labelQueries: string[],
+): SQL<boolean> {
+  if (labelQueries.length === 0) {
+    return sql`true`;
+  }
+
+  const valuesArray = sql.join(
+    labelQueries.map((v) => sql`${v.toLowerCase()}`),
+    sql`, `,
+  );
+
+  return sql`(
+    SELECT ARRAY_AGG(DISTINCT LOWER(l.name) ORDER BY LOWER(l.name)) =
+           ARRAY(SELECT unnest(ARRAY[${valuesArray}]) ORDER BY 1)
+    FROM "issues_to_labels" itl
+    JOIN "labels" l ON l.id = itl.label_id
+    WHERE itl.issue_id = ${issueId}
+    AND LOWER(l.name) = ANY(ARRAY[${valuesArray}])
+  )`;
 }

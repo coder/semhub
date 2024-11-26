@@ -4,7 +4,7 @@ export const SEARCH_OPERATORS = [
   { operator: "body", enclosedInQuotes: true },
   { operator: "state", enclosedInQuotes: false },
   { operator: "repo", enclosedInQuotes: false },
-  { operator: "label", enclosedInQuotes: false },
+  { operator: "label", enclosedInQuotes: true },
 ] as const;
 
 export type SearchOperator = (typeof SEARCH_OPERATORS)[number]["operator"];
