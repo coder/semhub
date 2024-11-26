@@ -1,13 +1,17 @@
 import { print } from "graphql";
 
+import type { CreateLabel } from "@/db/schema/entities/label.schema";
+
 import { eq, getDb, sql } from "../db";
 import { conflictUpdateAllExcept } from "../db/helper";
 import {
   comments,
   type CreateComment,
 } from "../db/schema/entities/comment.sql";
+import { issuesToLabels } from "../db/schema/entities/issue-to-label.sql";
 import type { CreateIssue } from "../db/schema/entities/issue.schema";
 import { issues as issueTable } from "../db/schema/entities/issue.sql";
+import { labels as labelTable } from "../db/schema/entities/label.sql";
 import { repos } from "../db/schema/entities/repo.sql";
 import { graphql } from "./graphql";
 import {
@@ -61,14 +65,21 @@ export namespace GitHubIssue {
         const lastIssueUpdatedAt = new Date(
           issues[issues.length - 1]!.updatedAt,
         );
-        const issuesToInsert = issues.map((issue) =>
-          mapToCreateIssue(issue, repoId),
+        const entitiesToInsert = issues.map((issue) =>
+          mapToCreateEntities(issue, repoId),
         );
         const commentsToInsert = issues.flatMap((issue) =>
           issue.comments.nodes.map((comment) =>
             mapToCreateComment(comment, issue.id),
           ),
         );
+        const labelsToInsert = entitiesToInsert.flatMap(
+          (entity) => entity.dedupedLabels,
+        );
+        const issToLblRelationsNodeIds = entitiesToInsert.flatMap(
+          (entity) => entity.issToLblRelationsNodeIds,
+        );
+        const issuesToInsert = entitiesToInsert.map((entity) => entity.issue);
         await db.transaction(async (tx) => {
           await tx
             .insert(issueTable)
@@ -76,6 +87,17 @@ export namespace GitHubIssue {
             .onConflictDoUpdate({
               target: [issueTable.nodeId],
               set: conflictUpdateAllExcept(issueTable, [
+                "nodeId",
+                "id",
+                "createdAt",
+              ]),
+            });
+          await tx
+            .insert(labelTable)
+            .values(labelsToInsert)
+            .onConflictDoUpdate({
+              target: [labelTable.nodeId],
+              set: conflictUpdateAllExcept(labelTable, [
                 "nodeId",
                 "id",
                 "createdAt",
@@ -109,6 +131,26 @@ export namespace GitHubIssue {
                 ]),
               });
           }
+          const labelIds = tx.$with("label_ids").as(
+            tx
+              .select({
+                id: labelTable.id,
+                nodeId: labelTable.nodeId,
+              })
+              .from(labelTable),
+          );
+          const issueToLabelRelationsToInsert = issToLblRelationsNodeIds.map(
+            ({ issueNodeId, labelNodeIds }) => ({
+              issueId: sql<string>`((SELECT id FROM issue_ids WHERE node_id = ${issueNodeId}))`,
+              labelId: sql<string>`((SELECT id FROM label_ids WHERE node_id = ${labelNodeIds}))`,
+            }),
+          );
+          if (issueToLabelRelationsToInsert.length > 0) {
+            await tx
+              .with(labelIds)
+              .insert(issuesToLabels)
+              .values(issueToLabelRelationsToInsert);
+          }
           await tx
             .update(repos)
             .set({
@@ -124,31 +166,57 @@ export namespace GitHubIssue {
       console.log(`Synced all issues for ${repoName}`);
     }
   }
-  function mapToCreateIssue(issue: IssueGraphql, repoId: string): CreateIssue {
-    return {
-      repoId,
-      nodeId: issue.id,
-      number: issue.number,
-      author: issue.author
-        ? {
-            name: issue.author.login,
-            htmlUrl: issue.author.url,
-          }
-        : null,
-      issueState: issue.state,
-      issueStateReason: issue.stateReason,
-      htmlUrl: issue.url,
-      title: issue.title,
-      body: issue.body,
-      labels: issue.labels.nodes.map((label) => ({
+  interface IssToLblRelationNodeIds {
+    issueNodeId: string;
+    labelNodeIds: string[];
+  }
+  function mapToCreateEntities(
+    issue: IssueGraphql,
+    repoId: string,
+  ): {
+    issue: CreateIssue;
+    dedupedLabels: CreateLabel[];
+    issToLblRelationsNodeIds: IssToLblRelationNodeIds[];
+  } {
+    const nodeIdToLabel = new Map<string, CreateLabel>();
+    issue.labels.nodes.map((label) => {
+      const newLabel = {
         nodeId: label.id,
         name: label.name,
         color: label.color,
         description: label.description,
-      })),
-      issueCreatedAt: new Date(issue.createdAt),
-      issueUpdatedAt: new Date(issue.updatedAt),
-      issueClosedAt: issue.closedAt ? new Date(issue.closedAt) : null,
+        issueId: issue.id,
+      };
+      // since we are updating from oldest to newest, we want later label to always overwrite earlier ones
+      nodeIdToLabel.set(label.id, newLabel);
+    });
+    const dedupedLabels = Array.from(nodeIdToLabel.values());
+    const issueToLabelNodeIds = dedupedLabels.map((label) => ({
+      issueNodeId: issue.id,
+      labelNodeIds: [label.nodeId],
+    }));
+    return {
+      issue: {
+        repoId,
+        nodeId: issue.id,
+        number: issue.number,
+        author: issue.author
+          ? {
+              name: issue.author.login,
+              htmlUrl: issue.author.url,
+            }
+          : null,
+        issueState: issue.state,
+        issueStateReason: issue.stateReason,
+        htmlUrl: issue.url,
+        title: issue.title,
+        body: issue.body,
+        issueCreatedAt: new Date(issue.createdAt),
+        issueUpdatedAt: new Date(issue.updatedAt),
+        issueClosedAt: issue.closedAt ? new Date(issue.closedAt) : null,
+      },
+      dedupedLabels,
+      issToLblRelationsNodeIds: issueToLabelNodeIds,
     };
   }
 
