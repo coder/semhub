@@ -335,7 +335,6 @@ function handleQuotationMark(
     prevInput.slice(0, prevCursorPosition) +
     '"' +
     prevInput.slice(prevCursorPosition);
-  console.log("candidateNewValue", candidateNewValue);
   const nextChar = candidateNewValue.charAt(prevCursorPosition + 1);
 
   // If next character is a quote, skip over it and don't insert the current quote

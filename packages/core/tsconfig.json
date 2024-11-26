@@ -17,5 +17,7 @@
     "paths": {
       "@/*": ["./src/*"]
     }
-  }
+  },
+  "include": ["src/**/*", "./sst-env.d.ts", "./tsd.d.ts", "./tsd.test-d.ts"],
+  "exclude": ["dist", "node_modules"]
 }
