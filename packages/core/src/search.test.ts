@@ -13,6 +13,7 @@ describe("parseSearchQuery", () => {
         substringQueries: ["simple quote"],
         titleQueries: ["test"],
         bodyQueries: ["content"],
+        labelQueries: [],
       },
     },
     {
@@ -25,6 +26,7 @@ describe("parseSearchQuery", () => {
         substringQueries: ["general quote"],
         titleQueries: ["multiple words"],
         bodyQueries: ["more content"],
+        labelQueries: [],
       },
     },
     {
@@ -36,6 +38,7 @@ describe("parseSearchQuery", () => {
         substringQueries: [],
         titleQueries: [],
         bodyQueries: [],
+        labelQueries: [],
       },
     },
     {
@@ -47,6 +50,7 @@ describe("parseSearchQuery", () => {
         substringQueries: [],
         titleQueries: ["bug", "crash"],
         bodyQueries: ["firefox", "console"],
+        labelQueries: [],
       },
     },
     {
@@ -59,6 +63,7 @@ describe("parseSearchQuery", () => {
         substringQueries: ["general search", "another general"],
         titleQueries: ["bug", "urgent"],
         bodyQueries: ["steps"],
+        labelQueries: [],
       },
     },
     {
@@ -70,6 +75,7 @@ describe("parseSearchQuery", () => {
         substringQueries: ["fifth"],
         titleQueries: ["second", "fourth"],
         bodyQueries: ["first", "third"],
+        labelQueries: [],
       },
     },
     {
@@ -81,6 +87,7 @@ describe("parseSearchQuery", () => {
         substringQueries: [],
         titleQueries: ["spaces  preserved"],
         bodyQueries: ["multiple    spaces"],
+        labelQueries: [],
       },
     },
     {
@@ -92,6 +99,7 @@ describe("parseSearchQuery", () => {
         substringQueries: [],
         titleQueries: [],
         bodyQueries: [],
+        labelQueries: [],
       },
     },
     {
@@ -103,6 +111,7 @@ describe("parseSearchQuery", () => {
         substringQueries: ["urgent fix"],
         titleQueries: [],
         bodyQueries: [],
+        labelQueries: [],
       },
     },
     {
@@ -114,6 +123,7 @@ describe("parseSearchQuery", () => {
         substringQueries: [],
         titleQueries: [],
         bodyQueries: [],
+        labelQueries: [],
       },
     },
     {
@@ -126,6 +136,7 @@ describe("parseSearchQuery", () => {
         substringQueries: [],
         titleQueries: [],
         bodyQueries: [],
+        labelQueries: [],
       },
     },
     {
@@ -137,6 +148,7 @@ describe("parseSearchQuery", () => {
         substringQueries: [],
         titleQueries: ["bug"],
         bodyQueries: [],
+        labelQueries: [],
       },
     },
     {
@@ -148,6 +160,7 @@ describe("parseSearchQuery", () => {
         substringQueries: [],
         titleQueries: [],
         bodyQueries: [],
+        labelQueries: [],
       },
     },
     {
@@ -159,6 +172,7 @@ describe("parseSearchQuery", () => {
         substringQueries: [],
         titleQueries: [],
         bodyQueries: [],
+        labelQueries: [],
       },
     },
     {
@@ -170,6 +184,7 @@ describe("parseSearchQuery", () => {
         substringQueries: [],
         titleQueries: [],
         bodyQueries: [],
+        labelQueries: [],
       },
     },
     {
@@ -181,6 +196,7 @@ describe("parseSearchQuery", () => {
         substringQueries: [],
         titleQueries: [],
         bodyQueries: [],
+        labelQueries: [],
       },
     },
     {
@@ -192,6 +208,7 @@ describe("parseSearchQuery", () => {
         substringQueries: [],
         titleQueries: ["MiXeD cAsE"],
         bodyQueries: ["UPPER CASE"],
+        labelQueries: [],
       },
     },
     {
@@ -203,6 +220,7 @@ describe("parseSearchQuery", () => {
         substringQueries: [],
         titleQueries: ["bug"],
         bodyQueries: [],
+        labelQueries: [],
       },
     },
     {
@@ -215,6 +233,7 @@ describe("parseSearchQuery", () => {
         substringQueries: [" title:"],
         titleQueries: [],
         bodyQueries: [],
+        labelQueries: [],
       },
     },
     {
@@ -226,6 +245,7 @@ describe("parseSearchQuery", () => {
         substringQueries: [],
         titleQueries: [],
         bodyQueries: [],
+        labelQueries: [],
       },
     },
     {
@@ -237,6 +257,7 @@ describe("parseSearchQuery", () => {
         substringQueries: [],
         titleQueries: [],
         bodyQueries: [],
+        labelQueries: [],
       },
     },
   ];

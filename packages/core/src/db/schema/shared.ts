@@ -10,7 +10,7 @@ export interface Label {
   nodeId: string;
   name: string;
   color: string; // hex
-  description?: string | null;
+  description: string | null;
 }
 
 export const authorSchema: z.ZodType<Author> = z
@@ -24,5 +24,5 @@ export const labelSchema: z.ZodType<Label> = z.object({
   nodeId: z.string(),
   name: z.string(),
   color: z.string(), // hex You might want to add a regex for hex color validation
-  description: z.string().nullable().optional(),
+  description: z.string().nullable(),
 });

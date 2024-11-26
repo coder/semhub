@@ -57,10 +57,10 @@ export function parseSearchQuery(inputQuery: string) {
         ?.map((q) => {
           const normalized = q.toLowerCase();
           return STATE_SUBMENU_VALUES.includes(normalized as StateSubmenuValue)
-            ? (normalized as StateSubmenuValue)
+            ? normalized
             : null;
         })
-        .filter((state): state is StateSubmenuValue => state !== null) ?? [],
+        .filter((query): query is StateSubmenuValue => query !== null) ?? [],
     ),
   ];
 
@@ -70,6 +70,7 @@ export function parseSearchQuery(inputQuery: string) {
     authorQueries: operatorMatches.get("author") ?? [],
     bodyQueries: operatorMatches.get("body") ?? [],
     repoQueries: operatorMatches.get("repo") ?? [],
+    labelQueries: operatorMatches.get("label") ?? [],
     stateQueries,
   };
 }

@@ -2,7 +2,7 @@ import type { RateLimiter } from "./constants/rate-limit";
 import { and, cosineDistance, eq, getDb, gt, ilike, or, sql } from "./db";
 import { convertToIssueStateSql, issues } from "./db/schema/entities/issue.sql";
 import { repos } from "./db/schema/entities/repo.sql";
-import { jsonExtract, lower } from "./db/utils";
+import { jsonArrayContains, jsonExtract, lower } from "./db/utils";
 import { Embedding } from "./embedding";
 import { parseSearchQuery } from "./search.util";
 
@@ -44,6 +44,7 @@ export namespace Search {
       bodyQueries,
       stateQueries,
       repoQueries,
+      labelQueries,
     } = parseSearchQuery(query);
 
     // Use the entire query for semantic search
@@ -86,6 +87,9 @@ export namespace Search {
           ),
           ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
           ...stateQueries.map((state) => convertToIssueStateSql(state)),
+          ...labelQueries.map((subQuery) =>
+            jsonArrayContains(issues.labels, "name", subQuery.toLowerCase()),
+          ),
         ),
       )
       .limit(lucky ? 1 : 50);
