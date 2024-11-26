@@ -1,7 +1,6 @@
 import { SearchIcon, X } from "lucide-react";
 import { useTheme } from "next-themes";
 
-import { cn, preventInputZoom } from "@/lib/utils";
 import { useSearch } from "@/hooks/useSearch";
 import { useSearchBar } from "@/hooks/useSearchBar";
 import { Button } from "@/components/ui/button";
@@ -32,13 +31,14 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
       <form onSubmit={(e) => handleSearch(e, query)}>
         <div className="relative">
           <Input
+            type="text"
             value={query}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             onBlur={handleBlur}
             ref={inputRef}
-            className={cn("pr-20", preventInputZoom)}
+            className="pr-20"
             placeholder="Search issues..."
           />
           {query && (
@@ -113,12 +113,7 @@ export function HomepageSearchBar() {
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          className={cn(
-            "rounded-full pl-10",
-            "border-gray-300",
-            "focus:border-transparent focus:ring-2 focus:ring-blue-500",
-            preventInputZoom,
-          )}
+          className="rounded-full border-gray-300 pl-10 focus:border-transparent focus:ring-2 focus:ring-blue-500"
         />
         <SearchIcon
           className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
