@@ -117,7 +117,7 @@ export namespace Embedding {
                   try {
                     return await createEmbedding({
                       input: formatIssueForEmbedding({
-                        ...issue,
+                        issue,
                         labels,
                         attempt,
                       }),
@@ -197,22 +197,29 @@ export namespace Embedding {
       });
     }
   }
+  interface FormatIssueParams {
+    attempt: number;
+    issue: SelectIssueForEmbedding;
+    labels: SelectLabelForEmbedding[];
+  }
+
   /* Alternate way to format issue for embedding */
   /* Instead of truncating the body repeatedly, we could pass the body into a LLM and obtain a summary. Then, we pass the summary into the embedding API instead. */
   function formatIssueForEmbedding({
-    number,
-    author,
-    title,
-    body,
-    issueState,
-    issueStateReason,
-    issueCreatedAt,
-    issueClosedAt,
+    issue,
     attempt = 1,
     labels,
-  }: SelectIssueForEmbedding & { attempt: number } & {
-    labels: SelectLabelForEmbedding[];
-  }): string {
+  }: FormatIssueParams): string {
+    const {
+      number,
+      author,
+      title,
+      body,
+      issueState,
+      issueStateReason,
+      issueCreatedAt,
+      issueClosedAt,
+    } = issue;
     // Truncate body to roughly 6000 tokens to leave room for other fields
     const truncatedBody = truncateText(body, attempt);
 

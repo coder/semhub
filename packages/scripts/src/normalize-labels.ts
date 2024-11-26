@@ -2,6 +2,7 @@ import { isNotNull } from "drizzle-orm";
 import { ulid } from "ulidx";
 
 import { getDb } from "@/core/db";
+import { conflictUpdateAllExcept } from "@/core/db/helper";
 import { issuesToLabels } from "@/core/db/schema/entities/issue-to-label.sql";
 import { issues } from "@/core/db/schema/entities/issue.sql";
 import { labels } from "@/core/db/schema/entities/label.sql";
@@ -53,7 +54,13 @@ async function main() {
   await db.transaction(async (tx) => {
     // Insert all unique labels
     console.log("Inserting labels...");
-    await tx.insert(labels).values([...nodeIdToLabel.values()]);
+    await tx
+      .insert(labels)
+      .values([...nodeIdToLabel.values()])
+      .onConflictDoUpdate({
+        target: [labels.nodeId],
+        set: conflictUpdateAllExcept(labels, ["id", "createdAt", "nodeId"]),
+      });
 
     // Create issue-label relationships
     const relationships = [];
@@ -75,7 +82,17 @@ async function main() {
     console.log(
       `Creating ${relationships.length} issue-label relationships...`,
     );
-    await tx.insert(issuesToLabels).values(relationships);
+    await tx
+      .insert(issuesToLabels)
+      .values(relationships)
+      .onConflictDoUpdate({
+        target: [labels.nodeId],
+        set: conflictUpdateAllExcept(issuesToLabels, [
+          "createdAt",
+          "issueId",
+          "labelId",
+        ]),
+      });
   });
 
   await closeConnection();

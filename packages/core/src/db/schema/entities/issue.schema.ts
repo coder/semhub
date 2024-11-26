@@ -25,8 +25,6 @@ export const createIssueSchema = createInsertSchema(issues, {
 
 export type CreateIssue = z.infer<typeof createIssueSchema>;
 
-type A = CreateIssue["labels"];
-
 const selectIssueSchema = createSelectSchema(issues).extend({
   author: authorSchema,
 });
