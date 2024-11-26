@@ -89,6 +89,8 @@ export function SearchDropdownMenu({
       ref={commandRef}
       loop
       className="w-64 bg-transparent"
+      shouldFilter={false}
+      defaultValue="__no_selection__"
       style={{
         transform: "translateX(var(--menu-cursor-offset-x, 0))",
       }}

@@ -248,6 +248,8 @@ export function useSearchBar(initialQuery = "") {
         key: e.key,
         bubbles: true,
       });
+      // TODO: refactor; instead of dispatching event and having a hidden keyboard, should use the input directly
+      // this will allow directly searching when e.key === "Enter" and value from useCommandState is "__no_selection__"
       commandInputRef.current?.dispatchEvent(syntheticEvent);
       return;
     }
