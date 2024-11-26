@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, relations, sql } from "drizzle-orm";
 import {
   index,
   integer,
@@ -13,6 +13,7 @@ import type { StateSubmenuValue } from "@/constants/search";
 
 import { getBaseColumns, timestamptz } from "../base.sql";
 import { type Author, type Label } from "../shared";
+import { issuesToLabels } from "./issue-to-label.sql";
 import { repos } from "./repo.sql";
 
 export const issueStateEnum = pgEnum("issue_state", ["OPEN", "CLOSED"]);
@@ -83,3 +84,7 @@ export const issues = pgTable(
     ),
   }),
 );
+
+export const issuesRelations = relations(issues, ({ many }) => ({
+  issuesToLabels: many(issuesToLabels),
+}));

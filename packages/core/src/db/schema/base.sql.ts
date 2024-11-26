@@ -14,6 +14,8 @@ function mapTableNameToPrefix(tableName: string) {
       return "iss";
     case "comments":
       return "cmt";
+    case "labels":
+      return "lbl";
     default:
       return tableName;
   }
@@ -34,5 +36,9 @@ const timestamps = {
 
 export const getBaseColumns = (tableName: string) => ({
   id: getIdColumn(tableName),
+  ...timestamps,
+});
+
+export const getTimestampColumns = () => ({
   ...timestamps,
 });
