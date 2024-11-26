@@ -12,7 +12,7 @@ export function lower(column: AnyPgColumn | SQL): SQL {
   return sql`lower(${column})`;
 }
 
-export function jsonExtract<
+export function jsonContains<
   TColumn extends PgColumn<any, any, any>,
   // non-nullable added to deal with JSONB columns that can be null
   TPath extends PathsToStringProperty<NonNullable<ExtractColumnData<TColumn>>>,

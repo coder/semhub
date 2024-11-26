@@ -2,7 +2,7 @@ import type { RateLimiter } from "./constants/rate-limit";
 import { and, cosineDistance, eq, getDb, gt, ilike, or, sql } from "./db";
 import { convertToIssueStateSql, issues } from "./db/schema/entities/issue.sql";
 import { repos } from "./db/schema/entities/repo.sql";
-import { jsonArrayContains, jsonExtract, lower } from "./db/utils";
+import { jsonArrayContains, jsonContains, lower } from "./db/utils";
 import { Embedding } from "./embedding";
 import { parseSearchQuery } from "./search.util";
 
@@ -81,7 +81,7 @@ export namespace Search {
           ...authorQueries.map((subQuery) =>
             // cannot use ILIKE because name is stored in JSONB
             eq(
-              lower(jsonExtract(issues.author, "name")),
+              lower(jsonContains(issues.author, "name")),
               subQuery.toLowerCase(),
             ),
           ),
