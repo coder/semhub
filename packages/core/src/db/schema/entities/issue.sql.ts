@@ -67,5 +67,16 @@ export const issues = pgTable(
       "hnsw",
       table.embedding.op("vector_cosine_ops"),
     ),
+    // ILIKE substring match: use GIN index
+    // equality query: use regular b-tree index
+    // see https://www.cybertec-postgresql.com/en/postgresql-more-performance-for-like-and-ilike-statements/
+    titleSubstringIdx: index("title_substring_idx").using(
+      "gin",
+      sql`${table.title} gin_trgm_ops`,
+    ),
+    bodySubstringIdx: index("body_substring_idx").using(
+      "gin",
+      sql`${table.body} gin_trgm_ops`,
+    ),
   }),
 );
