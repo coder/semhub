@@ -10,7 +10,7 @@ export const labels = pgTable(
     ...getBaseColumns("labels"),
     nodeId: text("node_id").notNull().unique(),
     name: text("name").notNull(),
-    color: text("color").notNull(), // hex
+    color: text("color").notNull(), // hex, could add validation in future
     description: text("description"),
   },
   (table) => ({

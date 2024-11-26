@@ -70,12 +70,33 @@ export namespace GitHubIssue {
             mapToCreateComment(comment, issue.id),
           ),
         );
-        const labelsToInsert = entitiesToInsert.flatMap(
-          (entity) => entity.dedupedLabels,
-        );
-        const issToLblRelationsNodeIds = entitiesToInsert.flatMap(
-          (entity) => entity.issToLblRelationsNodeIds,
-        );
+        // dedupe labels across all issues
+        const nodeIdToLabel = new Map<string, CreateLabel>();
+        entitiesToInsert.forEach((entity) => {
+          entity.labels.forEach((label) => {
+            nodeIdToLabel.set(label.nodeId, label);
+          });
+        });
+        const labelsToInsert = Array.from(nodeIdToLabel.values());
+
+        // dedupe issue to label relations across all issues
+        const uniqueIssueLabelPairs = new Set<string>();
+        entitiesToInsert
+          .flatMap((entity) => entity.issToLblRelationsNodeIds)
+          .forEach(({ issueNodeId, labelNodeIds }) => {
+            labelNodeIds.forEach((labelNodeId) => {
+              uniqueIssueLabelPairs.add(`${issueNodeId}:${labelNodeId}`);
+            });
+          });
+        const issueToLabelRelationsToInsertNodeIds = Array.from(
+          uniqueIssueLabelPairs,
+        ).map((issueLabelPair) => {
+          const [issueNodeId, labelNodeId] = issueLabelPair.split(":") as [
+            string,
+            string,
+          ];
+          return { issueNodeId, labelNodeId };
+        });
         const issuesToInsert = entitiesToInsert.map((entity) => entity.issue);
         await db.transaction(async (tx) => {
           await tx
@@ -90,6 +111,7 @@ export namespace GitHubIssue {
               ]),
             });
           if (labelsToInsert.length > 0) {
+            console.log("inserting labels");
             await tx
               .insert(labelTable)
               .values(labelsToInsert)
@@ -117,6 +139,7 @@ export namespace GitHubIssue {
             }),
           );
           if (commentsToInsertWithIssueId.length > 0) {
+            console.log("inserting comments");
             await tx
               .with(issueIds)
               .insert(comments)
@@ -138,17 +161,27 @@ export namespace GitHubIssue {
               })
               .from(labelTable),
           );
-          const issueToLabelRelationsToInsert = issToLblRelationsNodeIds.map(
-            ({ issueNodeId, labelNodeIds }) => ({
-              issueId: sql<string>`((SELECT id FROM issue_ids WHERE node_id = ${issueNodeId}))`,
-              labelId: sql<string>`((SELECT id FROM label_ids WHERE node_id = ${labelNodeIds}))`,
-            }),
-          );
+          const issueToLabelRelationsToInsert =
+            issueToLabelRelationsToInsertNodeIds.map(
+              ({ issueNodeId, labelNodeId }) => ({
+                issueId: sql<string>`((SELECT id FROM issue_ids WHERE node_id = ${issueNodeId}))`,
+                labelId: sql<string>`((SELECT id FROM label_ids WHERE node_id = ${labelNodeId}))`,
+              }),
+            );
           if (issueToLabelRelationsToInsert.length > 0) {
+            console.log("inserting issue to label relations");
             await tx
-              .with(labelIds)
+              .with(labelIds, issueIds)
               .insert(issuesToLabels)
-              .values(issueToLabelRelationsToInsert);
+              .values(issueToLabelRelationsToInsert)
+              .onConflictDoUpdate({
+                target: [issuesToLabels.issueId, issuesToLabels.labelId],
+                set: conflictUpdateAllExcept(issuesToLabels, [
+                  "issueId",
+                  "labelId",
+                  "createdAt",
+                ]),
+              });
           }
           await tx
             .update(repos)
@@ -174,11 +207,11 @@ export namespace GitHubIssue {
     repoId: string,
   ): {
     issue: CreateIssue;
-    dedupedLabels: CreateLabel[];
+    labels: CreateLabel[];
     issToLblRelationsNodeIds: IssToLblRelationNodeIds[];
   } {
     const nodeIdToLabel = new Map<string, CreateLabel>();
-    issue.labels.nodes.map((label) => {
+    issue.labels.nodes.forEach((label) => {
       const newLabel = {
         nodeId: label.id,
         name: label.name,
@@ -190,10 +223,12 @@ export namespace GitHubIssue {
       nodeIdToLabel.set(label.id, newLabel);
     });
     const dedupedLabels = Array.from(nodeIdToLabel.values());
-    const issueToLabelNodeIds = dedupedLabels.map((label) => ({
-      issueNodeId: issue.id,
-      labelNodeIds: [label.nodeId],
-    }));
+    const issueToLabelNodeIds = [
+      {
+        issueNodeId: issue.id,
+        labelNodeIds: dedupedLabels.map((label) => label.nodeId),
+      },
+    ];
     return {
       issue: {
         repoId,
@@ -221,7 +256,7 @@ export namespace GitHubIssue {
         issueUpdatedAt: new Date(issue.updatedAt),
         issueClosedAt: issue.closedAt ? new Date(issue.closedAt) : null,
       },
-      dedupedLabels,
+      labels: dedupedLabels,
       issToLblRelationsNodeIds: issueToLabelNodeIds,
     };
   }

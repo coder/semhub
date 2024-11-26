@@ -43,7 +43,6 @@ export namespace Search {
     });
     const similarity = sql<number>`1-(${cosineDistance(issues.embedding, embedding)})`;
 
-    console.log({ labelQueries });
     const labelQueryArray = sql.join(
       labelQueries.map((q) => sql`${q.toLowerCase()}`),
       sql`, `,
@@ -54,6 +53,7 @@ export namespace Search {
         number: issues.number,
         title: issues.title,
         body: issues.body,
+        // TODO: use typesafe function instead
         labels: sql<LabelSelect[]>`
           COALESCE(
             (
@@ -81,7 +81,7 @@ export namespace Search {
         similarity,
       })
       .from(issues)
-      .leftJoin(repos, eq(issues.id, repos.id))
+      .leftJoin(repos, eq(issues.repoId, repos.id))
       .leftJoin(
         issuesToLabels,
         labelQueries.length > 0
@@ -104,14 +104,12 @@ export namespace Search {
               ilike(issues.body, `%${subQuery}%`),
             ),
           ),
-          // title-specific queries
           ...titleQueries.map((subQuery) =>
             ilike(issues.title, `%${subQuery}%`),
           ),
-          // body-specific queries
           ...bodyQueries.map((subQuery) => ilike(issues.body, `%${subQuery}%`)),
-          // author-specific queries
           ...authorQueries.map((subQuery) =>
+            // cannot use ILIKE because name is stored in JSONB
             eq(
               lower(jsonContains(issues.author, "name")),
               subQuery.toLowerCase(),
