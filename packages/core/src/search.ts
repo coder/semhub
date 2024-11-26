@@ -4,7 +4,8 @@ import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
 import { convertToIssueStateSql, issues } from "./db/schema/entities/issue.sql";
 import { labels } from "./db/schema/entities/label.sql";
 import { repos } from "./db/schema/entities/repo.sql";
-import { jsonContains, lower } from "./db/utils";
+import { lower } from "./db/utils/general";
+import { jsonContains } from "./db/utils/json";
 import { Embedding } from "./embedding";
 import { parseSearchQuery } from "./search.util";
 

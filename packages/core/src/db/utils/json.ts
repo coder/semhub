@@ -1,16 +1,11 @@
-import type { SQL } from "drizzle-orm";
 import { sql } from "drizzle-orm";
-import type { AnyPgColumn, PgColumn } from "drizzle-orm/pg-core";
+import type { PgColumn } from "drizzle-orm/pg-core";
 
 import type {
   ExtractColumnData,
   PathsToStringProperty,
   PathsToStringPropertyInArray,
-} from "./utils.d";
-
-export function lower(column: AnyPgColumn | SQL): SQL {
-  return sql`lower(${column})`;
-}
+} from "./json.d";
 
 export function jsonContains<
   TColumn extends PgColumn<any, any, any>,

@@ -2,11 +2,11 @@ import { isNotNull } from "drizzle-orm";
 import { ulid } from "ulidx";
 
 import { getDb } from "@/core/db";
-import { conflictUpdateAllExcept } from "@/core/db/helper";
 import { issuesToLabels } from "@/core/db/schema/entities/issue-to-label.sql";
 import { issues } from "@/core/db/schema/entities/issue.sql";
 import { labels } from "@/core/db/schema/entities/label.sql";
 import type { Label } from "@/core/db/schema/shared";
+import { conflictUpdateAllExcept } from "@/core/db/utils/conflict";
 
 async function main() {
   console.log("Starting label normalization...");
