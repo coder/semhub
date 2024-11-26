@@ -27,6 +27,8 @@ interface SearchDropdownMenuProps {
   subMenu: SearchOperator | null;
   handleOperatorSelect: (operator: OperatorWithIcon) => void;
   handleValueSelect?: (value: SubmenuValue) => void;
+  commandValue: string;
+  setCommandValue: (value: string) => void;
 }
 
 const preventDefault = (e: React.MouseEvent | React.TouchEvent) => {
@@ -83,6 +85,8 @@ export function SearchDropdownMenu({
   subMenu,
   handleOperatorSelect,
   handleValueSelect,
+  commandValue,
+  setCommandValue,
 }: SearchDropdownMenuProps) {
   return (
     <Command
@@ -90,7 +94,8 @@ export function SearchDropdownMenu({
       loop
       className="w-64 bg-transparent"
       shouldFilter={false}
-      defaultValue="__no_selection__"
+      onValueChange={setCommandValue}
+      value={commandValue}
       style={{
         transform: "translateX(var(--menu-cursor-offset-x, 0))",
       }}

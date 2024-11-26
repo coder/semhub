@@ -92,6 +92,8 @@ export function useSearchBar(initialQuery = "") {
 
   const [isFocused, setIsFocused] = useState(false);
   const [isTouched, setIsTouched] = useState(false);
+  const defaultCommandValue = "__no_selection__";
+  const [commandValue, setCommandValue] = useState(defaultCommandValue);
 
   const cursorWord = useMemo(() => {
     return getCursorWord(query, cursorPosition).cursorWord;
@@ -135,6 +137,10 @@ export function useSearchBar(initialQuery = "") {
       (showOperatorList || showSubmenuList)
     );
   }, [showDropdown, isFocused, isTouched, commandInputValue, subMenu]);
+
+  useEffect(() => {
+    setCommandValue(defaultCommandValue);
+  }, [shouldShowDropdown]);
 
   // offset dropdown menu relative to where the user's currently typed word is
   const [menuCursorOffsetX, setMenuCursorOffsetX] = useState(0);
@@ -241,15 +247,15 @@ export function useSearchBar(initialQuery = "") {
     // Handle command input forwarding first
     if (
       shouldShowDropdown &&
-      (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Enter")
+      (e.key === "ArrowUp" ||
+        e.key === "ArrowDown" ||
+        (e.key === "Enter" && commandValue !== "__no_selection__"))
     ) {
       e.preventDefault();
       const syntheticEvent = new KeyboardEvent("keydown", {
         key: e.key,
         bubbles: true,
       });
-      // TODO: refactor; instead of dispatching event and having a hidden keyboard, should use the input directly
-      // this will allow directly searching when e.key === "Enter" and value from useCommandState is "__no_selection__"
       commandInputRef.current?.dispatchEvent(syntheticEvent);
       return;
     }
@@ -293,6 +299,8 @@ export function useSearchBar(initialQuery = "") {
     commandInputRef,
     commandRef,
     commandInputValue,
+    commandValue,
+    setCommandValue,
     subMenu,
     shouldShowDropdown,
     handleClear,
