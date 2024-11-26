@@ -30,4 +30,4 @@ const selectIssueForEmbedding = selectIssueSchema.pick({
   issueClosedAt: true,
 });
 
-export type IssueFieldsForEmbedding = z.infer<typeof selectIssueForEmbedding>;
+export type SelectIssueForEmbedding = z.infer<typeof selectIssueForEmbedding>;

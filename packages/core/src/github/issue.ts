@@ -1,18 +1,15 @@
 import { print } from "graphql";
 
+import { eq, getDb, sql } from "@/db";
+import { conflictUpdateAllExcept } from "@/db/helper";
+import { comments, type CreateComment } from "@/db/schema/entities/comment.sql";
+import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
+import type { CreateIssue } from "@/db/schema/entities/issue.schema";
+import { issues as issueTable } from "@/db/schema/entities/issue.sql";
 import type { CreateLabel } from "@/db/schema/entities/label.schema";
+import { labels as labelTable } from "@/db/schema/entities/label.sql";
+import { repos } from "@/db/schema/entities/repo.sql";
 
-import { eq, getDb, sql } from "../db";
-import { conflictUpdateAllExcept } from "../db/helper";
-import {
-  comments,
-  type CreateComment,
-} from "../db/schema/entities/comment.sql";
-import { issuesToLabels } from "../db/schema/entities/issue-to-label.sql";
-import type { CreateIssue } from "../db/schema/entities/issue.schema";
-import { issues as issueTable } from "../db/schema/entities/issue.sql";
-import { labels as labelTable } from "../db/schema/entities/label.sql";
-import { repos } from "../db/schema/entities/repo.sql";
 import { graphql } from "./graphql";
 import {
   loadIssuesWithCommentsQuerySchema,
