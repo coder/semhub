@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { index, pgTable, text } from "drizzle-orm/pg-core";
 
 import { getBaseColumns } from "../base.sql";
@@ -14,7 +14,9 @@ export const labels = pgTable(
     description: text("description"),
   },
   (table) => ({
-    nameIdx: index("label_name_idx").on(table.name),
+    lowercaseNameIdx: index("label_lowercase_name_idx").on(
+      sql`lower(${table.name})`,
+    ),
   }),
 );
 

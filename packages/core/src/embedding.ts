@@ -102,24 +102,24 @@ export namespace Embedding {
             try {
               const embedding = await (async () => {
                 let attempt = 1;
+                const labels = await tx
+                  .select({
+                    name: labelTable.name,
+                    description: labelTable.description,
+                  })
+                  .from(labelTable)
+                  .innerJoin(
+                    issuesToLabels,
+                    eq(labelTable.id, issuesToLabels.labelId),
+                  )
+                  .where(eq(issuesToLabels.issueId, issue.id));
                 while (attempt <= TRUNCATION_MAX_ATTEMPTS) {
                   try {
-                    const labels = await tx
-                      .select({
-                        name: labelTable.name,
-                        description: labelTable.description,
-                      })
-                      .from(labelTable)
-                      .innerJoin(
-                        issuesToLabels,
-                        eq(labelTable.id, issuesToLabels.labelId),
-                      )
-                      .where(eq(issuesToLabels.issueId, issue.id));
                     return await createEmbedding({
                       input: formatIssueForEmbedding({
                         ...issue,
-                        attempt,
                         labels,
+                        attempt,
                       }),
                       rateLimiter,
                     });

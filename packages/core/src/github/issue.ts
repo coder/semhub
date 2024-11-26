@@ -89,17 +89,19 @@ export namespace GitHubIssue {
                 "createdAt",
               ]),
             });
-          await tx
-            .insert(labelTable)
-            .values(labelsToInsert)
-            .onConflictDoUpdate({
-              target: [labelTable.nodeId],
-              set: conflictUpdateAllExcept(labelTable, [
-                "nodeId",
-                "id",
-                "createdAt",
-              ]),
-            });
+          if (labelsToInsert.length > 0) {
+            await tx
+              .insert(labelTable)
+              .values(labelsToInsert)
+              .onConflictDoUpdate({
+                target: [labelTable.nodeId],
+                set: conflictUpdateAllExcept(labelTable, [
+                  "nodeId",
+                  "id",
+                  "createdAt",
+                ]),
+              });
+          }
           const issueIds = tx.$with("issue_ids").as(
             tx
               .select({
@@ -205,6 +207,13 @@ export namespace GitHubIssue {
           : null,
         issueState: issue.state,
         issueStateReason: issue.stateReason,
+        // TO DELETE
+        labels: issue.labels.nodes.map((label) => ({
+          nodeId: label.id,
+          name: label.name,
+          color: label.color,
+          description: label.description,
+        })),
         htmlUrl: issue.url,
         title: issue.title,
         body: issue.body,

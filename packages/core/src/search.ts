@@ -1,30 +1,19 @@
 import type { RateLimiter } from "./constants/rate-limit";
 import { and, cosineDistance, eq, getDb, gt, ilike, or, sql } from "./db";
+import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
 import { convertToIssueStateSql, issues } from "./db/schema/entities/issue.sql";
+import { labels } from "./db/schema/entities/label.sql";
 import { repos } from "./db/schema/entities/repo.sql";
-import { jsonArrayContains, jsonContains, lower } from "./db/utils";
+import { jsonContains, lower } from "./db/utils";
 import { Embedding } from "./embedding";
 import { parseSearchQuery } from "./search.util";
 
 export namespace Search {
-  const defaultIssuesSelect = {
-    id: issues.id,
-    number: issues.number,
-    title: issues.title,
-    body: issues.body,
-    labels: issues.labels,
-    issueUrl: issues.htmlUrl,
-    author: issues.author,
-    issueState: issues.issueState,
-    issueStateReason: issues.issueStateReason,
-    issueCreatedAt: issues.issueCreatedAt,
-    issueClosedAt: issues.issueClosedAt,
-    issueUpdatedAt: issues.issueUpdatedAt,
-    repoName: repos.name,
-    repoUrl: repos.htmlUrl,
-    repoOwnerName: repos.owner,
-  };
-
+  interface LabelSelect {
+    name: string;
+    color: string;
+    description: string | null;
+  }
   export async function getIssues({
     query,
     rateLimiter,
@@ -54,13 +43,57 @@ export namespace Search {
     });
     const similarity = sql<number>`1-(${cosineDistance(issues.embedding, embedding)})`;
 
-    return await db
+    console.log({ labelQueries });
+    const labelQueryArray = sql.join(
+      labelQueries.map((q) => sql`${q.toLowerCase()}`),
+      sql`, `,
+    );
+    const selected = await db
       .select({
-        ...defaultIssuesSelect,
+        id: issues.id,
+        number: issues.number,
+        title: issues.title,
+        body: issues.body,
+        labels: sql<LabelSelect[]>`
+          COALESCE(
+            (
+              SELECT json_agg(json_build_object(
+                'name', l.name,
+                'color', l.color,
+                'description', l.description
+              ))
+              FROM issues_to_labels itl
+              JOIN labels l ON l.id = itl.label_id
+              WHERE itl.issue_id = ${issues.id}
+            ),
+            '[]'::json
+          )`,
+        issueUrl: issues.htmlUrl,
+        author: issues.author,
+        issueState: issues.issueState,
+        issueStateReason: issues.issueStateReason,
+        issueCreatedAt: issues.issueCreatedAt,
+        issueClosedAt: issues.issueClosedAt,
+        issueUpdatedAt: issues.issueUpdatedAt,
+        repoName: repos.name,
+        repoUrl: repos.htmlUrl,
+        repoOwnerName: repos.owner,
         similarity,
       })
       .from(issues)
-      .leftJoin(repos, eq(issues.repoId, repos.id))
+      .leftJoin(repos, eq(issues.id, repos.id))
+      .leftJoin(
+        issuesToLabels,
+        labelQueries.length > 0
+          ? eq(issues.id, issuesToLabels.issueId)
+          : undefined,
+      )
+      .leftJoin(
+        labels,
+        labelQueries.length > 0
+          ? eq(issuesToLabels.labelId, labels.id)
+          : undefined,
+      )
       .where(
         and(
           gt(similarity, SIMILARITY_THRESHOLD),
@@ -79,7 +112,6 @@ export namespace Search {
           ...bodyQueries.map((subQuery) => ilike(issues.body, `%${subQuery}%`)),
           // author-specific queries
           ...authorQueries.map((subQuery) =>
-            // cannot use ILIKE because name is stored in JSONB
             eq(
               lower(jsonContains(issues.author, "name")),
               subQuery.toLowerCase(),
@@ -87,11 +119,20 @@ export namespace Search {
           ),
           ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
           ...stateQueries.map((state) => convertToIssueStateSql(state)),
-          ...labelQueries.map((subQuery) =>
-            jsonArrayContains(issues.labels, "name", subQuery.toLowerCase()),
-          ),
+          ...(labelQueries.length > 0
+            ? [
+                sql`(
+                  SELECT COUNT(DISTINCT l.name)
+                  FROM issues_to_labels itl
+                  JOIN labels l ON l.id = itl.label_id
+                  WHERE itl.issue_id = ${issues.id}
+                  AND LOWER(l.name) = ANY(ARRAY[${labelQueryArray}])
+                ) = ${labelQueries.length}`,
+              ]
+            : []),
         ),
       )
       .limit(lucky ? 1 : 50);
+    return selected;
   }
 }
