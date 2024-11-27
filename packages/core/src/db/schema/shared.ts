@@ -19,4 +19,3 @@ export const authorSchema: z.ZodType<Author> = z
     htmlUrl: z.string().url(),
   })
   .nullable();
-
