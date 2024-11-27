@@ -2,9 +2,12 @@ import dedent from "dedent";
 import type { SQL } from "drizzle-orm";
 
 import { EMBEDDING_MODEL, type RateLimiter } from "./constants/rate-limit";
-import { and, getDb, inArray, isNull, lt, or, sql } from "./db";
-import type { IssueFieldsForEmbedding } from "./db/schema/entities/issue.schema";
+import { and, eq, getDb, inArray, isNull, lt, or, sql } from "./db";
+import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
+import type { SelectIssueForEmbedding } from "./db/schema/entities/issue.schema";
 import { issues } from "./db/schema/entities/issue.sql";
+import type { SelectLabelForEmbedding } from "./db/schema/entities/label.schema";
+import { labels as labelTable } from "./db/schema/entities/label.sql";
 import { getOpenAIClient } from "./openai";
 import { isReducePromptError } from "./openai/errors";
 import { embeddingsCreateSchema } from "./openai/schema";
@@ -68,7 +71,6 @@ export namespace Embedding {
             body: issues.body,
             issueState: issues.issueState,
             issueStateReason: issues.issueStateReason,
-            labels: issues.labels,
             issueCreatedAt: issues.issueCreatedAt,
             issueClosedAt: issues.issueClosedAt,
           })
@@ -100,10 +102,25 @@ export namespace Embedding {
             try {
               const embedding = await (async () => {
                 let attempt = 1;
+                const labels = await tx
+                  .select({
+                    name: labelTable.name,
+                    description: labelTable.description,
+                  })
+                  .from(labelTable)
+                  .innerJoin(
+                    issuesToLabels,
+                    eq(labelTable.id, issuesToLabels.labelId),
+                  )
+                  .where(eq(issuesToLabels.issueId, issue.id));
                 while (attempt <= TRUNCATION_MAX_ATTEMPTS) {
                   try {
                     return await createEmbedding({
-                      input: formatIssueForEmbedding({ ...issue, attempt }),
+                      input: formatIssueForEmbedding({
+                        issue,
+                        labels,
+                        attempt,
+                      }),
                       rateLimiter,
                     });
                   } catch (error) {
@@ -180,20 +197,29 @@ export namespace Embedding {
       });
     }
   }
+  interface FormatIssueParams {
+    attempt: number;
+    issue: SelectIssueForEmbedding;
+    labels: SelectLabelForEmbedding[];
+  }
+
   /* Alternate way to format issue for embedding */
   /* Instead of truncating the body repeatedly, we could pass the body into a LLM and obtain a summary. Then, we pass the summary into the embedding API instead. */
   function formatIssueForEmbedding({
-    number,
-    author,
-    title,
-    body,
-    issueState,
-    issueStateReason,
-    labels,
-    issueCreatedAt,
-    issueClosedAt,
+    issue,
     attempt = 1,
-  }: IssueFieldsForEmbedding & { attempt: number }): string {
+    labels,
+  }: FormatIssueParams): string {
+    const {
+      number,
+      author,
+      title,
+      body,
+      issueState,
+      issueStateReason,
+      issueCreatedAt,
+      issueClosedAt,
+    } = issue;
     // Truncate body to roughly 6000 tokens to leave room for other fields
     const truncatedBody = truncateText(body, attempt);
 

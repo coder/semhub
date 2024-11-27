@@ -1,6 +1,7 @@
-import { getDb } from "../db";
-import { conflictUpdateAllExcept } from "../db/helper";
-import { repos } from "../db/schema/entities/repo.sql";
+import { getDb } from "@/db";
+import { repos } from "@/db/schema/entities/repo.sql";
+import { conflictUpdateAllExcept } from "@/db/utils/conflict";
+
 import { githubRepoSchema } from "./schema";
 import { getRestOctokit } from "./shared";
 

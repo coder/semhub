@@ -2,5 +2,5 @@ dist
 build
 node_modules
 routeTree.gen.ts
-**/sst-env.d.ts
-**/schema.docs.graphql.d.ts
+sst-env.d.ts
+schema.docs.graphql.d.ts

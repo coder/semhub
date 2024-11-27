@@ -1,12 +1,12 @@
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { expectType } from "tsd";
 
-import { jsonArrayContains, jsonArraySome } from "@/db/utils";
+import { jsonArrayContains, jsonArraySome } from "./json";
 import {
   type ExtractColumnData,
   type PathsToStringProperty,
   type PathsToStringPropertyInArray,
-} from "@/db/utils.d";
+} from "./json.d";
 
 // Mock the Author type
 type Author = {
