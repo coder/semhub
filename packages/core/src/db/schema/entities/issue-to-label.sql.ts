@@ -22,7 +22,7 @@ export const issuesToLabels = pgTable(
   },
   (t) => ({
     pk: primaryKey({ columns: [t.issueId, t.labelId] }),
-    // big brain indexing, see https://stackoverflow.com/a/60248297
+    // big brain reverse unique index, see https://stackoverflow.com/a/60248297
     reversePk: unique().on(t.labelId, t.issueId),
   }),
 );

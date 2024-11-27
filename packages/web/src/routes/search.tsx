@@ -122,9 +122,12 @@ function IssueCard({ issue }: { issue: Issue }) {
           </div>
         </div>
         <div className="ml-6 text-sm text-muted-foreground">
-          #{issue.number} · {issue.author && <> by {issue.author.name}</>} was{" "}
+          #{issue.number} {issue.author && <> by {issue.author.name}</>} was{" "}
           {issue.issueState === "OPEN" && `opened ${openedAtRelativeString}`}
-          {issue.issueState === "CLOSED" && `closed ${closedAtRelativeString}`}
+          {issue.issueState === "CLOSED" &&
+            `closed ${closedAtRelativeString}`}{" "}
+          | {issue.commentCount}{" "}
+          {issue.commentCount <= 1 ? "comment" : "comments"}
         </div>
       </div>
     </div>
