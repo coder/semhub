@@ -51,7 +51,6 @@ export const issues = pgTable(
     htmlUrl: text("html_url").notNull(),
     title: text("title").notNull(),
     body: text("body").notNull(),
-    labels: jsonb("labels").$type<Label[]>(),
     issueCreatedAt: timestamptz("issue_created_at").notNull(),
     issueUpdatedAt: timestamptz("issue_updated_at").notNull(),
     issueClosedAt: timestamptz("issue_closed_at"),

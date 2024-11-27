@@ -43,6 +43,13 @@
       "when": 1732636411162,
       "tag": "0005_concerned_runaways",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1732668827388,
+      "tag": "0006_cultured_tombstone",
+      "breakpoints": true
     }
   ]
 }
