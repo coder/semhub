@@ -19,7 +19,8 @@ async function main() {
       labels: issues.labels,
     })
     .from(issues)
-    .where(isNotNull(issues.labels));
+    .where(isNotNull(issues.labels))
+    .orderBy(issues.issueUpdatedAt); // ascending by default
 
   console.log(`Found ${issuesWithLabels.length} issues with labels`);
 
@@ -36,15 +37,15 @@ async function main() {
       throw new Error(`Issue has no labels despite SQL: ${issue.id}`);
 
     for (const label of issueLabels) {
-      if (!nodeIdToLabel.has(label.nodeId)) {
-        nodeIdToLabel.set(label.nodeId, {
-          id: `lbl_${ulid()}`,
-          nodeId: label.nodeId,
-          name: label.name,
-          color: label.color,
-          description: label.description,
-        });
-      }
+      // we always override, because we sorted by updatedAt ASC
+      // so the latest version of the label is always used
+      nodeIdToLabel.set(label.nodeId, {
+        id: `lbl_${ulid()}`,
+        nodeId: label.nodeId,
+        name: label.name,
+        color: label.color,
+        description: label.description,
+      });
     }
   }
 
