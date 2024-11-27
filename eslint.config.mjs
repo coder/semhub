@@ -5,6 +5,7 @@ export default [
     ignores: [
       ".sst/**/*",
       "**/sst-env.d.ts",
+      "**/schema.docs.graphql.d.ts",
       "**/routeTree.gen.ts",
       "**/dist/**/*",
     ],

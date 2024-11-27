@@ -1,6 +1,6 @@
 {
-  "id": "af08236c-3bb3-442a-90b3-7a8e2eff25d4",
-  "prevId": "bc212357-8348-4f82-a62b-5fee96b4b791",
+  "id": "90a6ddf3-f04d-447f-8e0d-2926c0cc9afa",
+  "prevId": "af08236c-3bb3-442a-90b3-7a8e2eff25d4",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -416,23 +416,7 @@
           "notNull": false
         }
       },
-      "indexes": {
-        "label_name_idx": {
-          "name": "label_name_idx",
-          "columns": [
-            {
-              "expression": "name",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {

@@ -1,30 +1,16 @@
 import type { RateLimiter } from "./constants/rate-limit";
 import { and, cosineDistance, eq, getDb, gt, ilike, or, sql } from "./db";
+import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
 import { convertToIssueStateSql, issues } from "./db/schema/entities/issue.sql";
+import { hasAllLabels, labels } from "./db/schema/entities/label.sql";
 import { repos } from "./db/schema/entities/repo.sql";
-import { jsonArrayContains, jsonContains, lower } from "./db/utils";
+import { lower } from "./db/utils/general";
+import { jsonAggBuildObjectFromJoin, jsonContains } from "./db/utils/json";
 import { Embedding } from "./embedding";
 import { parseSearchQuery } from "./search.util";
 
+// const pgDialect = new PgDialect();
 export namespace Search {
-  const defaultIssuesSelect = {
-    id: issues.id,
-    number: issues.number,
-    title: issues.title,
-    body: issues.body,
-    labels: issues.labels,
-    issueUrl: issues.htmlUrl,
-    author: issues.author,
-    issueState: issues.issueState,
-    issueStateReason: issues.issueStateReason,
-    issueCreatedAt: issues.issueCreatedAt,
-    issueClosedAt: issues.issueClosedAt,
-    issueUpdatedAt: issues.issueUpdatedAt,
-    repoName: repos.name,
-    repoUrl: repos.htmlUrl,
-    repoOwnerName: repos.owner,
-  };
-
   export async function getIssues({
     query,
     rateLimiter,
@@ -54,10 +40,36 @@ export namespace Search {
     });
     const similarity = sql<number>`1-(${cosineDistance(issues.embedding, embedding)})`;
 
-    return await db
+    const selected = db
       .select({
-        ...defaultIssuesSelect,
-        similarity,
+        id: issues.id,
+        number: issues.number,
+        title: issues.title,
+        // body: issues.body,
+        labels: jsonAggBuildObjectFromJoin(
+          {
+            name: labels.name,
+            color: labels.color,
+            description: labels.description,
+          },
+          {
+            from: sql`${issuesToLabels}`,
+            joinTable: sql`${labels}`,
+            joinCondition: eq(labels.id, issuesToLabels.labelId),
+            whereCondition: eq(issuesToLabels.issueId, issues.id),
+          },
+        ),
+        issueUrl: issues.htmlUrl,
+        author: issues.author,
+        issueState: issues.issueState,
+        issueStateReason: issues.issueStateReason,
+        issueCreatedAt: issues.issueCreatedAt,
+        issueClosedAt: issues.issueClosedAt,
+        issueUpdatedAt: issues.issueUpdatedAt,
+        repoName: repos.name,
+        repoUrl: repos.htmlUrl,
+        repoOwnerName: repos.owner,
+        // similarity,
       })
       .from(issues)
       .leftJoin(repos, eq(issues.repoId, repos.id))
@@ -71,13 +83,10 @@ export namespace Search {
               ilike(issues.body, `%${subQuery}%`),
             ),
           ),
-          // title-specific queries
           ...titleQueries.map((subQuery) =>
             ilike(issues.title, `%${subQuery}%`),
           ),
-          // body-specific queries
           ...bodyQueries.map((subQuery) => ilike(issues.body, `%${subQuery}%`)),
-          // author-specific queries
           ...authorQueries.map((subQuery) =>
             // cannot use ILIKE because name is stored in JSONB
             eq(
@@ -87,11 +96,12 @@ export namespace Search {
           ),
           ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
           ...stateQueries.map((state) => convertToIssueStateSql(state)),
-          ...labelQueries.map((subQuery) =>
-            jsonArrayContains(issues.labels, "name", subQuery.toLowerCase()),
-          ),
+          ...[hasAllLabels(issues.id, labelQueries)],
         ),
       )
       .limit(lucky ? 1 : 50);
+    // console.log("query", pgDialect.sqlToQuery(selected.getSQL()));
+    const result = await selected;
+    return result;
   }
 }

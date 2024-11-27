@@ -1,16 +1,15 @@
-import type { SQL } from "drizzle-orm";
+import type { AnyColumn, SQL } from "drizzle-orm";
 import { sql } from "drizzle-orm";
-import type { AnyPgColumn, PgColumn } from "drizzle-orm/pg-core";
+import type { PgColumn } from "drizzle-orm/pg-core";
+import { type SelectedFields } from "drizzle-orm/pg-core";
+import { type SelectResultFields } from "drizzle-orm/query-builders/select.types";
 
+import { jsonBuildObject } from "./external-utils";
 import type {
   ExtractColumnData,
   PathsToStringProperty,
   PathsToStringPropertyInArray,
-} from "./utils.d";
-
-export function lower(column: AnyPgColumn | SQL): SQL {
-  return sql`lower(${column})`;
-}
+} from "./json.d";
 
 export function jsonContains<
   TColumn extends PgColumn<any, any, any>,
@@ -59,4 +58,42 @@ export function jsonArrayContains<
     SELECT 1 FROM jsonb_array_elements(${column}) as elem
     WHERE elem->>${sql.raw(pathParts)} = ${value}
   )`;
+}
+
+// improvised somewhat, probably not the best way to do this
+export function jsonAggBuildObjectFromJoin<
+  T extends SelectedFields,
+  Column extends AnyColumn,
+>(
+  shape: T,
+  {
+    from,
+    joinTable,
+    joinCondition,
+    whereCondition,
+    orderBy,
+  }: {
+    from: SQL;
+    joinTable: SQL;
+    joinCondition: SQL<unknown>;
+    whereCondition?: SQL<unknown>;
+    orderBy?: { colName: Column; direction: "ASC" | "DESC" };
+  },
+) {
+  return sql<SelectResultFields<T>[]>`
+    COALESCE(
+      (
+        SELECT json_agg(${jsonBuildObject(shape)}
+          ${
+            orderBy
+              ? sql`ORDER BY ${orderBy.colName} ${sql.raw(orderBy.direction)}`
+              : sql``
+          }
+        )
+        FROM ${from}
+        JOIN ${joinTable} ON ${joinCondition}
+        ${whereCondition ? sql`WHERE ${whereCondition}` : sql``}
+      ),
+      '[]'::json
+    )`;
 }
