@@ -24,6 +24,8 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
     handleKeyDown,
     handleFocus,
     handleBlur,
+    commandValue,
+    setCommandValue,
   } = useSearchBar(initialQuery);
 
   return (
@@ -71,6 +73,8 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
               subMenu={subMenu}
               handleOperatorSelect={handleOperatorSelect}
               handleValueSelect={handleValueSelect}
+              commandValue={commandValue}
+              setCommandValue={setCommandValue}
             />
           </div>
         )}
@@ -97,6 +101,8 @@ export function HomepageSearchBar() {
     handleKeyDown,
     handleFocus,
     handleBlur,
+    commandValue,
+    setCommandValue,
   } = useSearchBar();
 
   return (
@@ -128,6 +134,8 @@ export function HomepageSearchBar() {
               subMenu={subMenu}
               handleOperatorSelect={handleOperatorSelect}
               handleValueSelect={handleValueSelect}
+              commandValue={commandValue}
+              setCommandValue={setCommandValue}
             />
           </div>
         )}
