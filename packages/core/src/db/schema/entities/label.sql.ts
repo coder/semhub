@@ -1,6 +1,6 @@
 import type { AnyColumn, SQL } from "drizzle-orm";
 import { relations, sql } from "drizzle-orm";
-import { index, pgTable, text } from "drizzle-orm/pg-core";
+import { pgTable, text } from "drizzle-orm/pg-core";
 
 import { getBaseColumns } from "../base.sql";
 import { issuesToLabels } from "./issue-to-label.sql";

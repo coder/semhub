@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, primaryKey, text } from "drizzle-orm/pg-core";
+import { index, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
 
 import { getTimestampColumns } from "../base.sql";
 import { issues } from "./issue.sql";
@@ -10,14 +10,20 @@ export const issuesToLabels = pgTable(
   {
     issueId: text("issue_id")
       .notNull()
-      .references(() => issues.id),
+      .references(() => issues.id, {
+        onDelete: "cascade",
+      }),
     labelId: text("label_id")
       .notNull()
-      .references(() => labels.id),
+      .references(() => labels.id, {
+        onDelete: "cascade",
+      }),
     ...getTimestampColumns(),
   },
   (t) => ({
     pk: primaryKey({ columns: [t.issueId, t.labelId] }),
+    // big brain indexing, see https://stackoverflow.com/a/60248297
+    reversePk: unique().on(t.labelId, t.issueId),
   }),
 );
 
