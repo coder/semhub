@@ -1,4 +1,4 @@
-import type { AnyColumn, SQL } from "drizzle-orm";
+import type { AnyColumn, SQL, Table } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { type SelectedFields } from "drizzle-orm/pg-core";
@@ -73,10 +73,10 @@ export function jsonAggBuildObjectFromJoin<
     whereCondition,
     orderBy,
   }: {
-    from: SQL;
-    joinTable: SQL;
-    joinCondition: SQL<unknown>;
-    whereCondition?: SQL<unknown>;
+    from: Table;
+    joinTable: Table;
+    joinCondition: SQL;
+    whereCondition?: SQL;
     orderBy?: { colName: Column; direction: "ASC" | "DESC" };
   },
 ) {
@@ -90,8 +90,8 @@ export function jsonAggBuildObjectFromJoin<
               : sql``
           }
         )
-        FROM ${from}
-        JOIN ${joinTable} ON ${joinCondition}
+        FROM ${sql`${from}`}
+        JOIN ${sql`${joinTable}`} ON ${joinCondition}
         ${whereCondition ? sql`WHERE ${whereCondition}` : sql``}
       ),
       '[]'::json

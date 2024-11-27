@@ -1,5 +1,5 @@
 import type { RateLimiter } from "./constants/rate-limit";
-import { and, cosineDistance, eq, getDb, gt, ilike, or, sql } from "./db";
+import { and, cosineDistance, desc, eq, getDb, gt, ilike, or, sql } from "./db";
 import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
 import { convertToIssueStateSql, issues } from "./db/schema/entities/issue.sql";
 import { hasAllLabels, labels } from "./db/schema/entities/label.sql";
@@ -53,8 +53,8 @@ export namespace Search {
             description: labels.description,
           },
           {
-            from: sql`${issuesToLabels}`,
-            joinTable: sql`${labels}`,
+            from: issuesToLabels,
+            joinTable: labels,
             joinCondition: eq(labels.id, issuesToLabels.labelId),
             whereCondition: eq(issuesToLabels.issueId, issues.id),
           },
@@ -73,6 +73,7 @@ export namespace Search {
       })
       .from(issues)
       .leftJoin(repos, eq(issues.repoId, repos.id))
+      .orderBy(desc(similarity))
       .where(
         and(
           gt(similarity, SIMILARITY_THRESHOLD),
