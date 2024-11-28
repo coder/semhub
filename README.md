@@ -1,7 +1,5 @@
 # Semhub
 
-[![Code Quality Checks](https://github.com/coder/semhub/actions/workflows/checks.yml/badge.svg)](https://github.com/coder/semhub/actions/workflows/checks.yml)
-
 ## Development
 
 To develop using this repo, make sure you have installed the following:
