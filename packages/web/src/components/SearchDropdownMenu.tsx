@@ -1,5 +1,6 @@
 import {
   AlignJustifyIcon,
+  Building2Icon,
   CircleDashedIcon,
   FolderGit2Icon,
   Heading1Icon,
@@ -126,7 +127,7 @@ export function SearchDropdownMenu({
   );
 }
 
-export const OPERATORS_WITH_ICONS = [
+const OPERATORS_WITH_ICONS = [
   {
     name: "Title",
     ...SEARCH_OPERATORS[0],
@@ -143,6 +144,11 @@ export const OPERATORS_WITH_ICONS = [
     icon: <AlignJustifyIcon />,
   },
   {
+    name: "Label",
+    ...SEARCH_OPERATORS[5],
+    icon: <TagIcon />,
+  },
+  {
     name: "Issue State",
     ...SEARCH_OPERATORS[3],
     icon: <CircleDashedIcon />,
@@ -153,9 +159,9 @@ export const OPERATORS_WITH_ICONS = [
     icon: <FolderGit2Icon />,
   },
   {
-    name: "Label",
-    ...SEARCH_OPERATORS[5],
-    icon: <TagIcon />,
+    name: "Owner",
+    ...SEARCH_OPERATORS[6],
+    icon: <Building2Icon />,
   },
 ] as const;
 

@@ -64,6 +64,13 @@
       "when": 1732699599938,
       "tag": "0008_short_annihilus",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1732761263112,
+      "tag": "0009_worthless_serpent_society",
+      "breakpoints": true
     }
   ]
 }

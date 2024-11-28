@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS "owner_idx" ON "repos" USING btree ("owner");

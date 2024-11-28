@@ -14,6 +14,7 @@ describe("parseSearchQuery", () => {
         titleQueries: ["test"],
         bodyQueries: ["content"],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -27,6 +28,7 @@ describe("parseSearchQuery", () => {
         titleQueries: ["multiple words"],
         bodyQueries: ["more content"],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -39,6 +41,7 @@ describe("parseSearchQuery", () => {
         titleQueries: [],
         bodyQueries: [],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -51,6 +54,7 @@ describe("parseSearchQuery", () => {
         titleQueries: ["bug", "crash"],
         bodyQueries: ["firefox", "console"],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -64,6 +68,7 @@ describe("parseSearchQuery", () => {
         titleQueries: ["bug", "urgent"],
         bodyQueries: ["steps"],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -76,6 +81,7 @@ describe("parseSearchQuery", () => {
         titleQueries: ["second", "fourth"],
         bodyQueries: ["first", "third"],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -88,6 +94,7 @@ describe("parseSearchQuery", () => {
         titleQueries: ["spaces  preserved"],
         bodyQueries: ["multiple    spaces"],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -100,6 +107,7 @@ describe("parseSearchQuery", () => {
         titleQueries: [],
         bodyQueries: [],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -112,6 +120,7 @@ describe("parseSearchQuery", () => {
         titleQueries: [],
         bodyQueries: [],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -124,6 +133,7 @@ describe("parseSearchQuery", () => {
         titleQueries: [],
         bodyQueries: [],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -137,6 +147,7 @@ describe("parseSearchQuery", () => {
         titleQueries: [],
         bodyQueries: [],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -149,6 +160,7 @@ describe("parseSearchQuery", () => {
         titleQueries: ["bug"],
         bodyQueries: [],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -161,6 +173,7 @@ describe("parseSearchQuery", () => {
         titleQueries: [],
         bodyQueries: [],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -173,6 +186,7 @@ describe("parseSearchQuery", () => {
         titleQueries: [],
         bodyQueries: [],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -185,6 +199,7 @@ describe("parseSearchQuery", () => {
         titleQueries: [],
         bodyQueries: [],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -197,6 +212,7 @@ describe("parseSearchQuery", () => {
         titleQueries: [],
         bodyQueries: [],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -209,6 +225,7 @@ describe("parseSearchQuery", () => {
         titleQueries: ["MiXeD cAsE"],
         bodyQueries: ["UPPER CASE"],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -221,6 +238,7 @@ describe("parseSearchQuery", () => {
         titleQueries: ["bug"],
         bodyQueries: [],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -234,6 +252,7 @@ describe("parseSearchQuery", () => {
         titleQueries: [],
         bodyQueries: [],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -246,6 +265,7 @@ describe("parseSearchQuery", () => {
         titleQueries: [],
         bodyQueries: [],
         labelQueries: [],
+        ownerQueries: [],
       },
     },
     {
@@ -258,6 +278,33 @@ describe("parseSearchQuery", () => {
         titleQueries: [],
         bodyQueries: [],
         labelQueries: [],
+        ownerQueries: [],
+      },
+    },
+    {
+      query: 'owner:microsoft repo:vscode title:"bug"',
+      expected: {
+        authorQueries: [],
+        repoQueries: ["vscode"],
+        stateQueries: [],
+        substringQueries: [],
+        titleQueries: ["bug"],
+        bodyQueries: [],
+        labelQueries: [],
+        ownerQueries: ["microsoft"],
+      },
+    },
+    {
+      query: "owner:facebook owner:google repo:react",
+      expected: {
+        authorQueries: [],
+        repoQueries: ["react"],
+        stateQueries: [],
+        substringQueries: [],
+        titleQueries: [],
+        bodyQueries: [],
+        labelQueries: [],
+        ownerQueries: ["facebook", "google"],
       },
     },
   ];
