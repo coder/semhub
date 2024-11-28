@@ -64,7 +64,7 @@ export namespace Search {
         issueUrl: issues.htmlUrl,
         author: issues.author,
         issueState: issues.issueState,
-        issueStateReason: issues.issueStateReason, // TODO: show on hover on issue state?
+        issueStateReason: issues.issueStateReason,
         issueCreatedAt: issues.issueCreatedAt,
         issueClosedAt: issues.issueClosedAt,
         issueUpdatedAt: issues.issueUpdatedAt,

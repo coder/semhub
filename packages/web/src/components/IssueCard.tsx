@@ -1,4 +1,4 @@
-import { CircleCheckIcon, CircleDotIcon } from "lucide-react";
+import { CircleCheckIcon, CircleDotIcon, CircleSlashIcon } from "lucide-react";
 
 import type { SearchIssuesResponse } from "@/lib/api";
 import { getDaysAgo } from "@/lib/time";
@@ -10,17 +10,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-function toTitleCase(str: string | null | undefined): string {
-  if (!str) return "";
-  return str
-    .toLowerCase()
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
-
-type Issue = SearchIssuesResponse["data"][number];
-
 export function IssueCard({ issue }: { issue: Issue }) {
   const openedAtRelativeString = getDaysAgo(new Date(issue.issueCreatedAt));
   const closedAtRelativeString = issue.issueClosedAt
@@ -28,6 +17,11 @@ export function IssueCard({ issue }: { issue: Issue }) {
     : null;
 
   const { issueState, issueStateReason } = issue;
+  const { icon: StateIcon, color } = getIssueStateIcon(
+    issueState,
+    issueStateReason,
+  );
+
   return (
     <div className="p-4 hover:bg-muted/50">
       <div className="flex flex-col gap-2">
@@ -37,12 +31,7 @@ export function IssueCard({ issue }: { issue: Issue }) {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger>
-                    {issueState === "OPEN" && (
-                      <CircleDotIcon className="size-4 text-green-600" />
-                    )}
-                    {issueState === "CLOSED" && (
-                      <CircleCheckIcon className="size-4 text-purple-600" />
-                    )}
+                    <StateIcon className={`size-4 ${color}`} />
                   </TooltipTrigger>
                   <TooltipContent>
                     {toTitleCase(issueStateReason || issueState)}
@@ -91,4 +80,39 @@ export function IssueCard({ issue }: { issue: Issue }) {
       </div>
     </div>
   );
+}
+
+function toTitleCase(str: string | null | undefined): string {
+  if (!str) return "";
+  return str
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+type Issue = SearchIssuesResponse["data"][number];
+
+type IssueStateIcon = {
+  icon: typeof CircleCheckIcon | typeof CircleDotIcon | typeof CircleSlashIcon;
+  color: string;
+};
+
+function getIssueStateIcon(
+  state: string,
+  reason?: string | null,
+): IssueStateIcon {
+  if (state === "OPEN" || state === "REOPENED") {
+    return { icon: CircleDotIcon, color: "text-green-600" };
+  }
+
+  if (state === "CLOSED") {
+    if (reason === "NOT_PLANNED" || reason === "DUPLICATE") {
+      return { icon: CircleSlashIcon, color: "text-gray-500" };
+    }
+    return { icon: CircleCheckIcon, color: "text-purple-600" };
+  }
+
+  // Default fallback
+  return { icon: CircleDotIcon, color: "text-green-600" };
 }
