@@ -46,8 +46,10 @@ export const Route = createFileRoute("/search")({
 
 function NothingMatched() {
   return (
-    <div className="divide-y rounded-lg border bg-background p-4">
-      <div>No issues matched your search</div>
+    <div className="divide-y rounded-lg border bg-background p-4 sm:p-6">
+      <div className="text-mobile-base sm:text-base">
+        No issues matched your search
+      </div>
     </div>
   );
 }
@@ -56,7 +58,7 @@ function IssuesSkeleton() {
   return (
     <div className="divide-y rounded-lg border bg-background">
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="p-4">
+        <div key={i} className="p-4 sm:p-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <Skeleton className="size-4 rounded-full" />
