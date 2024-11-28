@@ -20,8 +20,7 @@ export function IssueCard({ issue }: { issue: Issue }) {
               state={issue.issueState}
               reason={issue.issueStateReason}
             />
-            <IssueTitle issue={issue} />
-            <IssueLabels labels={issue.labels} />
+            <IssueTitleWithLabels issue={issue} />
           </div>
         </div>
         <div className="ml-6 text-sm text-muted-foreground">
@@ -117,38 +116,35 @@ function RepoTag({ issue }: { issue: Issue }) {
   );
 }
 
-function IssueLabels({ labels }: { labels?: Issue["labels"] }) {
+function IssueTitleWithLabels({ issue }: { issue: Issue }) {
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-2">
-      {labels?.map((label) => (
-        <Badge
-          key={label.name}
-          variant="secondary"
-          className="inline-flex rounded-full px-2 py-0.5"
-          style={{
-            backgroundColor: `#${label.color}`,
-            color: `${parseInt(label.color, 16) > 0x7fffff ? "#000" : "#fff"}`,
-          }}
-        >
-          {label.name}
-        </Badge>
-      ))}
+    <div className="min-w-0 grow text-lg font-semibold">
+      <a
+        href={issue.issueUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-foreground hover:text-primary"
+      >
+        <span className="[word-break:break-word]">{issue.title}</span>
+      </a>
+      {issue.labels && issue.labels.length > 0 && (
+        <span className="ml-2 inline-flex gap-2">
+          {issue.labels.map((label) => (
+            <Badge
+              key={label.name}
+              variant="secondary"
+              className="inline-flex rounded-full px-2 py-0.5"
+              style={{
+                backgroundColor: `#${label.color}`,
+                color: `${parseInt(label.color, 16) > 0x7fffff ? "#000" : "#fff"}`,
+              }}
+            >
+              {label.name}
+            </Badge>
+          ))}
+        </span>
+      )}
     </div>
-  );
-}
-
-function IssueTitle({ issue }: { issue: Issue }) {
-  return (
-    <a
-      href={issue.issueUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="min-w-0 text-lg font-semibold text-foreground hover:text-primary"
-    >
-      <span className="line-clamp-2 [word-break:break-word]">
-        {issue.title}
-      </span>
-    </a>
   );
 }
 
