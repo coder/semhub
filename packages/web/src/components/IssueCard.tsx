@@ -1,7 +1,7 @@
 import { CircleCheckIcon, CircleDotIcon, CircleSlashIcon } from "lucide-react";
 
 import type { SearchIssuesResponse } from "@/lib/api";
-import { getTimeAgo } from "@/lib/time";
+import { formatLocalDateTime, getTimeAgo } from "@/lib/time";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -11,106 +11,21 @@ import {
 } from "@/components/ui/tooltip";
 
 export function IssueCard({ issue }: { issue: Issue }) {
-  const openedAtRelativeString = getTimeAgo(new Date(issue.issueCreatedAt));
-  const closedAtRelativeString = issue.issueClosedAt
-    ? getTimeAgo(new Date(issue.issueClosedAt))
-    : null;
-
-  const { issueState, issueStateReason } = issue;
-  const { icon: StateIcon, color } = getIssueStateIcon(
-    issueState,
-    issueStateReason,
-  );
-
-  const repoName = (
-    <a
-      href={issue.repoUrl ?? ""}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center rounded-md border bg-muted px-2 py-0.5 text-sm hover:bg-muted/80"
-    >
-      {issue.repoOwnerName}/{issue.repoName}
-    </a>
-  );
-
   return (
     <div className="p-4 hover:bg-muted/50">
       <div className="flex flex-col gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <div className="flex shrink-0 items-center gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <StateIcon className={`size-4 ${color}`} />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {toTitleCase(issueStateReason || issueState)}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <a
-              href={issue.issueUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="min-w-0 text-lg font-semibold text-foreground hover:text-primary"
-            >
-              <span className="line-clamp-2 [word-break:break-word]">
-                {issue.title}
-              </span>
-            </a>
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              {issue.labels?.map((label) => (
-                <Badge
-                  key={label.name}
-                  variant="secondary"
-                  className="inline-flex rounded-full px-2 py-0.5"
-                  style={{
-                    backgroundColor: `#${label.color}`,
-                    color: `${parseInt(label.color, 16) > 0x7fffff ? "#000" : "#fff"}`,
-                  }}
-                >
-                  {label.name}
-                </Badge>
-              ))}
-            </div>
+            <IssueStateIndicator
+              state={issue.issueState}
+              reason={issue.issueStateReason}
+            />
+            <IssueTitle issue={issue} />
+            <IssueLabels labels={issue.labels} />
           </div>
         </div>
         <div className="ml-6 text-sm text-muted-foreground">
-          {issue.repoLastUpdatedAt ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>{repoName}</TooltipTrigger>
-                <TooltipContent>
-                  Last synced {getTimeAgo(new Date(issue.repoLastUpdatedAt))}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : (
-            repoName
-          )}{" "}
-          <a href={issue.issueUrl} target="_blank" rel="noopener noreferrer">
-            #{issue.number}
-          </a>{" "}
-          {issue.author && (
-            <>
-              {" "}
-              by{" "}
-              <a
-                href={issue.author.htmlUrl}
-                className="hover:text-primary"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {issue.author.name}
-              </a>
-            </>
-          )}{" "}
-          was {issueState === "OPEN" && `opened ${openedAtRelativeString}`}
-          {issueState === "CLOSED" && `closed ${closedAtRelativeString}`} |{" "}
-          {issue.commentCount}{" "}
-          {issue.commentCount <= 1 ? "comment" : "comments"}
+          <RepoTag issue={issue} /> <IssueMetadata issue={issue} />
         </div>
       </div>
     </div>
@@ -154,4 +69,151 @@ function getIssueStateIcon(
       state satisfies never;
       throw new Error(`Unknown issue state: ${state} with reason: ${reason}`);
   }
+}
+
+function IssueStateIndicator({
+  state,
+  reason,
+}: {
+  state: Issue["issueState"];
+  reason: Issue["issueStateReason"];
+}) {
+  const { icon: StateIcon, color } = getIssueStateIcon(state, reason);
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger>
+          <StateIcon className={`size-4 ${color}`} />
+        </TooltipTrigger>
+        <TooltipContent>{toTitleCase(reason || state)}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function RepoTag({ issue }: { issue: Issue }) {
+  const repoName = (
+    <a
+      href={issue.repoUrl ?? ""}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center rounded-md border bg-muted px-2 py-0.5 text-sm hover:bg-muted/80"
+    >
+      {issue.repoOwnerName}/{issue.repoName}
+    </a>
+  );
+
+  if (!issue.repoLastUpdatedAt) return repoName;
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>{repoName}</TooltipTrigger>
+        <TooltipContent>
+          Last synced {getTimeAgo(new Date(issue.repoLastUpdatedAt))}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function IssueLabels({ labels }: { labels?: Issue["labels"] }) {
+  return (
+    <div className="flex shrink-0 flex-wrap items-center gap-2">
+      {labels?.map((label) => (
+        <Badge
+          key={label.name}
+          variant="secondary"
+          className="inline-flex rounded-full px-2 py-0.5"
+          style={{
+            backgroundColor: `#${label.color}`,
+            color: `${parseInt(label.color, 16) > 0x7fffff ? "#000" : "#fff"}`,
+          }}
+        >
+          {label.name}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
+function IssueTitle({ issue }: { issue: Issue }) {
+  return (
+    <a
+      href={issue.issueUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="min-w-0 text-lg font-semibold text-foreground hover:text-primary"
+    >
+      <span className="line-clamp-2 [word-break:break-word]">
+        {issue.title}
+      </span>
+    </a>
+  );
+}
+
+function IssueMetadata({ issue }: { issue: Issue }) {
+  const openedAt = getTimeAgo(new Date(issue.issueCreatedAt));
+  const closedAt = issue.issueClosedAt
+    ? getTimeAgo(new Date(issue.issueClosedAt))
+    : null;
+  const updatedAt = getTimeAgo(new Date(issue.issueUpdatedAt));
+  const { issueState } = issue;
+
+  const issueNumber = (
+    <a href={issue.issueUrl} target="_blank" rel="noopener noreferrer">
+      #{issue.number}
+    </a>
+  );
+
+  const authorElement = issue.author && (
+    <a
+      href={issue.author.htmlUrl}
+      className="hover:text-primary"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {issue.author.name}
+    </a>
+  );
+
+  const stateTimestamp = (
+    <span
+      title={formatLocalDateTime(
+        new Date(
+          issueState === "OPEN" ? issue.issueCreatedAt : issue.issueClosedAt!,
+        ),
+      )}
+    >
+      {issueState === "OPEN" ? `opened ${openedAt}` : `closed ${closedAt}`}
+    </span>
+  );
+
+  const commentElement = (
+    <>
+      {issue.commentCount} {issue.commentCount === 1 ? "comment" : "comments"}
+    </>
+  );
+
+  const showLastUpdated =
+    (issueState === "OPEN" && updatedAt !== openedAt) ||
+    (issueState === "CLOSED" && updatedAt !== closedAt);
+
+  const lastUpdatedElement = showLastUpdated && (
+    <>
+      {" | "}
+      <span title={formatLocalDateTime(new Date(issue.issueUpdatedAt))}>
+        updated {updatedAt}
+      </span>
+    </>
+  );
+
+  return (
+    <>
+      {issueNumber} by {authorElement} was {stateTimestamp}
+      {" | "}
+      {commentElement}
+      {lastUpdatedElement}
+    </>
+  );
 }
