@@ -22,7 +22,7 @@ export function IssueCard({ issue }: { issue: Issue }) {
     issueStateReason,
   );
 
-  const repoLink = (
+  const repoName = (
     <a
       href={issue.repoUrl ?? ""}
       target="_blank"
@@ -49,19 +49,6 @@ export function IssueCard({ issue }: { issue: Issue }) {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              {issue.repoLastUpdatedAt ? (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>{repoLink}</TooltipTrigger>
-                    <TooltipContent>
-                      Last synced{" "}
-                      {getTimeAgo(new Date(issue.repoLastUpdatedAt))}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ) : (
-                repoLink
-              )}
             </div>
             <a
               href={issue.issueUrl}
@@ -91,6 +78,18 @@ export function IssueCard({ issue }: { issue: Issue }) {
           </div>
         </div>
         <div className="ml-6 text-sm text-muted-foreground">
+          {issue.repoLastUpdatedAt ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>{repoName}</TooltipTrigger>
+                <TooltipContent>
+                  Last synced {getTimeAgo(new Date(issue.repoLastUpdatedAt))}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            repoName
+          )}{" "}
           <a href={issue.issueUrl} target="_blank" rel="noopener noreferrer">
             #{issue.number}
           </a>{" "}
