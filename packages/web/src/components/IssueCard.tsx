@@ -25,6 +25,8 @@ export function IssueCard({ issue }: { issue: Issue }) {
   const repoLink = (
     <a
       href={issue.repoUrl ?? ""}
+      target="_blank"
+      rel="noopener noreferrer"
       className="inline-flex items-center rounded-md border bg-muted px-2 py-0.5 text-sm hover:bg-muted/80"
     >
       {issue.repoOwnerName}/{issue.repoName}
@@ -63,6 +65,8 @@ export function IssueCard({ issue }: { issue: Issue }) {
             </div>
             <a
               href={issue.issueUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className="min-w-0 text-lg font-semibold text-foreground hover:text-primary"
             >
               <span className="line-clamp-2 [word-break:break-word]">
@@ -87,8 +91,24 @@ export function IssueCard({ issue }: { issue: Issue }) {
           </div>
         </div>
         <div className="ml-6 text-sm text-muted-foreground">
-          #{issue.number} {issue.author && <> by {issue.author.name}</>} was{" "}
-          {issueState === "OPEN" && `opened ${openedAtRelativeString}`}
+          <a href={issue.issueUrl} target="_blank" rel="noopener noreferrer">
+            #{issue.number}
+          </a>{" "}
+          {issue.author && (
+            <>
+              {" "}
+              by{" "}
+              <a
+                href={issue.author.htmlUrl}
+                className="hover:text-primary"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {issue.author.name}
+              </a>
+            </>
+          )}{" "}
+          was {issueState === "OPEN" && `opened ${openedAtRelativeString}`}
           {issueState === "CLOSED" && `closed ${closedAtRelativeString}`} |{" "}
           {issue.commentCount}{" "}
           {issue.commentCount <= 1 ? "comment" : "comments"}
@@ -115,20 +135,24 @@ type IssueStateIcon = {
 };
 
 function getIssueStateIcon(
-  state: string,
-  reason?: string | null,
+  state: Issue["issueState"],
+  reason: Issue["issueStateReason"],
 ): IssueStateIcon {
-  if (state === "OPEN" || state === "REOPENED") {
-    return { icon: CircleDotIcon, color: "text-green-600" };
+  switch (state) {
+    case "OPEN":
+      return { icon: CircleDotIcon, color: "text-green-600" };
+    case "CLOSED":
+      switch (reason) {
+        case "REOPENED":
+          return { icon: CircleDotIcon, color: "text-green-600" };
+        case "NOT_PLANNED":
+        case "DUPLICATE":
+          return { icon: CircleSlashIcon, color: "text-gray-500" };
+        default:
+          return { icon: CircleCheckIcon, color: "text-purple-600" };
+      }
+    default:
+      state satisfies never;
+      throw new Error(`Unknown issue state: ${state} with reason: ${reason}`);
   }
-
-  if (state === "CLOSED") {
-    if (reason === "NOT_PLANNED" || reason === "DUPLICATE") {
-      return { icon: CircleSlashIcon, color: "text-gray-500" };
-    }
-    return { icon: CircleCheckIcon, color: "text-purple-600" };
-  }
-
-  // Default fallback
-  return { icon: CircleDotIcon, color: "text-green-600" };
 }
