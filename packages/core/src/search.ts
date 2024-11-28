@@ -32,6 +32,7 @@ export namespace Search {
       stateQueries,
       repoQueries,
       labelQueries,
+      ownerQueries,
     } = parseSearchQuery(query);
 
     // Use the entire query for semantic search
@@ -63,15 +64,15 @@ export namespace Search {
         issueUrl: issues.htmlUrl,
         author: issues.author,
         issueState: issues.issueState,
-        issueStateReason: issues.issueStateReason,
+        issueStateReason: issues.issueStateReason, // TODO: show on hover on issue state?
         issueCreatedAt: issues.issueCreatedAt,
         issueClosedAt: issues.issueClosedAt,
         issueUpdatedAt: issues.issueUpdatedAt,
         repoName: repos.name,
         repoUrl: repos.htmlUrl,
         repoOwnerName: repos.owner,
+        repoLastUpdatedAt: repos.issuesLastUpdatedAt, // TODO: show on hover over repo name
         commentCount: count(comments.id).as("comment_count"),
-        // similarity,
       })
       .from(issues)
       .leftJoin(repos, eq(issues.repoId, repos.id))
@@ -82,6 +83,7 @@ export namespace Search {
         repos.htmlUrl,
         repos.name,
         repos.owner,
+        repos.issuesLastUpdatedAt,
       )
       .orderBy(desc(similarity))
       .where(
@@ -106,6 +108,7 @@ export namespace Search {
             ),
           ),
           ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
+          ...ownerQueries.map((subQuery) => ilike(repos.owner, `${subQuery}`)),
           ...stateQueries.map((state) => convertToIssueStateSql(state)),
           ...[hasAllLabels(issues.id, labelQueries)],
         ),

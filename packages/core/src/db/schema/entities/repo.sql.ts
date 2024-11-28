@@ -18,6 +18,7 @@ export const repos = pgTable(
   (table) => ({
     // probably could be unique index, but small chance that org / repo names can change
     ownerNameIdx: index("owner_name_idx").on(table.owner, table.name),
+    ownerIdx: index("owner_idx").on(table.owner),
   }),
 );
 
