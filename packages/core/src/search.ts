@@ -1,10 +1,11 @@
 import type { RateLimiter } from "./constants/rate-limit";
 import { and, cosineDistance, desc, eq, getDb, gt, ilike, or, sql } from "./db";
+import { comments } from "./db/schema/entities/comment.sql";
 import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
 import { convertToIssueStateSql, issues } from "./db/schema/entities/issue.sql";
 import { hasAllLabels, labels } from "./db/schema/entities/label.sql";
 import { repos } from "./db/schema/entities/repo.sql";
-import { lower } from "./db/utils/general";
+import { count, lower } from "./db/utils/general";
 import { jsonAggBuildObjectFromJoin, jsonContains } from "./db/utils/json";
 import { Embedding } from "./embedding";
 import { parseSearchQuery } from "./search.util";
@@ -69,10 +70,19 @@ export namespace Search {
         repoName: repos.name,
         repoUrl: repos.htmlUrl,
         repoOwnerName: repos.owner,
+        commentCount: count(comments.id).as("comment_count"),
         // similarity,
       })
       .from(issues)
       .leftJoin(repos, eq(issues.repoId, repos.id))
+      .leftJoin(comments, eq(comments.issueId, issues.id))
+      // for aggregating comment count
+      .groupBy(
+        issues.id, // primary key covers all issues column
+        repos.htmlUrl,
+        repos.name,
+        repos.owner,
+      )
       .orderBy(desc(similarity))
       .where(
         and(
