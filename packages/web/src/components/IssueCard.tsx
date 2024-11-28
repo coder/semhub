@@ -153,10 +153,13 @@ function IssueTitleWithLabels({ issue }: { issue: Issue }) {
         <span
           className="[word-break:break-word]"
           dangerouslySetInnerHTML={{
-            __html: DOMPurify.sanitize(`${processTitle(issue.title)}`, {
-              ALLOWED_TAGS: ["code"],
-              ALLOWED_ATTR: [],
-            }),
+            __html: DOMPurify.sanitize(
+              `(${(issue.rankingScore * 100).toFixed(1)}%) ${processTitle(issue.title)}`,
+              {
+                ALLOWED_TAGS: ["code"],
+                ALLOWED_ATTR: [],
+              },
+            ),
           }}
         />
       </a>
