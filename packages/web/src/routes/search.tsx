@@ -57,7 +57,7 @@ function NothingMatched() {
 function IssuesSkeleton() {
   return (
     <div className="divide-y rounded-lg border bg-background">
-      {Array.from({ length: 5 }).map((_, i) => (
+      {Array.from({ length: 10 }).map((_, i) => (
         <div key={i} className="p-4 sm:p-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
