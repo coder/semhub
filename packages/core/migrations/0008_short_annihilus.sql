@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS "issue_id_idx" ON "comments" USING btree ("issue_id");

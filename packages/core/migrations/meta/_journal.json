@@ -57,6 +57,13 @@
       "when": 1732689401668,
       "tag": "0007_hot_agent_zero",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1732699599938,
+      "tag": "0008_short_annihilus",
+      "breakpoints": true
     }
   ]
 }
