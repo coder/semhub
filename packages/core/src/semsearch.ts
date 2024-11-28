@@ -1,4 +1,9 @@
 import type { RateLimiter } from "./constants/rate-limit.constant";
+import {
+  RANKING_WEIGHTS,
+  SCORE_MULTIPLIERS,
+  TIME_CONSTANTS,
+} from "./constants/search.constant";
 import type { DbClient } from "./db";
 import { and, cosineDistance, desc, eq, gt, ilike, or, sql } from "./db";
 import { comments } from "./db/schema/entities/comment.sql";
@@ -50,7 +55,33 @@ export namespace SemanticSearch {
       },
       openai,
     );
-    const similarity = sql<number>`1-(${cosineDistance(issueTable.embedding, embedding)})`;
+    const similarity = sql<number>`(1-(${cosineDistance(issueTable.embedding, embedding)}))::float`;
+
+    // Calculate recency score (1.0 for new issues, declining with age)
+    const recencyScore = sql<number>`
+      GREATEST(0, 1 - (
+        EXTRACT(EPOCH FROM NOW() - ${issueTable.issueUpdatedAt})::float /
+        (86400 * ${TIME_CONSTANTS.RECENCY_BASE_DAYS})
+      ))
+    `;
+
+    // Simple comment count normalization (we can refine this later)
+    const commentScore = sql<number>`
+      LEAST(1.0, (count(${comments.id})::float / 10))
+    `;
+
+    // Combined ranking score
+    const rankingScore = sql<number>`
+      (${RANKING_WEIGHTS.SEMANTIC_SIMILARITY}::float * ${similarity}) +
+      (${RANKING_WEIGHTS.RECENCY}::float * ${recencyScore}) +
+      (${RANKING_WEIGHTS.COMMENT_COUNT}::float * ${commentScore}) +
+      (${RANKING_WEIGHTS.ISSUE_STATE}::float * (
+        CASE
+          WHEN ${issueTable.issueState} = 'OPEN' THEN ${SCORE_MULTIPLIERS.OPEN_ISSUE}::float
+          ELSE ${SCORE_MULTIPLIERS.CLOSED_ISSUE}::float
+        END
+      ))
+    `;
 
     const selected = db
       .select({
@@ -95,7 +126,7 @@ export namespace SemanticSearch {
         repos.owner,
         repos.lastSyncedAt,
       )
-      .orderBy(desc(similarity))
+      .orderBy(desc(rankingScore))
       .where(
         and(
           eq(repos.initStatus, "completed"),
