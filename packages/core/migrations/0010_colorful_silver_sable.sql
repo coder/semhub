@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS "issue_state_idx" ON "issues" USING btree ("issue_state");

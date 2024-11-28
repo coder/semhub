@@ -78,9 +78,11 @@ export const issues = pgTable(
       "gin",
       sql`${table.body} gin_trgm_ops`,
     ),
+    // lower case match
     authorNameIdx: index("author_name_idx").on(
       sql`lower((${table.author}->>'name'::text))`,
     ),
+    issueStateIdx: index("issue_state_idx").on(table.issueState),
   }),
 );
 

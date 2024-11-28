@@ -87,12 +87,12 @@ export function jsonAggBuildObjectFromJoin<
           ${
             orderBy
               ? sql`ORDER BY ${orderBy.colName} ${sql.raw(orderBy.direction)}`
-              : sql``
+              : undefined
           }
         )
         FROM ${sql`${from}`}
         JOIN ${sql`${joinTable}`} ON ${joinCondition}
-        ${whereCondition ? sql`WHERE ${whereCondition}` : sql``}
+        ${whereCondition ? sql`WHERE ${whereCondition}` : undefined}
       ),
       '[]'::json
     )`;

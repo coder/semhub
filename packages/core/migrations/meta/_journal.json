@@ -71,6 +71,13 @@
       "when": 1732761263112,
       "tag": "0009_worthless_serpent_society",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1732762306935,
+      "tag": "0010_colorful_silver_sable",
+      "breakpoints": true
     }
   ]
 }
