@@ -90,6 +90,28 @@
     --accent-dark: 220 9% 46%;
     --accent-dark-foreground: 0 0% 100%;
   }
+
+  /* Mobile-first responsive design */
+  @media (max-width: 640px) {
+    html {
+      font-size: 13px;
+    }
+
+    /* Reduce default spacing */
+    .divide-y > * {
+      @apply py-2;
+    }
+
+    /* Tighter content spacing */
+    .space-y-4 {
+      @apply space-y-2;
+    }
+
+    /* Optimize line heights */
+    .prose {
+      @apply leading-snug;
+    }
+  }
 }
 
 @layer base {

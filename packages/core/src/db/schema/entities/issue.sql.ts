@@ -12,7 +12,7 @@ import {
 import type { StateSubmenuValue } from "@/constants/search";
 
 import { getBaseColumns, timestamptz } from "../base.sql";
-import { type Author, type Label } from "../shared";
+import { type Author } from "../shared";
 import { issuesToLabels } from "./issue-to-label.sql";
 import { repos } from "./repo.sql";
 

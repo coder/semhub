@@ -39,3 +39,10 @@ export function getTimeAgo(date: Date) {
 
   return relativeTimeFormatter.format(value, unit);
 }
+
+export function formatLocalDateTime(date: Date) {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
