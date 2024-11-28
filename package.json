@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "sst dev",
     "dev:cf": "wrangler dev",
-    "typecheck": "bun --filter=* typecheck",
+    "typecheck": "bun --filter=@semhub/core typecheck && bun --filter=* typecheck",
     "format:write": "prettier . --write",
     "format:check": "prettier . --check",
     "lint": "eslint . && cd packages/web && eslint .",
