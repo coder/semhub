@@ -12,7 +12,7 @@ const relativeTimeFormatter = new Intl.RelativeTimeFormat("en", {
   style: "long",
 });
 
-export function getDaysAgo(date: Date) {
+export function getTimeAgo(date: Date) {
   const diff = date.getTime() - Date.now();
 
   // Convert diff to seconds

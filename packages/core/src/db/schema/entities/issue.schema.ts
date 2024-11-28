@@ -18,6 +18,8 @@ const selectIssueSchema = createSelectSchema(issues).extend({
   author: authorSchema,
 });
 
+export type SelectIssue = z.infer<typeof selectIssueSchema>;
+
 const selectIssueForEmbedding = selectIssueSchema.pick({
   id: true,
   number: true,

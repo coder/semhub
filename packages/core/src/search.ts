@@ -64,14 +64,14 @@ export namespace Search {
         issueUrl: issues.htmlUrl,
         author: issues.author,
         issueState: issues.issueState,
-        issueStateReason: issues.issueStateReason, // TODO: show on hover on issue state?
+        issueStateReason: issues.issueStateReason,
         issueCreatedAt: issues.issueCreatedAt,
         issueClosedAt: issues.issueClosedAt,
         issueUpdatedAt: issues.issueUpdatedAt,
         repoName: repos.name,
         repoUrl: repos.htmlUrl,
         repoOwnerName: repos.owner,
-        repoLastUpdatedAt: repos.issuesLastUpdatedAt, // TODO: show on hover over repo name
+        repoLastUpdatedAt: repos.issuesLastUpdatedAt,
         commentCount: count(comments.id).as("comment_count"),
       })
       .from(issues)
