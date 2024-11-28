@@ -6,6 +6,10 @@ import { isErrorResponse } from "@/workers/server/response";
 import type { IssuesSearchSchema } from "@/workers/server/router/schema";
 
 const apiUrl = import.meta.env.VITE_API_URL;
+// needed for CI to pass
+if (!apiUrl) {
+  throw new Error("VITE_API_URL is not set");
+}
 
 const client = hc<ApiRoutes>(apiUrl, {
   // TODO: auth

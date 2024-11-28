@@ -79,15 +79,15 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
       },
       fontSize: {
-        'mobile-base': '0.875rem',    // 14px
-        'mobile-sm': '0.75rem',       // 12px
-        'mobile-xs': '0.6875rem',     // 11px
+        "mobile-base": "0.875rem", // 14px
+        "mobile-sm": "0.75rem", // 12px
+        "mobile-xs": "0.6875rem", // 11px
       },
       spacing: {
-        'mobile': {
-          'tight': '0.5rem',          // 8px
-          'compact': '0.25rem',       // 4px
-        }
+        mobile: {
+          tight: "0.5rem", // 8px
+          compact: "0.25rem", // 4px
+        },
       },
     },
   },
