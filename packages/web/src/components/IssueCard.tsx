@@ -1,7 +1,7 @@
 import { CircleCheckIcon, CircleDotIcon, CircleSlashIcon } from "lucide-react";
 
 import type { SearchIssuesResponse } from "@/lib/api";
-import { getDaysAgo } from "@/lib/time";
+import { getTimeAgo } from "@/lib/time";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -11,15 +11,24 @@ import {
 } from "@/components/ui/tooltip";
 
 export function IssueCard({ issue }: { issue: Issue }) {
-  const openedAtRelativeString = getDaysAgo(new Date(issue.issueCreatedAt));
+  const openedAtRelativeString = getTimeAgo(new Date(issue.issueCreatedAt));
   const closedAtRelativeString = issue.issueClosedAt
-    ? getDaysAgo(new Date(issue.issueClosedAt))
+    ? getTimeAgo(new Date(issue.issueClosedAt))
     : null;
 
   const { issueState, issueStateReason } = issue;
   const { icon: StateIcon, color } = getIssueStateIcon(
     issueState,
     issueStateReason,
+  );
+
+  const repoLink = (
+    <a
+      href={issue.repoUrl ?? ""}
+      className="inline-flex items-center rounded-md border bg-muted px-2 py-0.5 text-sm hover:bg-muted/80"
+    >
+      {issue.repoOwnerName}/{issue.repoName}
+    </a>
   );
 
   return (
@@ -38,12 +47,19 @@ export function IssueCard({ issue }: { issue: Issue }) {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              <a
-                href={issue.repoUrl ?? ""}
-                className="inline-flex items-center rounded-md border bg-muted px-2 py-0.5 text-sm hover:bg-muted/80"
-              >
-                {issue.repoOwnerName}/{issue.repoName}
-              </a>
+              {issue.repoLastUpdatedAt ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>{repoLink}</TooltipTrigger>
+                    <TooltipContent>
+                      Last synced{" "}
+                      {getTimeAgo(new Date(issue.repoLastUpdatedAt))}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                repoLink
+              )}
             </div>
             <a
               href={issue.issueUrl}

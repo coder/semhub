@@ -71,7 +71,7 @@ export namespace Search {
         repoName: repos.name,
         repoUrl: repos.htmlUrl,
         repoOwnerName: repos.owner,
-        repoLastUpdatedAt: repos.issuesLastUpdatedAt, // TODO: show on hover over repo name
+        repoLastUpdatedAt: repos.issuesLastUpdatedAt,
         commentCount: count(comments.id).as("comment_count"),
       })
       .from(issues)
