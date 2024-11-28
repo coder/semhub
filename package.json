@@ -16,7 +16,8 @@
     "deploy:prod": "sst deploy --stage prod",
     "secret:load": "sst secret load .secrets",
     "secret:load:prod": "sst secret load .secrets --stage prod",
-    "script": "cd packages/scripts && bun run shell"
+    "script": "cd packages/scripts && bun run shell",
+    "check:all": "bun typecheck && bun format:check && bun lint && bun --filter=@semhub/core test && bun --filter=@semhub/core test:types"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.0",
