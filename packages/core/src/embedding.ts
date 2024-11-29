@@ -38,7 +38,7 @@ export namespace Embedding {
     const result = embeddingsCreateSchema.parse(res);
     return result.data[0]!.embedding;
   }
-  export async function syncIssues(rateLimiter?: RateLimiter) {
+  export async function sync(rateLimiter?: RateLimiter) {
     const TRUNCATION_MAX_ATTEMPTS = 8;
     const BATCH_SIZE = 20;
     const { db } = getDb();

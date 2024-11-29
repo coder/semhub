@@ -1,6 +1,6 @@
-import { getDb } from "@/core/db";
 import { Embedding } from "@/core/embedding";
 import { GitHubIssue } from "@/core/github/issue";
+import { Repo } from "@/core/repo";
 
 import type RateLimiterWorker from "./rate-limiter";
 
@@ -18,18 +18,27 @@ export default {
       switch (controller.cron) {
         // Every ten minutes
         case "*/10 * * * *":
-          console.log("sync issues and embeddings");
-          await GitHubIssue.sync();
-          await Embedding.syncIssues(env.RATE_LIMITER);
-          console.log("done syncing issues and embeddings");
+          const repos = await Repo.getCronRepos();
+          // for each repo, call and start a workflow
+          for (const repo of repos) {
+            await Repo.updateRepoIssueSyncing({
+              repoId: repo.repoId,
+              isSyncing: true,
+            });
+            const data = await GitHubIssue.getIssuesWithMetadata(repo);
+            await GitHubIssue.upsertIssues({ ...data, repoId: repo.repoId });
+            await Repo.updateRepoIssueSyncing({
+              repoId: repo.repoId,
+              isSyncing: false,
+              syncedAt: new Date(),
+            });
+            await Embedding.sync(env.RATE_LIMITER);
+          }
           break;
       }
       console.log("cron processed");
     } catch (e) {
       console.error(e);
-    } finally {
-      const { closeConnection } = getDb();
-      await closeConnection();
     }
   },
 };
