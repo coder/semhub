@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import {
   CircleCheckIcon,
   CircleDotIcon,
@@ -154,7 +155,12 @@ function IssueTitleWithLabels({ issue }: { issue: Issue }) {
       >
         <span
           className="[word-break:break-word]"
-          dangerouslySetInnerHTML={{ __html: processTitle(issue.title) }}
+          dangerouslySetInnerHTML={{
+            __html: DOMPurify.sanitize(`${processTitle(issue.title)}`, {
+              ALLOWED_TAGS: ["code"],
+              ALLOWED_ATTR: [],
+            }),
+          }}
         />
       </a>
       {issue.labels && issue.labels.length > 0 && (
