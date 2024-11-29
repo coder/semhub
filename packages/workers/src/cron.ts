@@ -1,5 +1,5 @@
 import { Embedding } from "@/core/embedding";
-import { GitHubIssue } from "@/core/github/issue";
+import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 
 import type RateLimiterWorker from "./rate-limiter";
@@ -18,21 +18,22 @@ export default {
       switch (controller.cron) {
         // Every ten minutes
         case "*/10 * * * *":
-          const repos = await Repo.getCronRepos();
+          const repos = await Repo.getReposForCron();
           // for each repo, call and start a workflow
           for (const repo of repos) {
-            await Repo.updateRepoIssueSyncing({
+            await Repo.updateSyncStatus({
               repoId: repo.repoId,
               isSyncing: true,
             });
-            const data = await GitHubIssue.getIssuesWithMetadata(repo);
-            await GitHubIssue.upsertIssues({ ...data, repoId: repo.repoId });
-            await Repo.updateRepoIssueSyncing({
+            const data = await Github.getIssuesWithMetadata(repo);
+            await Repo.upsertIssues({ ...data, repoId: repo.repoId });
+            await Embedding.sync(env.RATE_LIMITER);
+            // probably should get syncedAt from Embedding.sync
+            await Repo.updateSyncStatus({
               repoId: repo.repoId,
               isSyncing: false,
               syncedAt: new Date(),
             });
-            await Embedding.sync(env.RATE_LIMITER);
           }
           break;
       }

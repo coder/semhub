@@ -1,31 +1,38 @@
 import { print } from "graphql";
 
-import { eq, getDb, sql } from "@/db";
-import { comments, type CreateComment } from "@/db/schema/entities/comment.sql";
-import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
+import type { CreateComment } from "@/db/schema/entities/comment.sql";
 import type { CreateIssue } from "@/db/schema/entities/issue.schema";
-import { issues as issueTable } from "@/db/schema/entities/issue.sql";
 import type { CreateLabel } from "@/db/schema/entities/label.schema";
-import { labels as labelTable } from "@/db/schema/entities/label.sql";
-import { repos } from "@/db/schema/entities/repo.sql";
-import { conflictUpdateAllExcept } from "@/db/utils/conflict";
 import type { Repo } from "@/repo";
 
 import { graphql } from "./graphql";
 import {
+  githubRepoSchema,
   loadIssuesWithCommentsQuerySchema,
   type CommentGraphql,
   type IssueGraphql,
 } from "./schema";
-import { getGraphqlOctokit } from "./shared";
+import { getGraphqlOctokit, getRestOctokit } from "./shared";
 
-export namespace GitHubIssue {
+export namespace Github {
+  export async function getRepo(repoName: string, repoOwner: string) {
+    const octokit = getRestOctokit();
+    const { data: repoData } = await octokit.rest.repos.get({
+      owner: repoOwner,
+      repo: repoName,
+    });
+    const { success, data } = githubRepoSchema.safeParse(repoData);
+    if (!success) {
+      throw new Error("error parsing repo data from GitHub");
+    }
+    return data;
+  }
   export async function getIssuesWithMetadata({
     repoId,
     repoName,
     repoOwner,
     issuesLastUpdatedAt,
-  }: Awaited<ReturnType<typeof Repo.getCronRepos>>[number]) {
+  }: Awaited<ReturnType<typeof Repo.getReposForCron>>[number]) {
     const octokit = getGraphqlOctokit();
     const iterator = octokit.graphql.paginate.iterator(getIssueUpsertQuery(), {
       organization: repoOwner,
@@ -33,11 +40,11 @@ export namespace GitHubIssue {
       cursor: null,
       since: issuesLastUpdatedAt?.toISOString() ?? null,
     });
-    const allIssues = [];
-    const allComments = [];
-    const allLabels = [];
-    const allIssueToLabelRelations = [];
     let lastIssueUpdatedAt: Date | null = null;
+    const rawIssues = [];
+    const rawComments = [];
+    const rawLabels = [];
+    const rawIssueToLabelRelations = [];
     for await (const response of iterator) {
       const { success, data, error } =
         loadIssuesWithCommentsQuerySchema.safeParse(response);
@@ -49,46 +56,57 @@ export namespace GitHubIssue {
         continue;
       }
       lastIssueUpdatedAt = new Date(issues[issues.length - 1]!.updatedAt);
-      const entitiesToInsert = issues.map((issue) =>
-        mapToCreateEntities(issue, repoId),
+      const issueLabelsToInsert = issues.map((issue) =>
+        mapIssuesLabels(issue, repoId),
       );
       const commentsToInsert = issues.flatMap((issue) =>
         issue.comments.nodes.map((comment) =>
-          mapToCreateComment(comment, issue.id),
+          mapCreateComment(comment, issue.id),
         ),
       );
-      // dedupe labels across all issues
-      const nodeIdToLabel = new Map<string, CreateLabel>();
-      entitiesToInsert.forEach((entity) => {
-        entity.labels.forEach((label) => {
-          nodeIdToLabel.set(label.nodeId, label);
-        });
-      });
-      const labelsToInsert = Array.from(nodeIdToLabel.values());
 
-      // dedupe issue to label relations across all issues
-      const uniqueIssueLabelPairs = new Set<string>();
-      entitiesToInsert
-        .flatMap((entity) => entity.issToLblRelationsNodeIds)
-        .forEach(({ issueNodeId, labelNodeIds }) => {
-          labelNodeIds.forEach((labelNodeId) => {
-            uniqueIssueLabelPairs.add(`${issueNodeId}:${labelNodeId}`);
-          });
-        });
-      const issueToLabelRelationsToInsertNodeIds = Array.from(
-        uniqueIssueLabelPairs,
-      ).map((issueLabelPair) => {
+      rawLabels.push(...issueLabelsToInsert.flatMap((entity) => entity.labels));
+      rawIssueToLabelRelations.push(
+        ...issueLabelsToInsert.flatMap(
+          (entity) => entity.issToLblRelationsNodeIds,
+        ),
+      );
+      rawIssues.push(...issueLabelsToInsert.map((entity) => entity.issue));
+      rawComments.push(...commentsToInsert);
+    }
+    // Dedupe labels across all issues
+    const nodeIdToLabelMap = new Map<string, CreateLabel>();
+    rawLabels.forEach((label) => {
+      nodeIdToLabelMap.set(label.nodeId, label);
+    });
+    const allLabels = Array.from(nodeIdToLabelMap.values());
+
+    // Dedupe issue to label relations across all issues
+    const uniqueIssueLabelPairs = new Set<string>();
+    rawIssueToLabelRelations.forEach(({ issueNodeId, labelNodeIds }) => {
+      labelNodeIds.forEach((labelNodeId) => {
+        uniqueIssueLabelPairs.add(`${issueNodeId}:${labelNodeId}`);
+      });
+    });
+    const allIssueToLabelRelations = Array.from(uniqueIssueLabelPairs).map(
+      (issueLabelPair) => {
         const [issueNodeId, labelNodeId] = issueLabelPair.split(":") as [
           string,
           string,
         ];
         return { issueNodeId, labelNodeId };
-      });
-      allIssues.push(...entitiesToInsert.map((entity) => entity.issue));
-      allComments.push(...commentsToInsert);
-      allLabels.push(...labelsToInsert);
-      allIssueToLabelRelations.push(...issueToLabelRelationsToInsertNodeIds);
-    }
+      },
+    );
+
+    const allIssues = [
+      ...new Map(rawIssues.map((issue) => [issue.nodeId, issue])).values(),
+    ];
+    const allComments = [
+      ...new Map(
+        rawComments.map((comment) => [comment.nodeId, comment]),
+      ).values(),
+    ];
+
     return {
       issuesToInsert: allIssues,
       commentsToInsert: allComments,
@@ -97,115 +115,12 @@ export namespace GitHubIssue {
       lastIssueUpdatedAt,
     };
   }
-  export async function upsertIssues({
-    issuesToInsert,
-    commentsToInsert,
-    labelsToInsert,
-    issueToLabelRelationsToInsertNodeIds,
-    lastIssueUpdatedAt,
-    repoId,
-  }: Awaited<ReturnType<typeof getIssuesWithMetadata>> & { repoId: string }) {
-    const { db } = getDb();
-    await db.transaction(async (tx) => {
-      await tx
-        .insert(issueTable)
-        .values(issuesToInsert)
-        .onConflictDoUpdate({
-          target: [issueTable.nodeId],
-          set: conflictUpdateAllExcept(issueTable, [
-            "nodeId",
-            "id",
-            "createdAt",
-          ]),
-        });
-      if (labelsToInsert.length > 0) {
-        console.log("inserting labels");
-        await tx
-          .insert(labelTable)
-          .values(labelsToInsert)
-          .onConflictDoUpdate({
-            target: [labelTable.nodeId],
-            set: conflictUpdateAllExcept(labelTable, [
-              "nodeId",
-              "id",
-              "createdAt",
-            ]),
-          });
-      }
-      const issueIds = tx.$with("issue_ids").as(
-        tx
-          .select({
-            id: issueTable.id,
-            nodeId: issueTable.nodeId,
-          })
-          .from(issueTable),
-      );
-      const commentsToInsertWithIssueId = commentsToInsert.map(
-        ({ issueNodeId, ...comment }) => ({
-          ...comment,
-          issueId: sql<string>`((SELECT id FROM issue_ids WHERE node_id = ${issueNodeId}))`,
-        }),
-      );
-      if (commentsToInsertWithIssueId.length > 0) {
-        console.log("inserting comments");
-        await tx
-          .with(issueIds)
-          .insert(comments)
-          .values(commentsToInsertWithIssueId)
-          .onConflictDoUpdate({
-            target: [comments.nodeId],
-            set: conflictUpdateAllExcept(comments, [
-              "nodeId",
-              "id",
-              "createdAt",
-            ]),
-          });
-      }
-      const labelIds = tx.$with("label_ids").as(
-        tx
-          .select({
-            id: labelTable.id,
-            nodeId: labelTable.nodeId,
-          })
-          .from(labelTable),
-      );
-      const issueToLabelRelationsToInsert =
-        issueToLabelRelationsToInsertNodeIds.map(
-          ({ issueNodeId, labelNodeId }) => ({
-            issueId: sql<string>`((SELECT id FROM issue_ids WHERE node_id = ${issueNodeId}))`,
-            labelId: sql<string>`((SELECT id FROM label_ids WHERE node_id = ${labelNodeId}))`,
-          }),
-        );
-      if (issueToLabelRelationsToInsert.length > 0) {
-        console.log("inserting issue to label relations");
-        await tx
-          .with(labelIds, issueIds)
-          .insert(issuesToLabels)
-          .values(issueToLabelRelationsToInsert)
-          .onConflictDoUpdate({
-            target: [issuesToLabels.issueId, issuesToLabels.labelId],
-            set: conflictUpdateAllExcept(issuesToLabels, [
-              "issueId",
-              "labelId",
-              "createdAt",
-            ]),
-          });
-      }
-      await tx
-        .update(repos)
-        .set({
-          // TODO: for INITIALIZATION, only update this when embeddings are synced. this prevents users from searching before embeddings are synced and getting no results
-          // for CRON JOBS, update this when issues are synced. embeddings createdAt are tracked within issues table
-          issuesLastUpdatedAt: lastIssueUpdatedAt,
-        })
-        .where(eq(repos.id, repoId));
-    });
-  }
+
   interface IssToLblRelationNodeIds {
     issueNodeId: string;
     labelNodeIds: string[];
   }
-  function mapToCreateEntities(
+  function mapIssuesLabels(
     issue: IssueGraphql,
     repoId: string,
   ): {
@@ -257,7 +172,7 @@ export namespace GitHubIssue {
     };
   }
 
-  function mapToCreateComment(
+  function mapCreateComment(
     comment: CommentGraphql,
     issueNodeId: string,
   ): Omit<CreateComment, "issueId"> & {
