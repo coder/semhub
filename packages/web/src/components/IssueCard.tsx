@@ -14,18 +14,20 @@ export function IssueCard({ issue }: { issue: Issue }) {
   return (
     <div className="p-4 hover:bg-muted/50">
       <div className="flex flex-col gap-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <IssueStateIndicator
-              state={issue.issueState}
-              reason={issue.issueStateReason}
-            />
-            <IssueTitleWithLabels issue={issue} />
+        <TooltipProvider>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <IssueStateIndicator
+                state={issue.issueState}
+                reason={issue.issueStateReason}
+              />
+              <IssueTitleWithLabels issue={issue} />
+            </div>
           </div>
-        </div>
-        <div className="ml-6 text-sm text-muted-foreground">
-          <RepoTag issue={issue} /> <IssueMetadata issue={issue} />
-        </div>
+          <div className="ml-6 text-sm text-muted-foreground">
+            <RepoTag issue={issue} /> <IssueMetadata issue={issue} />
+          </div>
+        </TooltipProvider>
       </div>
     </div>
   );
@@ -79,14 +81,9 @@ function IssueStateIndicator({
 }) {
   const { icon: StateIcon, color } = getIssueStateIcon(state, reason);
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger>
-          <StateIcon className={`size-4 ${color}`} />
-        </TooltipTrigger>
-        <TooltipContent>{toTitleCase(reason || state)}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <FastTooltip content={toTitleCase(reason || state)}>
+      <StateIcon className={`size-5 ${color}`} />
+    </FastTooltip>
   );
 }
 
@@ -105,14 +102,12 @@ function RepoTag({ issue }: { issue: Issue }) {
   if (!issue.repoLastUpdatedAt) return repoName;
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>{repoName}</TooltipTrigger>
-        <TooltipContent>
-          Last synced {getTimeAgo(new Date(issue.repoLastUpdatedAt))}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>{repoName}</TooltipTrigger>
+      <TooltipContent>
+        Last synced {getTimeAgo(new Date(issue.repoLastUpdatedAt))}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -174,15 +169,15 @@ function IssueMetadata({ issue }: { issue: Issue }) {
   );
 
   const stateTimestamp = (
-    <span
-      title={formatLocalDateTime(
+    <FastTooltip
+      content={formatLocalDateTime(
         new Date(
           issueState === "OPEN" ? issue.issueCreatedAt : issue.issueClosedAt!,
         ),
       )}
     >
       {issueState === "OPEN" ? `opened ${openedAt}` : `closed ${closedAt}`}
-    </span>
+    </FastTooltip>
   );
 
   const commentElement = (
@@ -195,21 +190,32 @@ function IssueMetadata({ issue }: { issue: Issue }) {
     (issueState === "OPEN" && updatedAt !== openedAt) ||
     (issueState === "CLOSED" && updatedAt !== closedAt);
 
-  const lastUpdatedElement = showLastUpdated && (
-    <>
-      {" | "}
-      <span title={formatLocalDateTime(new Date(issue.issueUpdatedAt))}>
-        updated {updatedAt}
-      </span>
-    </>
+  const lastUpdatedElement = (
+    <FastTooltip content={formatLocalDateTime(new Date(issue.issueUpdatedAt))}>
+      updated {updatedAt}
+    </FastTooltip>
   );
 
   return (
     <>
-      {issueNumber} by {authorElement} was {stateTimestamp}
-      {" | "}
-      {commentElement}
-      {lastUpdatedElement}
+      {issueNumber} by {authorElement} was {stateTimestamp} | {commentElement}
+      {showLastUpdated && " | "}
+      {showLastUpdated && lastUpdatedElement}
     </>
+  );
+}
+
+function FastTooltip({
+  children,
+  content,
+}: {
+  children: React.ReactNode;
+  content: React.ReactNode;
+}) {
+  return (
+    <Tooltip delayDuration={100}>
+      <TooltipTrigger className="cursor-default">{children}</TooltipTrigger>
+      <TooltipContent>{content}</TooltipContent>
+    </Tooltip>
   );
 }
