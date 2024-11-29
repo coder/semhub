@@ -1,4 +1,9 @@
-import { CircleCheckIcon, CircleDotIcon, CircleSlashIcon } from "lucide-react";
+import {
+  CircleCheckIcon,
+  CircleDotIcon,
+  CircleSlashIcon,
+  MessageSquareIcon,
+} from "lucide-react";
 
 import type { SearchIssuesResponse } from "@/lib/api";
 import { formatLocalDateTime, getTimeAgo } from "@/lib/time";
@@ -112,30 +117,50 @@ function RepoTag({ issue }: { issue: Issue }) {
 }
 
 function IssueTitleWithLabels({ issue }: { issue: Issue }) {
+  const renderLabel = (label: Issue["labels"][number]) => {
+    const badgeElement = (
+      <Badge
+        variant="secondary"
+        className="inline-flex rounded-full px-2 py-0.5"
+        style={{
+          backgroundColor: `#${label.color}`,
+          color: `${parseInt(label.color, 16) > 0x7fffff ? "#000" : "#fff"}`,
+        }}
+      >
+        {label.name}
+      </Badge>
+    );
+
+    // description can be null or empty string
+    if (!label.description || label.description.trim() === "")
+      return badgeElement;
+
+    return (
+      <FastTooltip content={label.description}>{badgeElement}</FastTooltip>
+    );
+  };
+
+  const processTitle = (title: string) => {
+    return title.replace(/`([^`]+)`/g, "<code>$1</code>");
+  };
+
   return (
     <div className="min-w-0 grow text-lg font-semibold">
       <a
         href={issue.issueUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-foreground hover:text-primary"
+        className="text-foreground hover:text-primary [&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5"
       >
-        <span className="[word-break:break-word]">{issue.title}</span>
+        <span
+          className="[word-break:break-word]"
+          dangerouslySetInnerHTML={{ __html: processTitle(issue.title) }}
+        />
       </a>
       {issue.labels && issue.labels.length > 0 && (
         <span className="ml-2 inline-flex gap-2">
           {issue.labels.map((label) => (
-            <Badge
-              key={label.name}
-              variant="secondary"
-              className="inline-flex rounded-full px-2 py-0.5"
-              style={{
-                backgroundColor: `#${label.color}`,
-                color: `${parseInt(label.color, 16) > 0x7fffff ? "#000" : "#fff"}`,
-              }}
-            >
-              {label.name}
-            </Badge>
+            <span key={label.name}>{renderLabel(label)}</span>
           ))}
         </span>
       )}
@@ -181,9 +206,17 @@ function IssueMetadata({ issue }: { issue: Issue }) {
   );
 
   const commentElement = (
-    <>
-      {issue.commentCount} {issue.commentCount === 1 ? "comment" : "comments"}
-    </>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 hover:bg-muted/80">
+          <MessageSquareIcon className="size-3.5" />
+          <span className="text-xs leading-none">{issue.commentCount}</span>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        {issue.commentCount} {issue.commentCount === 1 ? "comment" : "comments"}
+      </TooltipContent>
+    </Tooltip>
   );
 
   const showLastUpdated =
@@ -198,9 +231,9 @@ function IssueMetadata({ issue }: { issue: Issue }) {
 
   return (
     <>
-      {issueNumber} by {authorElement} was {stateTimestamp} | {commentElement}
+      {issueNumber} by {authorElement} was {stateTimestamp}
       {showLastUpdated && " | "}
-      {showLastUpdated && lastUpdatedElement}
+      {showLastUpdated && lastUpdatedElement} {commentElement}
     </>
   );
 }
