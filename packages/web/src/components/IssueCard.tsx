@@ -220,7 +220,9 @@ function IssueMetadata({ issue }: { issue: Issue }) {
         </span>
       </TooltipTrigger>
       <TooltipContent>
-        {issue.commentCount} {issue.commentCount === 1 ? "comment" : "comments"}
+        {/* we show 99+ because we only load the first 100 comments and 3-digit numbers may clutter */}
+        {issue.commentCount >= 100 ? "99+" : issue.commentCount}{" "}
+        {issue.commentCount === 1 ? "comment" : "comments"}
       </TooltipContent>
     </Tooltip>
   );
