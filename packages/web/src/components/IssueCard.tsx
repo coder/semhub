@@ -111,7 +111,7 @@ function RepoTag({ issue }: { issue: Issue }) {
     <Tooltip>
       <TooltipTrigger asChild>{repoName}</TooltipTrigger>
       <TooltipContent>
-        Last synced {getTimeAgo(new Date(issue.repoLastUpdatedAt))}
+        Last updated {getTimeAgo(new Date(issue.repoLastUpdatedAt))}
       </TooltipContent>
     </Tooltip>
   );
