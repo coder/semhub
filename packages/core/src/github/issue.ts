@@ -19,8 +19,6 @@ import {
 import { getGraphqlOctokit } from "./shared";
 
 export namespace GitHubIssue {
-  // TODO: add rate limiter for calling GitHub API?
-  // TODO: add embedding sync logic to this function to ensure eventual consistency
   export async function sync() {
     const octokit = getGraphqlOctokit();
     // general strategy: one repo at a time, ensure idempotency, interruptible, minimise redoing work, update if conflict
@@ -44,7 +42,7 @@ export namespace GitHubIssue {
           organization: "coder",
           repo: repoName,
           cursor: null,
-          since: issuesLastUpdatedAt ? issuesLastUpdatedAt.toISOString() : null,
+          since: issuesLastUpdatedAt?.toISOString() ?? null,
         },
       );
       for await (const response of iterator) {
@@ -186,6 +184,8 @@ export namespace GitHubIssue {
           await tx
             .update(repos)
             .set({
+              // TODO: for INITIALIZATION, only update this when embeddings are synced. this prevents users from searching before embeddings are synced and getting no results
+              // for CRON JOBS, update this when issues are synced. embeddings createdAt are tracked within issues table
               issuesLastUpdatedAt: lastIssueUpdatedAt,
             })
             .where(eq(repos.id, repoId));
