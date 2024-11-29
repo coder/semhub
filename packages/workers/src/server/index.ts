@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Env } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
+import { Resource } from "sst";
 
 import type RateLimiterWorker from "@/rate-limiter";
 
@@ -41,13 +42,11 @@ app.onError((err, c) => {
       err.status,
     );
   }
+  const isProd = Resource.App.stage === "prod";
   return c.json<ErrorResponse>(
     {
       success: false,
-      error:
-        process.env.NODE_ENV === "production"
-          ? "Internal Server Error"
-          : (err.stack ?? err.message),
+      error: isProd ? "Internal Server Error" : (err.stack ?? err.message),
     },
     500,
   );
