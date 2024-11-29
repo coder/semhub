@@ -1,4 +1,4 @@
-import { SearchIcon, X } from "lucide-react";
+import { SearchIcon, XIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import { useSearch } from "@/hooks/useSearch";
@@ -51,7 +51,7 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
               className="absolute right-8 top-1/2 -translate-y-1/2"
               onClick={handleClear}
             >
-              <X className="size-4 text-muted-foreground" />
+              <XIcon className="size-4 text-muted-foreground" />
             </Button>
           )}
 
@@ -147,7 +147,7 @@ export function HomepageSearchBar() {
             className="absolute right-2 top-1/2 -translate-y-1/2"
             onClick={handleClear}
           >
-            <X className="size-4 text-muted-foreground" />
+            <XIcon className="size-4 text-muted-foreground" />
           </Button>
         )}
       </form>
