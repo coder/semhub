@@ -1,4 +1,4 @@
-import { getDb, isNotNull } from "@/db";
+import { and, eq, getDb, isNotNull } from "@/db";
 
 import { repos } from "./db/schema/entities/repo.sql";
 import { conflictUpdateAllExcept } from "./db/utils/conflict";
@@ -16,11 +16,37 @@ export namespace Repo {
         issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
       })
       .from(repos)
-      .where(isNotNull(repos.issuesLastUpdatedAt));
+      // basically, get all repos that have been initialized
+      .where(
+        and(isNotNull(repos.issuesLastUpdatedAt), eq(repos.isSyncing, false)),
+      );
   }
-  export async function getGithubData(repoName: string, repoOwner: string) {
-    const octokit = getRestOctokit();
+  type SyncingArgs =
+    | {
+        repoId: string;
+        isSyncing: true;
+      }
+    | {
+        repoId: string;
+        isSyncing: false;
+        syncedAt: Date;
+      };
+  export async function updateRepoIssueSyncing(args: SyncingArgs) {
     const { db } = getDb();
+    if (args.isSyncing) {
+      await db
+        .update(repos)
+        .set({ isSyncing: true })
+        .where(eq(repos.id, args.repoId));
+    } else {
+      await db
+        .update(repos)
+        .set({ isSyncing: false, lastSyncedAt: args.syncedAt })
+        .where(eq(repos.id, args.repoId));
+    }
+  }
+  export async function getGithubRepoData(repoName: string, repoOwner: string) {
+    const octokit = getRestOctokit();
     const { data: repoData } = await octokit.rest.repos.get({
       owner: repoOwner,
       repo: repoName,
@@ -29,6 +55,12 @@ export namespace Repo {
     if (!success) {
       throw new Error("error parsing repo data from GitHub");
     }
+    return data;
+  }
+  export async function createRepo(
+    data: Awaited<ReturnType<typeof getGithubRepoData>>,
+  ) {
+    const { db } = getDb();
     const {
       owner: { login: owner },
       name,

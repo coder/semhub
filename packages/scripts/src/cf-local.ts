@@ -13,7 +13,7 @@ const rateLimiter = {
 };
 
 try {
-  await Embedding.syncIssues(rateLimiter);
+  await Embedding.sync(rateLimiter);
 } catch (error) {
   console.error("error:", error);
 } finally {
