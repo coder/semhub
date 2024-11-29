@@ -9,6 +9,7 @@ import type { CreateLabel } from "@/db/schema/entities/label.schema";
 import { labels as labelTable } from "@/db/schema/entities/label.sql";
 import { repos } from "@/db/schema/entities/repo.sql";
 import { conflictUpdateAllExcept } from "@/db/utils/conflict";
+import { Repo } from "@/repo";
 
 import { graphql } from "./graphql";
 import {
@@ -21,25 +22,19 @@ import { getGraphqlOctokit } from "./shared";
 export namespace GitHubIssue {
   export async function sync() {
     const octokit = getGraphqlOctokit();
+    const reposToSync = await Repo.getCronRepos();
     // general strategy: one repo at a time, ensure idempotency, interruptible, minimise redoing work, update if conflict
     const { db } = getDb();
-    const coderRepos = await db
-      .select({
-        repoId: repos.id,
-        repoName: repos.name,
-        issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
-      })
-      .from(repos)
-      .where(eq(repos.owner, "coder"));
     outerLoop: for (const {
       repoId,
       repoName,
+      repoOwner,
       issuesLastUpdatedAt,
-    } of coderRepos) {
+    } of reposToSync) {
       const iterator = octokit.graphql.paginate.iterator(
         getIssueUpsertQuery(),
         {
-          organization: "coder",
+          organization: repoOwner,
           repo: repoName,
           cursor: null,
           since: issuesLastUpdatedAt?.toISOString() ?? null,
@@ -277,6 +272,7 @@ export namespace GitHubIssue {
 
   export function getIssueUpsertQuery() {
     // use explorer to test GraphQL queries: https://docs.github.com/en/graphql/overview/explorer
+    // for extension: get Reactions to body as well as to comments, and aggregate them somehow hmm
     const query = graphql(`
       query paginate(
         $cursor: String
