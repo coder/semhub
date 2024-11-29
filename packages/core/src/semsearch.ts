@@ -8,10 +8,9 @@ import { repos } from "./db/schema/entities/repo.sql";
 import { count, lower } from "./db/utils/general";
 import { jsonAggBuildObjectFromJoin, jsonContains } from "./db/utils/json";
 import { Embedding } from "./embedding";
-import { parseSearchQuery } from "./search.util";
+import { parseSearchQuery } from "./semsearch.util";
 
-// const pgDialect = new PgDialect();
-export namespace Search {
+export namespace SemanticSearch {
   export async function getIssues({
     query,
     rateLimiter,

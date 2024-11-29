@@ -6,7 +6,7 @@ import { HTTPException } from "hono/http-exception";
 import type RateLimiterWorker from "@/rate-limiter";
 
 import type { ErrorResponse } from "./response";
-import { searchRouter } from "./router/search";
+import { searchRouter } from "./router/searchRouter";
 
 export interface Context extends Env {
   Bindings: {
