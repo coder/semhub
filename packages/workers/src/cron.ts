@@ -15,8 +15,6 @@ export default {
     _ctx: ExecutionContext,
   ) {
     try {
-      // Write code for updating your API
-      console.log("cron is:", controller.cron);
       switch (controller.cron) {
         // Every ten minutes
         case "*/10 * * * *":
