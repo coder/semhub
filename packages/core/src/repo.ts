@@ -71,14 +71,14 @@ export namespace Repo {
         issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
       });
   }
-  export async function upsertIssues({
+  export async function upsertIssuesCommentsLabels({
     issuesToInsert,
     commentsToInsert,
     labelsToInsert,
     issueToLabelRelationsToInsertNodeIds,
     lastIssueUpdatedAt,
     repoId,
-  }: Awaited<ReturnType<typeof Github.getIssuesWithMetadata>> & {
+  }: Awaited<ReturnType<typeof Github.getIssuesCommentsLabels>> & {
     repoId: string;
   }) {
     const { db } = getDb();
