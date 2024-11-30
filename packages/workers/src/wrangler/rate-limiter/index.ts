@@ -1,7 +1,6 @@
 import { DurableObject, WorkerEntrypoint } from "cloudflare:workers";
 
 import {
-  EMBEDDING_MODEL,
   getRateLimits,
   type RateLimiter as IRateLimiter,
   type RateLimiterName,
@@ -16,12 +15,10 @@ export default class RateLimiterWorker
   extends WorkerEntrypoint<Env>
   implements IRateLimiter
 {
-  // just for testing, not used in practice
-  async fetch(_request: Request) {
-    return new Response(
-      JSON.stringify({
-        value: await this.getDurationToNextRequest(EMBEDDING_MODEL),
-      }),
+  async fetch() {
+    return Response.json(
+      { error: "Rate limiter must be triggered via bindings" },
+      { status: 400 },
     );
   }
 

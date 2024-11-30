@@ -2,18 +2,17 @@ import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import { WorkflowEntrypoint } from "cloudflare:workers";
 
 type Env = {
-  // Add your bindings here, e.g. Workers KV, D1, Workers AI, etc.
   SYNC_WORKFLOW: Workflow;
 };
 
 // User-defined params passed to your workflow
-type Params = {
+export interface SyncWorkflowParams {
   email: string;
   metadata: Record<string, string>;
-};
+}
 
-export class SyncWorkflow extends WorkflowEntrypoint<Env, Params> {
-  async run(event: WorkflowEvent<Params>, step: WorkflowStep) {
+export class SyncWorkflow extends WorkflowEntrypoint<Env, SyncWorkflowParams> {
+  async run(event: WorkflowEvent<SyncWorkflowParams>, step: WorkflowStep) {
     // Can access bindings on `this.env`
     // Can access params on `event.payload`
     const files = await step.do("my first step", async () => {
@@ -43,27 +42,11 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, Params> {
 }
 
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
-    let url = new URL(req.url);
-
-    if (url.pathname.startsWith("/favicon")) {
-      return Response.json({}, { status: 404 });
-    }
-
-    // Get the status of an existing instance, if provided
-    let id = url.searchParams.get("instanceId");
-    if (id) {
-      let instance = await env.SYNC_WORKFLOW.get(id);
-      return Response.json({
-        status: await instance.status(),
-      });
-    }
-
-    // Spawn a new instance and return the ID and status
-    let instance = await env.SYNC_WORKFLOW.create();
-    return Response.json({
-      id: instance.id,
-      details: await instance.status(),
-    });
+  async fetch(): Promise<Response> {
+    // Return 400 for direct HTTP requests since workflows should be triggered via bindings
+    return Response.json(
+      { error: "Workflows must be triggered via bindings" },
+      { status: 400 },
+    );
   },
 };

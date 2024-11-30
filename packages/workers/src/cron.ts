@@ -6,9 +6,12 @@ import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 import type RateLimiterWorker from "@/wrangler/rate-limiter/index";
 
+import type { SyncWorkflowParams } from "./wrangler/workflow/sync";
+import type { TypedWorkflow } from "./wrangler/workflow/types";
+
 type Env = {
   RATE_LIMITER: Service<RateLimiterWorker>;
-  SYNC_WORKFLOW: Workflow;
+  SYNC_WORKFLOW: TypedWorkflow<SyncWorkflowParams>;
 };
 
 export default {
@@ -22,6 +25,10 @@ export default {
         case "*/1 * * * *": {
           const duration =
             await env.RATE_LIMITER.getDurationToNextRequest(EMBEDDING_MODEL);
+          // await env.SYNC_WORKFLOW.create({
+          //   id: `sync-${Date.now()}`,
+          //   params: {},
+          // });
           console.log(duration);
           console.log(typeof duration);
           console.log("test");
