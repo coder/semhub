@@ -25,7 +25,7 @@ export type SyncParams =
 
 export class SyncWorkflow extends WorkflowEntrypoint<Env, SyncParams> {
   async run(event: WorkflowEvent<SyncParams>, step: WorkflowStep) {
-    const processRepo = async (
+    const syncRepo = async (
       repo: Awaited<ReturnType<typeof Repo.getReposForCron>>[number],
     ) => {
       // use try catch so that in failure, we will mark repo as not syncing
@@ -70,12 +70,12 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, SyncParams> {
           // TODO: change to nonretryable error
           throw new Error("Repo has been initialized");
         }
-        await processRepo(res);
+        await syncRepo(res);
         return;
       }
       case "cron": {
         const { repos } = event.payload;
-        await pMap(repos, processRepo, { concurrency: 2 });
+        await pMap(repos, syncRepo, { concurrency: 2 });
         return;
       }
     }

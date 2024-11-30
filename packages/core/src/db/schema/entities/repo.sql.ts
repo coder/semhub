@@ -13,7 +13,7 @@ export const repos = pgTable(
     nodeId: text("node_id").notNull().unique(),
     htmlUrl: text("html_url").notNull(),
     isPrivate: boolean("is_private").notNull(),
-    // booleans to orchestrate workflows
+    // boolean to orchestrate workflows
     isSyncing: boolean("is_syncing").notNull().default(false),
     lastSyncedAt: timestamptz("last_synced_at"),
     issuesLastUpdatedAt: timestamptz("issues_last_updated_at"), // null at first, then updated with last synced issue's updatedAt

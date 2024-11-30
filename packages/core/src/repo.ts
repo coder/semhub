@@ -27,7 +27,13 @@ export namespace Repo {
   export async function updateSyncStatus(
     args:
       | { repoId: string; isSyncing: true }
-      | { repoId: string; isSyncing: false; syncedAt: Date },
+      | {
+          repoId: string;
+          isSyncing: false;
+          successfulSynced: true;
+          syncedAt: Date;
+        }
+      | { repoId: string; isSyncing: false; successfulSynced: false },
   ) {
     const { db } = getDb();
     if (args.isSyncing) {
@@ -38,7 +44,10 @@ export namespace Repo {
     } else {
       await db
         .update(repos)
-        .set({ isSyncing: false, lastSyncedAt: args.syncedAt })
+        .set({
+          isSyncing: false,
+          lastSyncedAt: args.successfulSynced ? args.syncedAt : undefined,
+        })
         .where(eq(repos.id, args.repoId));
     }
   }
