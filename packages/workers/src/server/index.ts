@@ -6,8 +6,8 @@ import { Resource } from "sst";
 
 import { EMBEDDING_MODEL } from "@/core/constants/rate-limit";
 import type RateLimiterWorker from "@/wrangler/rate-limiter/index";
-import type { SyncWorkflowParams } from "@/wrangler/workflow/sync";
-import type { TypedWorkflow } from "@/wrangler/workflow/types";
+import type { SyncParams } from "@/wrangler/workflow/sync";
+import type { WorkflowWithTypedParams } from "@/wrangler/workflow/utils";
 
 import type { ErrorResponse } from "./response";
 import { searchRouter } from "./router/searchRouter";
@@ -15,7 +15,7 @@ import { searchRouter } from "./router/searchRouter";
 export interface Context extends Env {
   Bindings: {
     RATE_LIMITER: Service<RateLimiterWorker>;
-    SYNC_WORKFLOW: TypedWorkflow<SyncWorkflowParams>;
+    SYNC_WORKFLOW: WorkflowWithTypedParams<SyncParams>;
   };
   Variables: {
     // user: User | null;

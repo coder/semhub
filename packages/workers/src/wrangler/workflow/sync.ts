@@ -1,43 +1,84 @@
 import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import { WorkflowEntrypoint } from "cloudflare:workers";
+import pMap from "p-map";
+
+import { Github } from "@/core/github";
+import { Repo } from "@/core/repo";
 
 type Env = {
   SYNC_WORKFLOW: Workflow;
 };
 
 // User-defined params passed to your workflow
-export interface SyncWorkflowParams {
-  email: string;
-  metadata: Record<string, string>;
-}
-
-export class SyncWorkflow extends WorkflowEntrypoint<Env, SyncWorkflowParams> {
-  async run(event: WorkflowEvent<SyncWorkflowParams>, step: WorkflowStep) {
-    // Can access bindings on `this.env`
-    // Can access params on `event.payload`
-    const files = await step.do("my first step", async () => {
-      // Fetch a list of files from $SOME_SERVICE
-      return {
-        inputParams: event,
-        files: [
-          "doc_7392_rev3.pdf",
-          "report_x29_final.pdf",
-          "memo_2024_05_12.pdf",
-          "file_089_update.pdf",
-          "proj_alpha_v2.pdf",
-          "data_analysis_q2.pdf",
-          "notes_meeting_52.pdf",
-          "summary_fy24_draft.pdf",
-        ],
+export type SyncParams =
+  | {
+      mode: "init";
+      repo: {
+        name: string;
+        owner: string;
       };
-    });
+    }
+  | {
+      mode: "cron";
+      repos: Awaited<ReturnType<typeof Repo.getReposForCron>>;
+    };
 
-    await step.sleep("wait on something", "1 minute");
-
-    await step.do("log", async () => {
-      console.log(files);
-      console.log("done");
-    });
+export class SyncWorkflow extends WorkflowEntrypoint<Env, SyncParams> {
+  async run(event: WorkflowEvent<SyncParams>, step: WorkflowStep) {
+    const processRepo = async (
+      repo: Awaited<ReturnType<typeof Repo.getReposForCron>>[number],
+    ) => {
+      // use try catch so that in failure, we will mark repo as not syncing
+      await step.do("mark repo as syncing", async () => {});
+      try {
+        await step.do(
+          "get issues and associated comments and labels",
+          async () => {},
+        );
+        await step.do("upsert issues, comments, and labels", async () => {});
+        const outdatedIssues = await step.do(
+          "get outdated issues",
+          async () => {
+            return [];
+          },
+        );
+        // use multiple workflows to update issue embeddings in batches
+        const batchProcessIssues = async (issues: typeof outdatedIssues) => {
+          const embeddings = await step.do("generate embeddings", async () => {
+            return [];
+          });
+          await step.do("upsert embeddings", async () => {});
+        };
+        await pMap(outdatedIssues, batchProcessIssues, { concurrency: 3 });
+        await step.do("mark repo as not syncing", async () => {});
+      } catch (e) {
+        await step.do("mark repo as not syncing", async () => {});
+        throw e;
+      }
+    };
+    const { mode } = event.payload;
+    switch (mode) {
+      case "init": {
+        const { repo } = event.payload;
+        const data = await Github.getRepo(repo.name, repo.owner);
+        const res = await Repo.createRepo(data);
+        if (!res) {
+          // TODO: change to nonretryable error
+          throw new Error("Failed to create repo");
+        }
+        if (!res.issuesLastUpdatedAt) {
+          // TODO: change to nonretryable error
+          throw new Error("Repo has been initialized");
+        }
+        await processRepo(res);
+        return;
+      }
+      case "cron": {
+        const { repos } = event.payload;
+        await pMap(repos, processRepo, { concurrency: 2 });
+        return;
+      }
+    }
   }
 }
 

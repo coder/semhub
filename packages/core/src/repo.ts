@@ -18,8 +18,9 @@ export namespace Repo {
         issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
       })
       .from(repos)
-      // basically, get all repos that have been initialized
       .where(
+        // basically, get all repos that have been initialized
+        // and repos that are not currently syncing
         and(isNotNull(repos.issuesLastUpdatedAt), eq(repos.isSyncing, false)),
       );
   }
@@ -53,7 +54,7 @@ export namespace Repo {
       html_url: htmlUrl,
       private: isPrivate,
     } = data;
-    return await db
+    const [result] = await db
       .insert(repos)
       .values({
         owner,
@@ -67,9 +68,12 @@ export namespace Repo {
         set: conflictUpdateAllExcept(repos, ["nodeId", "id", "createdAt"]),
       })
       .returning({
-        id: repos.id,
+        repoId: repos.id,
         issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
+        repoName: repos.name,
+        repoOwner: repos.owner,
       });
+    return result;
   }
   export async function upsertIssuesCommentsLabels({
     issuesToInsert,

@@ -8,6 +8,7 @@ import type { SelectIssueForEmbedding } from "./db/schema/entities/issue.schema"
 import { issues } from "./db/schema/entities/issue.sql";
 import type { SelectLabelForEmbedding } from "./db/schema/entities/label.schema";
 import { labels as labelTable } from "./db/schema/entities/label.sql";
+import { repos } from "./db/schema/entities/repo.sql";
 import { getOpenAIClient } from "./openai";
 import { isReducePromptError } from "./openai/errors";
 import { embeddingsCreateSchema } from "./openai/schema";
@@ -43,10 +44,15 @@ export namespace Embedding {
     return await db
       .select({ id: issues.id })
       .from(issues)
+      .innerJoin(repos, eq(issues.repoId, repos.id))
       .where(
-        or(
-          isNull(issues.embedding),
-          lt(issues.embeddingCreatedAt, issues.issueUpdatedAt),
+        and(
+          or(
+            isNull(issues.embedding),
+            lt(issues.embeddingCreatedAt, issues.issueUpdatedAt),
+          ),
+          // only get issues from repos that are currently syncing
+          eq(repos.isSyncing, true),
         ),
       );
   }
