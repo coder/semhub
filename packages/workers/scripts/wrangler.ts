@@ -1,4 +1,4 @@
-/// <reference types="node" />
+/// <reference types="bun-types" />
 // this is a script to deploy cloudflare resources
 // not meant to be referenced by other parts of the codebase
 import { execSync } from "child_process";
