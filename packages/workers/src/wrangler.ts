@@ -1,3 +1,6 @@
+/// <reference types="node" />
+// this is a script to deploy cloudflare resources
+// not meant to be referenced by other parts of the codebase
 import { execSync } from "child_process";
 
 async function deploy() {
@@ -7,7 +10,7 @@ async function deploy() {
 
   try {
     execSync(
-      `CF_ACCOUNT_ID=${process.env.CF_ACCOUNT_ID} CF_API_TOKEN=${process.env.CLOUDFLARE_API_TOKEN} wrangler ${wranglerArgs}`,
+      `CF_API_TOKEN=${process.env.CLOUDFLARE_API_TOKEN} wrangler ${wranglerArgs}`,
       { stdio: "inherit" },
     );
     console.log("Done!");
