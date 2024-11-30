@@ -3,7 +3,12 @@
   "version": "0.0.0",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc --build"
+    "build": "tsc --build",
+    "dev:rate-limiter": "sst shell -- bun src/wrangler.ts dev --config src/wrangler/rate-limiter/wrangler.toml",
+    "deploy:rate-limiter": "sst shell -- bun src/wrangler.ts deploy --config src/wrangler/rate-limiter/wrangler.toml",
+    "dev:workflow": "sst shell -- bun src/wrangler.ts dev --config src/wrangler/workflow/wrangler.toml",
+    "deploy:workflow": "sst shell -- bun src/wrangler.ts deploy --config src/wrangler/workflow/wrangler.toml",
+    "deploy:all": "bun run deploy:rate-limiter && bun run deploy:workflow"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.4.1",
@@ -13,6 +18,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241022.0"
+    "@cloudflare/workers-types": "^4.20241022.0",
+    "wrangler": "^3.84.1"
   }
 }
