@@ -1,11 +1,14 @@
+import pMap from "p-map";
+
+import { EMBEDDING_MODEL } from "@/core/constants/rate-limit";
 import { Embedding } from "@/core/embedding";
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
-
-import type RateLimiterWorker from "./rate-limiter";
+import type RateLimiterWorker from "@/wrangler/rate-limiter/index";
 
 type Env = {
   RATE_LIMITER: Service<RateLimiterWorker>;
+  SYNC_WORKFLOW: Workflow;
 };
 
 export default {
@@ -16,9 +19,18 @@ export default {
   ) {
     try {
       switch (controller.cron) {
+        case "*/1 * * * *": {
+          const duration =
+            await env.RATE_LIMITER.getDurationToNextRequest(EMBEDDING_MODEL);
+          console.log(duration);
+          console.log(typeof duration);
+          console.log("test");
+          break;
+        }
         // Every ten minutes
         case "*/10 * * * *":
           const repos = await Repo.getReposForCron();
+          // await pMap(repos);
           // for each repo, call and start a workflow
           for (const repo of repos) {
             await Repo.updateSyncStatus({

@@ -13,7 +13,7 @@ const rateLimiter = {
 };
 
 try {
-  await Embedding.sync(rateLimiter);
+  // TODO: write function to test
 } catch (error) {
   console.error("error:", error);
 } finally {
