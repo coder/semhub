@@ -48,6 +48,7 @@ export default {
           await Repo.updateSyncStatus({
             repoId: repo.repoId,
             isSyncing: false,
+            successfulSynced: true,
             syncedAt: new Date(),
           });
         }

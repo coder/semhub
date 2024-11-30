@@ -16,7 +16,7 @@
     "secret:load": "sst secret load .secrets",
     "secret:load:prod": "sst secret load .secrets --stage prod",
     "script": "cd packages/scripts && bun run shell",
-    "check:all": "concurrently -g --prefix \"[{name}]\" --prefix-colors \"blue.bold,green.bold,yellow.bold,magenta.bold,cyan.bold\" --names \"typecheck,test,test:types,lint,format\" \"bun typecheck\" \"bun --filter=@semhub/core test\" \"bun --filter=@semhub/core test:types\" \"bun lint\" \"bun format:check\""
+    "check:all": "concurrently -g --prefix \"[{name}]\" --prefix-colors \"blue.bold,green.bold,yellow.bold,magenta.bold\" --names \"typecheck,test,lint,format\" \"bun typecheck\" \"bun --filter=* test\" \"bun lint\" \"bun format:check\""
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.0",
