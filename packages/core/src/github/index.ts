@@ -27,7 +27,7 @@ export namespace Github {
     }
     return data;
   }
-  export async function getIssuesWithMetadata({
+  export async function getIssuesCommentsLabels({
     repoId,
     repoName,
     repoOwner,

@@ -38,12 +38,9 @@ export namespace Embedding {
     const result = embeddingsCreateSchema.parse(res);
     return result.data[0]!.embedding;
   }
-  export async function sync(rateLimiter?: RateLimiter) {
-    const TRUNCATION_MAX_ATTEMPTS = 8;
-    const BATCH_SIZE = 20;
+  export async function getOutdatedIssues() {
     const { db } = getDb();
-    // First, get all IDs that need processing (no lock needed)
-    const issueIds = await db
+    return await db
       .select({ id: issues.id })
       .from(issues)
       .where(
@@ -52,9 +49,20 @@ export namespace Embedding {
           lt(issues.embeddingCreatedAt, issues.issueUpdatedAt),
         ),
       );
+  }
+  export async function updateIssueEmbeddings({
+    issueIds,
+    rateLimiter,
+  }: {
+    issueIds: Awaited<ReturnType<typeof getOutdatedIssues>>;
+    rateLimiter?: RateLimiter;
+  }) {
+    const { db } = getDb();
+    const TRUNCATION_MAX_ATTEMPTS = 8;
+    const BATCH_SIZE = 20;
 
     console.log(`${issueIds.length} issues with missing/outdated embeddings`);
-    // Process issues in batches
+    // STEP: branch out into multiple workflows of smaller batches
     for (let i = 0; i < issueIds.length; i += BATCH_SIZE) {
       const batchIds = issueIds.slice(i, i + BATCH_SIZE);
       if (batchIds.length === 0) continue;

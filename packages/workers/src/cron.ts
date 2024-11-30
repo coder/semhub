@@ -25,9 +25,18 @@ export default {
               repoId: repo.repoId,
               isSyncing: true,
             });
-            const data = await Github.getIssuesWithMetadata(repo);
-            await Repo.upsertIssues({ ...data, repoId: repo.repoId });
-            await Embedding.sync(env.RATE_LIMITER);
+            // try catch: if error, we catch and set isSyncing to false
+            const data = await Github.getIssuesCommentsLabels(repo);
+            await Repo.upsertIssuesCommentsLabels({
+              ...data,
+              repoId: repo.repoId,
+            });
+            const issueIds = await Embedding.getOutdatedIssues();
+            // TODO: decompose this further
+            await Embedding.updateIssueEmbeddings({
+              issueIds,
+              rateLimiter: env.RATE_LIMITER,
+            });
             // probably should get syncedAt from Embedding.sync
             await Repo.updateSyncStatus({
               repoId: repo.repoId,
