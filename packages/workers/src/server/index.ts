@@ -4,7 +4,8 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { Resource } from "sst";
 
-import type RateLimiterWorker from "@/rate-limiter";
+import { EMBEDDING_MODEL } from "@/core/constants/rate-limit";
+import type RateLimiterWorker from "@/wrangler/rate-limiter/index";
 
 import type { ErrorResponse } from "./response";
 import { searchRouter } from "./router/searchRouter";
@@ -23,6 +24,14 @@ export const app = new Hono<Context>();
 
 // TODO: set up auth
 app.use("*", cors());
+
+app.get("/test", async (c) => {
+  const duration =
+    await c.env.RATE_LIMITER.getDurationToNextRequest(EMBEDDING_MODEL);
+  console.log(duration);
+  console.log(typeof duration);
+  return c.json({ duration });
+});
 
 const routes = app.basePath("/api").route("/search", searchRouter);
 
