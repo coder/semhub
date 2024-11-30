@@ -13,6 +13,7 @@ import { searchRouter } from "./router/searchRouter";
 export interface Context extends Env {
   Bindings: {
     RATE_LIMITER: Service<RateLimiterWorker>;
+    SYNC_WORKFLOW: Workflow;
   };
   Variables: {
     // user: User | null;

@@ -12,11 +12,15 @@ new sst.cloudflare.Cron("Sync", {
             name: "RATE_LIMITER",
             service: "rate-limiter",
           },
+          {
+            name: "SYNC_WORKFLOW",
+            service: "sync-workflow",
+          },
         ],
       },
     },
   },
-  schedules: ["*/10 * * * *"],
+  schedules: ["*/1 * * * *"],
 });
 
 // export const outputs = {

@@ -1,4 +1,3 @@
-// <docs-tag name="full-workflow-example">
 import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import { WorkflowEntrypoint } from "cloudflare:workers";
 
