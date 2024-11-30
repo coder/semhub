@@ -13,7 +13,6 @@ type Params = {
   metadata: Record<string, string>;
 };
 
-// <docs-tag name="workflow-entrypoint">
 export class SyncWorkflow extends WorkflowEntrypoint<Env, Params> {
   async run(event: WorkflowEvent<Params>, step: WorkflowStep) {
     // Can access bindings on `this.env`
