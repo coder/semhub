@@ -4,7 +4,7 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { Resource } from "sst";
 
-import { db, graphqlOctokit, openai, restOctokit } from "@/deps";
+import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter/index";
 import type { InitSyncParams } from "@/wrangler/workflows/sync-repo/init";
 import type { WorkflowWithTypedParams } from "@/wrangler/workflows/sync-repo/util";
@@ -29,6 +29,7 @@ export const app = new Hono<Context>();
 app.use("*", cors());
 
 app.get("/test", async (c) => {
+  const { db, graphqlOctokit, openai, restOctokit } = getDeps();
   const workflow = c.env.SYNC_REPO_INIT_WORKFLOW;
   await workflow.create({
     id: "",

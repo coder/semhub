@@ -35,13 +35,10 @@ class EmbeddingAwareLogger implements Logger {
   }
 }
 
-// Remove SST dependency and make it configurable
-export interface DbConfig {
+export function createDb(config: {
   connectionString: string;
   isProd: boolean;
-}
-
-export function createDb(config: DbConfig) {
+}) {
   const client = postgres(config.connectionString, { prepare: false });
   return {
     db: drizzle(client, {
