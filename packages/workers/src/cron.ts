@@ -1,5 +1,3 @@
-import { Resource } from "sst";
-
 import { Repo } from "@/core/repo";
 import { db, graphqlOctokit, openai } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter/index";
@@ -19,10 +17,6 @@ export default {
     switch (controller.cron) {
       // Every ten minutes
       case "*/10 * * * *":
-        const dbConfig = {
-          connectionString: Resource.Supabase.databaseUrl,
-          isProd: Resource.App.stage === "prod",
-        };
         const repos = await Repo.getReposForCron(db);
         await env.SYNC_REPO_CRON_WORKFLOW.create({
           id: generateCronSyncWorkflowId(),

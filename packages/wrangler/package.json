@@ -8,9 +8,9 @@
     "test": "vitest run",
     "test:watch": "vitest watch",
     "dev": "bun scripts/worker.ts dev",
-    "deploy:dev": "bun scripts/worker.ts deploy",
+    "deploy": "bun scripts/worker.ts deploy",
     "delete": "bun scripts/worker.ts delete",
-    "deploy:all": "bun run cf:deploy rate-limiter && bun run cf:deploy workflow"
+    "deploy:all": "bun run deploy rate-limiter && bun run deploy workflows/sync-repo/cron && bun run deploy workflows/sync-repo/init"
   },
   "dependencies": {
     "@semhub/core": "workspace:*",

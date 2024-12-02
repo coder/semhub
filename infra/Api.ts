@@ -15,8 +15,8 @@ const hono = new sst.cloudflare.Worker("Hono", {
           service: "rate-limiter",
         },
         // {
-        //   name: "SYNC_WORKFLOW",
-        //   service: "workflows",
+        //   name: "SYNC_REPO_INIT_WORKFLOW",
+        //   service: "sync-repo-init",
         // },
       ],
     },
