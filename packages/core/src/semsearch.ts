@@ -20,7 +20,7 @@ export namespace SemanticSearch {
       lucky = false,
     }: {
       query: string;
-      rateLimiter?: RateLimiter;
+      rateLimiter: RateLimiter;
       lucky?: boolean;
     },
     db: DbClient,
