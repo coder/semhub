@@ -5,7 +5,7 @@ import { HTTPException } from "hono/http-exception";
 import { Resource } from "sst";
 
 import { getDeps } from "@/deps";
-import type RateLimiterWorker from "@/wrangler/rate-limiter/index";
+import type RateLimiterWorker from "@/wrangler/rate-limiter";
 import type { InitSyncParams } from "@/wrangler/workflows/sync-repo/init";
 import type { WorkflowWithTypedParams } from "@/wrangler/workflows/sync-repo/util";
 
