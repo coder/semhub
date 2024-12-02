@@ -4,8 +4,10 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { Resource } from "sst";
 
-import { EMBEDDING_MODEL } from "@/core/constants/rate-limit";
+import { db, graphqlOctokit, openai, restOctokit } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter/index";
+import type { InitSyncParams } from "@/wrangler/workflows/sync-repo/init";
+import type { WorkflowWithTypedParams } from "@/wrangler/workflows/sync-repo/util";
 
 import type { ErrorResponse } from "./response";
 import { searchRouter } from "./router/searchRouter";
@@ -13,7 +15,7 @@ import { searchRouter } from "./router/searchRouter";
 export interface Context extends Env {
   Bindings: {
     RATE_LIMITER: Service<RateLimiterWorker>;
-    // SYNC_WORKFLOW: WorkflowWithTypedParams<SyncParams>;
+    SYNC_REPO_INIT_WORKFLOW: WorkflowWithTypedParams<InitSyncParams>;
   };
   Variables: {
     // user: User | null;
@@ -27,11 +29,20 @@ export const app = new Hono<Context>();
 app.use("*", cors());
 
 app.get("/test", async (c) => {
-  const duration =
-    await c.env.RATE_LIMITER.getDurationToNextRequest(EMBEDDING_MODEL);
-  console.log(duration);
-  console.log(typeof duration);
-  return c.json({ duration });
+  const workflow = c.env.SYNC_REPO_INIT_WORKFLOW;
+  await workflow.create({
+    id: "",
+    params: {
+      db,
+      repo: {
+        name: "semhub",
+        owner: "semhub-ai",
+      },
+      restOctokit,
+      graphqlOctokit,
+      openai,
+    },
+  });
 });
 
 const routes = app.basePath("/api").route("/search", searchRouter);

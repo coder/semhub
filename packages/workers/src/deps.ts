@@ -1,6 +1,7 @@
 import { Resource } from "sst";
 
 import { createDb } from "@/core/db";
+import { getGraphqlOctokit, getRestOctokit } from "@/core/github/shared";
 import { createOpenAIClient } from "@/core/openai";
 
 const dbConfig = {
@@ -11,4 +12,10 @@ const { db } = createDb(dbConfig);
 
 const openai = createOpenAIClient(Resource.OPENAI_API_KEY.value);
 
-export { db, openai };
+const graphqlOctokit = getGraphqlOctokit(
+  Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value,
+);
+
+const restOctokit = getRestOctokit(Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value);
+
+export { db, graphqlOctokit, openai, restOctokit };

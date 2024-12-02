@@ -5,24 +5,32 @@ import pMap from "p-map";
 import type { DbClient } from "@/core/db";
 import { Github } from "@/core/github";
 import type { GraphqlOctokit } from "@/core/github/shared";
+import type { OpenAIClient } from "@/core/openai";
 import type { Repo } from "@/core/repo";
 
-import { syncRepo } from "../shared";
+import { syncRepo } from "../sync";
 
 type Env = {
-  SYNC_WORKFLOW: Workflow;
+  SYNC_REPO_CRON_WORKFLOW: Workflow;
 };
 
 export interface CronSyncParams {
   db: DbClient;
   repos: Awaited<ReturnType<typeof Repo.getReposForCron>>;
   graphqlOctokit: GraphqlOctokit;
+  openai: OpenAIClient;
 }
 
 export class SyncWorkflow extends WorkflowEntrypoint<Env, CronSyncParams> {
   async run(event: WorkflowEvent<CronSyncParams>, step: WorkflowStep) {
-    const { db, repos } = event.payload;
-    await pMap(repos, (repo) => syncRepo(repo, step), { concurrency: 2 });
+    const { db, repos, graphqlOctokit, openai } = event.payload;
+    await pMap(
+      repos,
+      (repo) => syncRepo(repo, step, db, graphqlOctokit, openai),
+      {
+        concurrency: 2,
+      },
+    );
     return;
   }
 }

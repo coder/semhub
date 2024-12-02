@@ -22,7 +22,7 @@ export namespace Embedding {
       rateLimiter,
     }: {
       input: string;
-      rateLimiter?: RateLimiter;
+      rateLimiter: RateLimiter | null;
     },
     openAIClient: OpenAIClient,
   ) {
@@ -58,164 +58,149 @@ export namespace Embedding {
         ),
       );
   }
-  export async function updateIssueEmbeddings(
+  export async function createEmbeddingAndUpdateDb(
     {
       issueIds,
       rateLimiter,
     }: {
       issueIds: Awaited<ReturnType<typeof getOutdatedIssues>>;
-      rateLimiter?: RateLimiter;
+      rateLimiter: RateLimiter | null;
     },
     db: DbClient,
     openai: OpenAIClient,
   ) {
     const TRUNCATION_MAX_ATTEMPTS = 8;
-    const BATCH_SIZE = 20;
-
-    console.log(`${issueIds.length} issues with missing/outdated embeddings`);
-    // STEP: branch out into multiple workflows of smaller batches
-    for (let i = 0; i < issueIds.length; i += BATCH_SIZE) {
-      const batchIds = issueIds.slice(i, i + BATCH_SIZE);
-      if (batchIds.length === 0) continue;
-      // Now lock only the batch we're processing
-      await db.transaction(async (tx) => {
-        const batchedIssues = await tx
-          .select({
-            id: issues.id,
-            number: issues.number,
-            author: issues.author,
-            title: issues.title,
-            body: issues.body,
-            issueState: issues.issueState,
-            issueStateReason: issues.issueStateReason,
-            issueCreatedAt: issues.issueCreatedAt,
-            issueClosedAt: issues.issueClosedAt,
-          })
-          .from(issues)
-          .where(
-            and(
-              inArray(
-                issues.id,
-                batchIds.map((b) => b.id),
-              ),
-              // adding this in case there is race condition
-              // not strictly necessary
-              or(
-                isNull(issues.embedding),
-                lt(issues.embeddingCreatedAt, issues.issueUpdatedAt),
-              ),
+    // Now lock only the batch we're processing
+    await db.transaction(async (tx) => {
+      const batchedIssues = await tx
+        .select({
+          id: issues.id,
+          number: issues.number,
+          author: issues.author,
+          title: issues.title,
+          body: issues.body,
+          issueState: issues.issueState,
+          issueStateReason: issues.issueStateReason,
+          issueCreatedAt: issues.issueCreatedAt,
+          issueClosedAt: issues.issueClosedAt,
+        })
+        .from(issues)
+        .where(
+          and(
+            inArray(
+              issues.id,
+              issueIds.map((b) => b.id),
             ),
-          )
-          .for("update");
+            // adding this in case there is race condition
+            // not strictly necessary
+            or(
+              isNull(issues.embedding),
+              lt(issues.embeddingCreatedAt, issues.issueUpdatedAt),
+            ),
+          ),
+        )
+        .for("update");
 
-        if (batchedIssues.length === 0) {
-          console.log(
-            "No issues to process in this batch, likely race condition, skipping processing",
-          );
-          return;
-        }
-        const embeddings = await Promise.all(
-          batchedIssues.map(async (issue) => {
-            try {
-              const embedding = await (async () => {
-                let attempt = 1;
-                const labels = await tx
-                  .select({
-                    name: labelTable.name,
-                    description: labelTable.description,
-                  })
-                  .from(labelTable)
-                  .innerJoin(
-                    issuesToLabels,
-                    eq(labelTable.id, issuesToLabels.labelId),
-                  )
-                  .where(eq(issuesToLabels.issueId, issue.id));
-                while (attempt <= TRUNCATION_MAX_ATTEMPTS) {
-                  try {
-                    return await createEmbedding(
-                      {
-                        input: formatIssueForEmbedding({
-                          issue,
-                          labels,
-                          attempt,
-                        }),
-                        rateLimiter,
-                      },
-                      openai,
+      if (batchedIssues.length === 0) {
+        console.log(
+          "No issues to process in this batch, likely race condition, skipping processing",
+        );
+        return;
+      }
+      const embeddings = await Promise.all(
+        batchedIssues.map(async (issue) => {
+          try {
+            const embedding = await (async () => {
+              let attempt = 1;
+              const labels = await tx
+                .select({
+                  name: labelTable.name,
+                  description: labelTable.description,
+                })
+                .from(labelTable)
+                .innerJoin(
+                  issuesToLabels,
+                  eq(labelTable.id, issuesToLabels.labelId),
+                )
+                .where(eq(issuesToLabels.issueId, issue.id));
+              while (attempt <= TRUNCATION_MAX_ATTEMPTS) {
+                try {
+                  return await createEmbedding(
+                    {
+                      input: formatIssueForEmbedding({
+                        issue,
+                        labels,
+                        attempt,
+                      }),
+                      rateLimiter,
+                    },
+                    openai,
+                  );
+                } catch (error) {
+                  if (
+                    isReducePromptError(error) &&
+                    attempt < TRUNCATION_MAX_ATTEMPTS
+                  ) {
+                    console.log(
+                      `Retrying issue #${issue.number} with truncation attempt ${attempt + 1}`,
                     );
-                  } catch (error) {
-                    if (
-                      isReducePromptError(error) &&
-                      attempt < TRUNCATION_MAX_ATTEMPTS
-                    ) {
-                      console.log(
-                        `Retrying issue #${issue.number} with truncation attempt ${attempt + 1}`,
-                      );
-                      attempt++;
-                      continue;
-                    }
-                    throw error;
+                    attempt++;
+                    continue;
                   }
+                  throw error;
                 }
-                throw new Error(
-                  `Failed to create embedding after ${TRUNCATION_MAX_ATTEMPTS} attempts`,
-                );
-              })();
-              console.log(`created embedding for issue #${issue.number}`);
-              return {
-                issueId: issue.id,
-                embedding,
-              };
-            } catch (error) {
-              console.error(`Failed to process issue #${issue.number}:`, error);
-              return null;
-            }
-          }),
-        );
+              }
+              throw new Error(
+                `Failed to create embedding after ${TRUNCATION_MAX_ATTEMPTS} attempts`,
+              );
+            })();
+            console.log(`created embedding for issue #${issue.number}`);
+            return {
+              issueId: issue.id,
+              embedding,
+            };
+          } catch (error) {
+            console.error(`Failed to process issue #${issue.number}:`, error);
+            return null;
+          }
+        }),
+      );
 
-        // Bulk update the database with valid embeddings
-        const validEmbeddings = embeddings.filter(
-          (e): e is NonNullable<typeof e> => e !== null,
-        );
-        if (validEmbeddings.length === 0) {
-          console.log(
-            "No valid embeddings to process in this batch, skipping update",
-          );
-          return;
-        }
-        const sqlChunks: SQL[] = [];
-        const issueIdArray: string[] = [];
-
-        sqlChunks.push(sql`(case`);
-
-        for (const e of validEmbeddings) {
-          sqlChunks.push(
-            sql`when ${issues.id} = ${e.issueId} then '[${sql.raw(e.embedding.join(","))}]'::vector`,
-          );
-          issueIdArray.push(e.issueId);
-        }
-
-        sqlChunks.push(sql`end)`);
-
-        const embeddingSql = sql.join(sqlChunks, sql.raw(" "));
-
-        await tx
-          .update(issues)
-          .set({
-            embedding: embeddingSql,
-            embeddingModel: EMBEDDING_MODEL,
-            embeddingCreatedAt: new Date(),
-          })
-          .where(inArray(issues.id, issueIdArray));
+      // Bulk update the database with valid embeddings
+      const validEmbeddings = embeddings.filter(
+        (e): e is NonNullable<typeof e> => e !== null,
+      );
+      if (validEmbeddings.length === 0) {
         console.log(
-          `Processed batch ${Math.ceil(i / BATCH_SIZE + 1)} of ${Math.ceil(issueIds.length / BATCH_SIZE)}`,
+          "No valid embeddings to process in this batch, skipping update",
         );
-        console.log(`${validEmbeddings.length} embeddings created`);
-        console.log(
-          `Invalid count: ${embeddings.length - validEmbeddings.length}`,
+        return;
+      }
+      const sqlChunks: SQL[] = [];
+      const issueIdArray: string[] = [];
+
+      sqlChunks.push(sql`(case`);
+
+      for (const e of validEmbeddings) {
+        sqlChunks.push(
+          sql`when ${issues.id} = ${e.issueId} then '[${sql.raw(e.embedding.join(","))}]'::vector`,
         );
-      });
-    }
+        issueIdArray.push(e.issueId);
+      }
+
+      sqlChunks.push(sql`end)`);
+
+      const embeddingSql = sql.join(sqlChunks, sql.raw(" "));
+
+      await tx
+        .update(issues)
+        .set({
+          embedding: embeddingSql,
+          embeddingModel: EMBEDDING_MODEL,
+          embeddingCreatedAt: new Date(),
+        })
+        .where(inArray(issues.id, issueIdArray));
+    });
   }
   interface FormatIssueParams {
     attempt: number;
