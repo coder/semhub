@@ -1,5 +1,6 @@
 import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import { WorkflowEntrypoint } from "cloudflare:workers";
+import { NonRetryableError } from "cloudflare:workflows";
 import pMap from "p-map";
 
 import type { DbClient } from "@/core/db";
@@ -30,12 +31,11 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, InitSyncParams> {
     const data = await Github.getRepo(repo.name, repo.owner, restOctokit);
     const res = await Repo.createRepo(data, db);
     if (!res) {
-      // TODO: change to nonretryable error
-      throw new Error("Failed to create repo");
+      throw new NonRetryableError("Failed to create repo");
     }
     if (!res.issuesLastUpdatedAt) {
-      // TODO: change to nonretryable error
-      throw new Error("Repo has been initialized");
+      // should not initialize repo that has already been initialized
+      throw new NonRetryableError("Repo has been initialized");
     }
     await syncRepo(res, step);
     return;

@@ -7,8 +7,10 @@ import { getGraphqlOctokit } from "@/core/github/shared";
 import { Repo } from "@/core/repo";
 import type RateLimiterWorker from "@/wrangler/rate-limiter/index";
 import type { CronSyncParams } from "@/wrangler/workflows/sync-repo/cron";
-import type { WorkflowWithTypedParams } from "@/wrangler/workflows/sync-repo/utils";
-import { generateSyncWorkflowId } from "@/wrangler/workflows/sync-repo/utils";
+import {
+  generateCronSyncWorkflowId,
+  type WorkflowWithTypedParams,
+} from "@/wrangler/workflows/sync-repo/util";
 
 type Env = {
   RATE_LIMITER: Service<RateLimiterWorker>;
@@ -30,7 +32,7 @@ export default {
         );
         const repos = await Repo.getReposForCron(db);
         await env.SYNC_REPO_CRON_WORKFLOW.create({
-          id: generateSyncWorkflowId(),
+          id: generateCronSyncWorkflowId(),
           params: {
             db,
             repos,
