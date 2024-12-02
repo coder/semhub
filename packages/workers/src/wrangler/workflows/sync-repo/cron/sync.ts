@@ -5,6 +5,8 @@ import pMap from "p-map";
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 
+import { syncRepo } from "../shared";
+
 type Env = {
   SYNC_WORKFLOW: Workflow;
 };
@@ -25,37 +27,6 @@ export type SyncParams =
 
 export class SyncWorkflow extends WorkflowEntrypoint<Env, SyncParams> {
   async run(event: WorkflowEvent<SyncParams>, step: WorkflowStep) {
-    const syncRepo = async (
-      repo: Awaited<ReturnType<typeof Repo.getReposForCron>>[number],
-    ) => {
-      await step.do("mark repo as syncing", async () => {});
-      // use try catch so that in failure, we will mark repo as not syncing
-      try {
-        await step.do(
-          "get issues and associated comments and labels",
-          async () => {},
-        );
-        await step.do("upsert issues, comments, and labels", async () => {});
-        const outdatedIssues = await step.do(
-          "get outdated issues",
-          async () => {
-            return [];
-          },
-        );
-        // use multiple workflows to update issue embeddings in batches
-        const batchProcessIssues = async (issues: typeof outdatedIssues) => {
-          const embeddings = await step.do("generate embeddings", async () => {
-            return [];
-          });
-          await step.do("upsert embeddings", async () => {});
-        };
-        await pMap(outdatedIssues, batchProcessIssues, { concurrency: 3 });
-        await step.do("mark repo as not syncing", async () => {});
-      } catch (e) {
-        await step.do("mark repo as not syncing", async () => {});
-        throw e;
-      }
-    };
     const { mode } = event.payload;
     switch (mode) {
       case "init": {
@@ -70,15 +41,24 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, SyncParams> {
           // TODO: change to nonretryable error
           throw new Error("Repo has been initialized");
         }
-        await syncRepo(res);
+        await syncRepo(res, step);
         return;
       }
       case "cron": {
         const { repos } = event.payload;
-        await pMap(repos, syncRepo, { concurrency: 2 });
+        await pMap(repos, (repo) => syncRepo(repo, step), { concurrency: 2 });
         return;
       }
     }
   }
 }
 
+export default {
+  async fetch(): Promise<Response> {
+    // Return 400 for direct HTTP requests since workflows should be triggered via bindings
+    return Response.json(
+      { error: "Workflows must be triggered via bindings" },
+      { status: 400 },
+    );
+  },
+};
