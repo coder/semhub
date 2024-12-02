@@ -113,10 +113,12 @@ export namespace Github {
     ];
 
     return {
-      issuesToInsert: allIssues,
-      commentsToInsert: allComments,
-      labelsToInsert: allLabels,
-      issueToLabelRelationsToInsertNodeIds: allIssueToLabelRelations,
+      issuesAndCommentsLabels: {
+        issuesToInsert: allIssues,
+        commentsToInsert: allComments,
+        labelsToInsert: allLabels,
+        issueToLabelRelationsToInsertNodeIds: allIssueToLabelRelations,
+      },
       lastIssueUpdatedAt,
     };
   }

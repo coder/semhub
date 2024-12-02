@@ -90,11 +90,9 @@ export namespace Repo {
       commentsToInsert,
       labelsToInsert,
       issueToLabelRelationsToInsertNodeIds,
-      lastIssueUpdatedAt,
-      repoId,
-    }: Awaited<ReturnType<typeof Github.getIssuesCommentsLabels>> & {
-      repoId: string;
-    },
+    }: Awaited<
+      ReturnType<typeof Github.getIssuesCommentsLabels>
+    >["issuesAndCommentsLabels"],
     db: DbClient,
   ) {
     await db.transaction(async (tx) => {
@@ -182,14 +180,6 @@ export namespace Repo {
             ]),
           });
       }
-      await tx
-        .update(repos)
-        .set({
-          // TODO: for INITIALIZATION, only update this when embeddings are synced. this prevents users from searching before embeddings are synced and getting no results
-          // for CRON JOBS, update this when issues are synced. embeddings createdAt are tracked within issues table
-          issuesLastUpdatedAt: lastIssueUpdatedAt,
-        })
-        .where(eq(repos.id, repoId));
     });
   }
 }

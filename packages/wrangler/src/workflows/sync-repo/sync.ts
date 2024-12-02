@@ -1,7 +1,8 @@
 import type { WorkflowStep } from "cloudflare:workers";
 import pMap from "p-map";
 
-import type { DbClient } from "@/core/db";
+import { eq, type DbClient } from "@/core/db";
+import { repos } from "@/core/db/schema/entities/repo.sql";
 import { Embedding } from "@/core/embedding";
 import { Github } from "@/core/github";
 import type { GraphqlOctokit } from "@/core/github/shared";
@@ -14,9 +15,11 @@ export const syncRepo = async (
   db: DbClient,
   graphqlOctokit: GraphqlOctokit,
   openai: OpenAIClient,
+  mode: "cron" | "init",
 ) => {
-  const { repoId } = repo;
-  await step.do("mark repo as syncing", async () => {
+  const { repoId, repoOwner, repoName } = repo;
+  const name = `${repoOwner}/${repoName}`;
+  await step.do("sync started, mark repo as syncing", async () => {
     await Repo.updateSyncStatus(
       {
         repoId,
@@ -27,40 +30,52 @@ export const syncRepo = async (
   });
   // use try catch so that in failure, we will mark repo as not syncing
   try {
-    const issuesAndCommentsLabels = await step.do(
-      "get issues and associated comments and labels",
+    // TODO: batch this? try inserting in chunks of 100? 1000?
+    // same logic for doing embedding + upserts separately below should apply here?
+    const { issuesAndCommentsLabels, lastIssueUpdatedAt } = await step.do(
+      `get issues and associated comments and labels for ${name}`,
       async () => {
-        const data = await Github.getIssuesCommentsLabels(repo, graphqlOctokit);
-        return data;
+        return await Github.getIssuesCommentsLabels(repo, graphqlOctokit);
       },
     );
     await step.do("upsert issues, comments, and labels", async () => {
-      return await Repo.upsertIssuesCommentsLabels(
-        { ...issuesAndCommentsLabels, repoId },
-        db,
-      );
+      return await Repo.upsertIssuesCommentsLabels(issuesAndCommentsLabels, db);
     });
-    const issueIds = await step.do(
-      "get issues with outdated embeddings",
+    if (mode === "cron") {
+      // can set this once issues have been inserted; no need to wait for embeddings
+      // search may be slightly outdated, but it's fine + it's tracked in issues table
+      await step.do(
+        `update repo.issuesLastUpdatedAt for cron repo ${name}`,
+        async () => {
+          await db
+            .update(repos)
+            .set({
+              issuesLastUpdatedAt: lastIssueUpdatedAt,
+            })
+            .where(eq(repos.id, repoId));
+        },
+      );
+    }
+    const outdatedIssueIds = await step.do(
+      "get issues with outdated embeddings from syncing repo",
       async () => {
-        return await Embedding.getOutdatedIssues(db);
+        return await Embedding.getOutdatedIssues(db, repoId);
       },
     );
     // we choose to batch embedding generation and upserting in the same step
     // because if there is intermittent failure, there will still be incremental progress
     // (as opposed to fetching all embeddings in one go and then doing upsert)
-    const batchProcessIssues = async (issueId: typeof issueIds) => {
+    const batchProcessIssues = async (issueIds: typeof outdatedIssueIds) => {
       // Split issueIds into chunks of 10
       const chunks = [];
-      for (let i = 0; i < issueId.length; i += 10) {
-        chunks.push(issueId.slice(i, i + 10));
+      for (let i = 0; i < issueIds.length; i += 10) {
+        chunks.push(issueIds.slice(i, i + 10));
       }
-
       // Process chunks with concurrency of 2
       await pMap(
         chunks,
         async (batch) => {
-          await Embedding.createEmbeddingAndUpdateDb(
+          await Embedding.txGetEmbAndUpdateDb(
             {
               issueIds: batch,
               rateLimiter: null, // Adjust if you have a rate limiter
@@ -71,12 +86,37 @@ export const syncRepo = async (
         },
         { concurrency: 2 },
       );
+      const completedAt = new Date();
+      return completedAt;
     };
-    await batchProcessIssues(issueIds);
+    const completedAt = await batchProcessIssues(outdatedIssueIds);
+    if (mode === "init") {
+      // for init, only update this when embeddings are synced. this prevents users from searching before embeddings are synced and getting no results
+      await step.do(
+        "update repo.issuesLastUpdatedAt for initialized repo",
+        async () => {
+          await db
+            .update(repos)
+            .set({
+              issuesLastUpdatedAt: lastIssueUpdatedAt,
+            })
+            .where(eq(repos.id, repoId));
+        },
+      );
+    }
+    await step.do("sync successful, mark repo as not syncing", async () => {
+      await Repo.updateSyncStatus(
+        {
+          repoId,
+          isSyncing: false,
+          successfulSynced: true,
+          syncedAt: completedAt,
+        },
+        db,
+      );
+    });
   } catch (e) {
-    throw e;
-  } finally {
-    await step.do("mark repo as not syncing", async () => {
+    await step.do("sync failed, mark repo as not syncing", async () => {
       await Repo.updateSyncStatus(
         {
           repoId,
@@ -86,5 +126,6 @@ export const syncRepo = async (
         db,
       );
     });
+    throw e;
   }
 };

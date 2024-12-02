@@ -26,8 +26,9 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, CronSyncParams> {
     const { db, repos, graphqlOctokit, openai } = event.payload;
     await pMap(
       repos,
-      (repo) => syncRepo(repo, step, db, graphqlOctokit, openai),
+      (repo) => syncRepo(repo, step, db, graphqlOctokit, openai, "cron"),
       {
+        // syncing two repos at a time
         concurrency: 2,
       },
     );
