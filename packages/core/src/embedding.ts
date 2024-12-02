@@ -42,7 +42,7 @@ export namespace Embedding {
     const result = embeddingsCreateSchema.parse(res);
     return result.data[0]!.embedding;
   }
-  export async function getOutdatedIssues(db: DbClient) {
+  export async function getOutdatedIssues(db: DbClient, repoId: string) {
     return await db
       .select({ id: issues.id })
       .from(issues)
@@ -53,12 +53,12 @@ export namespace Embedding {
             isNull(issues.embedding),
             lt(issues.embeddingCreatedAt, issues.issueUpdatedAt),
           ),
-          // only get issues from repos that are currently syncing
-          eq(repos.isSyncing, true),
+          eq(repos.isSyncing, true), // not really necessary, but just to be extra safe
+          eq(repos.id, repoId),
         ),
       );
   }
-  export async function createEmbeddingAndUpdateDb(
+  export async function txGetEmbAndUpdateDb(
     {
       issueIds,
       rateLimiter,

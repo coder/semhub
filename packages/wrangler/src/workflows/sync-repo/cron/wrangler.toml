@@ -11,3 +11,5 @@ head_sampling_rate = 1
 name = "sync-repo-cron-workflow"
 binding = "SYNC_REPO_CRON_WORKFLOW"
 class_name = "SyncWorkflow"
+
+# TODO: modify to have separate workflows for prod vs dev

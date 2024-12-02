@@ -38,7 +38,18 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, InitSyncParams> {
       // should not initialize repo that has already been initialized
       throw new NonRetryableError("Repo has been initialized");
     }
-    await syncRepo(createdRepo, step, db, graphqlOctokit, openai);
+    await syncRepo(createdRepo, step, db, graphqlOctokit, openai, "init");
+    await step.do("update repo.issuesLastUpdatedAt", async () => {
+      await Repo.updateSyncStatus(
+        {
+          repoId: createdRepo.repoId,
+          isSyncing: false,
+          successfulSynced: true,
+          syncedAt: new Date(),
+        },
+        db,
+      );
+    });
     return;
   }
 }
