@@ -14,7 +14,7 @@ new sst.cloudflare.Cron("Sync", {
           },
           {
             name: "SYNC_WORKFLOW",
-            service: "sync-workflow",
+            service: "workflows",
           },
         ],
       },

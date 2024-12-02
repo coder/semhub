@@ -2,10 +2,9 @@ import { Embedding } from "@/core/embedding";
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 import type RateLimiterWorker from "@/wrangler/rate-limiter/index";
-
-import type { SyncParams } from "./wrangler/workflow/sync";
-import type { WorkflowWithTypedParams } from "./wrangler/workflow/utils";
-import { generateSyncWorkflowId } from "./wrangler/workflow/utils";
+import type { SyncParams } from "@/wrangler/workflows/sync";
+import type { WorkflowWithTypedParams } from "@/wrangler/workflows/utils";
+import { generateSyncWorkflowId } from "@/wrangler/workflows/utils";
 
 type Env = {
   RATE_LIMITER: Service<RateLimiterWorker>;

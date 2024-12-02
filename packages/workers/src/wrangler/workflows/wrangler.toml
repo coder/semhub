@@ -1,6 +1,8 @@
-name = "sync-workflow"
-main = "./sync.ts"
-compatibility_date = "2024-10-22"
+name = "workflows"
+main = "./index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
 
 [observability]
 enabled = true
