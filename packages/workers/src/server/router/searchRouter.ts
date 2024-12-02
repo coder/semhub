@@ -2,7 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 
 import { SemanticSearch } from "@/core/semsearch";
-import { db, openai } from "@/deps";
+import { getDeps } from "@/deps";
 
 import type { Context } from "..";
 import type { PaginatedResponse } from "../response";
@@ -15,6 +15,8 @@ export const searchRouter = new Hono<Context>().get(
     const { q: query, page, lucky } = c.req.valid("query");
     const pageNumber = page ?? 1;
     const pageSize = 30;
+
+    const { db, openai } = getDeps();
 
     const issues = await SemanticSearch.getIssues(
       {
