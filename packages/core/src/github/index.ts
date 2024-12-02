@@ -12,11 +12,14 @@ import {
   type CommentGraphql,
   type IssueGraphql,
 } from "./schema";
-import { getGraphqlOctokit, getRestOctokit } from "./shared";
+import type { GraphqlOctokit, RestOctokit } from "./shared";
 
 export namespace Github {
-  export async function getRepo(repoName: string, repoOwner: string) {
-    const octokit = getRestOctokit();
+  export async function getRepo(
+    repoName: string,
+    repoOwner: string,
+    octokit: RestOctokit,
+  ) {
     const { data: repoData } = await octokit.rest.repos.get({
       owner: repoOwner,
       repo: repoName,
@@ -27,13 +30,15 @@ export namespace Github {
     }
     return data;
   }
-  export async function getIssuesCommentsLabels({
-    repoId,
-    repoName,
-    repoOwner,
-    issuesLastUpdatedAt,
-  }: Awaited<ReturnType<typeof Repo.getReposForCron>>[number]) {
-    const octokit = getGraphqlOctokit();
+  export async function getIssuesCommentsLabels(
+    {
+      repoId,
+      repoName,
+      repoOwner,
+      issuesLastUpdatedAt,
+    }: Awaited<ReturnType<typeof Repo.getReposForCron>>[number],
+    octokit: GraphqlOctokit,
+  ) {
     const iterator = octokit.graphql.paginate.iterator(getIssueUpsertQuery(), {
       organization: repoOwner,
       repo: repoName,

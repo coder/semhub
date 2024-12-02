@@ -1,7 +1,6 @@
 import type { Logger } from "drizzle-orm/logger";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { Resource } from "sst";
 
 export * from "drizzle-orm";
 
@@ -36,15 +35,21 @@ class EmbeddingAwareLogger implements Logger {
   }
 }
 
-// Initialize db lazily
-export function getDb() {
-  const connectionString = Resource.Supabase.databaseUrl;
-  const isProd = Resource.App.stage === "prod";
-  const client = postgres(connectionString, { prepare: false });
+// Remove SST dependency and make it configurable
+export interface DbConfig {
+  connectionString: string;
+  isProd: boolean;
+}
+
+export function createDb(config: DbConfig) {
+  const client = postgres(config.connectionString, { prepare: false });
   return {
     db: drizzle(client, {
-      logger: !isProd && new EmbeddingAwareLogger(),
+      logger: !config.isProd && new EmbeddingAwareLogger(),
     }),
+    // used to close connection when running scripts
     closeConnection: async () => await client.end(),
   };
 }
+
+export type DbClient = ReturnType<typeof createDb>["db"];
