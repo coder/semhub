@@ -16,7 +16,7 @@ const hono = new sst.cloudflare.Worker("Hono", {
         },
         {
           name: "SYNC_WORKFLOW",
-          service: "sync-workflow",
+          service: "workflows",
         },
       ],
     },

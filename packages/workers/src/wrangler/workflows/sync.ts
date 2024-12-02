@@ -28,8 +28,8 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, SyncParams> {
     const syncRepo = async (
       repo: Awaited<ReturnType<typeof Repo.getReposForCron>>[number],
     ) => {
-      // use try catch so that in failure, we will mark repo as not syncing
       await step.do("mark repo as syncing", async () => {});
+      // use try catch so that in failure, we will mark repo as not syncing
       try {
         await step.do(
           "get issues and associated comments and labels",
@@ -82,12 +82,3 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, SyncParams> {
   }
 }
 
-export default {
-  async fetch(): Promise<Response> {
-    // Return 400 for direct HTTP requests since workflows should be triggered via bindings
-    return Response.json(
-      { error: "Workflows must be triggered via bindings" },
-      { status: 400 },
-    );
-  },
-};

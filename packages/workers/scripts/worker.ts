@@ -1,22 +1,38 @@
 /// <reference types="bun-types" />
-export {};
+import { z } from "zod";
 
-// enable commands in package.json:
-// bun run dev rate-limiter
-// bun run deploy workflow
+const ActionSchema = z.enum(["dev", "deploy", "delete"]);
+const WorkerSchema = z.enum(["rate-limiter", "workflows"]);
 
-const action = process.argv[2]; // 'dev' or 'deploy'
-const worker = process.argv[3]; // 'rate-limiter' or 'workflow'
-
-if (!action || !worker) {
-  console.error("Usage: bun worker.ts <dev|deploy> <worker-name>");
-  process.exit(1);
-}
-
-const command = `sst shell -- bun scripts/wrangler.ts ${action} --config src/wrangler/${worker}/wrangler.toml`;
-const proc = Bun.spawn(["sh", "-c", command], {
-  stdout: "inherit",
-  stderr: "inherit",
+const ArgsSchema = z.object({
+  action: ActionSchema,
+  worker: WorkerSchema,
 });
 
-await proc.exited;
+try {
+  const { action, worker } = ArgsSchema.parse({
+    action: process.argv[2],
+    worker: process.argv[3],
+  });
+
+  const command = `sst shell -- bun scripts/wrangler.ts ${action} --config src/wrangler/${worker}/wrangler.toml`;
+  const proc = Bun.spawn(["sh", "-c", command], {
+    stdout: "inherit",
+    stderr: "inherit",
+  });
+
+  await proc.exited;
+} catch (error) {
+  if (error instanceof z.ZodError) {
+    console.error("Invalid arguments:");
+    console.error(
+      error.errors.map((e) => `- ${e.path.join(".")}: ${e.message}`).join("\n"),
+    );
+    console.error(
+      "\nUsage: bun worker.ts <dev|deploy|delete> <rate-limiter|workflow>",
+    );
+  } else {
+    console.error("An unexpected error occurred:", error);
+  }
+  process.exit(1);
+}
