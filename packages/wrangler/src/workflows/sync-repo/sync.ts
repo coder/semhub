@@ -1,6 +1,7 @@
 import type { WorkflowStep } from "cloudflare:workers";
 import pMap from "p-map";
 
+import type { RateLimiter } from "@/core/constants/rate-limit";
 import { eq, type DbClient } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { Embedding } from "@/core/embedding";
@@ -16,6 +17,7 @@ export const syncRepo = async (
   graphqlOctokit: GraphqlOctokit,
   openai: OpenAIClient,
   mode: "cron" | "init",
+  rateLimiter: RateLimiter,
 ) => {
   const { repoId, repoOwner, repoName } = repo;
   const name = `${repoOwner}/${repoName}`;
@@ -78,7 +80,7 @@ export const syncRepo = async (
           await Embedding.txGetEmbAndUpdateDb(
             {
               issueIds: batch,
-              rateLimiter: null, // Adjust if you have a rate limiter
+              rateLimiter,
             },
             db,
             openai,
