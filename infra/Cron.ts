@@ -13,8 +13,8 @@ new sst.cloudflare.Cron("Sync", {
             service: "rate-limiter",
           },
           {
-            name: "SYNC_WORKFLOW",
-            service: "workflows",
+            name: "SYNC_REPO_CRON_WORKFLOW",
+            service: "sync-repo-cron",
           },
         ],
       },

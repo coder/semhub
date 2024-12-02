@@ -14,10 +14,10 @@ const hono = new sst.cloudflare.Worker("Hono", {
           name: "RATE_LIMITER",
           service: "rate-limiter",
         },
-        {
-          name: "SYNC_WORKFLOW",
-          service: "workflows",
-        },
+        // {
+        //   name: "SYNC_WORKFLOW",
+        //   service: "workflows",
+        // },
       ],
     },
   },
