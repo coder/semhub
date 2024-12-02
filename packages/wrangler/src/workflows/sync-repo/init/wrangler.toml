@@ -1,4 +1,4 @@
-name = "sync-repo-cron"
+name = "sync-repo-init"
 main = "./index.ts"
 compatibility_date = "2024-10-22"       # keep in sync with @cloudflare/workers-types
 compatibility_flags = ["nodejs_compat"]
@@ -8,6 +8,6 @@ enabled = true
 head_sampling_rate = 1
 
 [[workflows]]
-name = "sync-repo-cron-workflow"
-binding = "SYNC_REPO_CRON_WORKFLOW"
+name = "sync-repo-init-workflow"
+binding = "SYNC_REPO_INIT_WORKFLOW"
 class_name = "SyncWorkflow"

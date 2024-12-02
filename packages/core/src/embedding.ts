@@ -2,27 +2,30 @@ import dedent from "dedent";
 import type { SQL } from "drizzle-orm";
 
 import { EMBEDDING_MODEL, type RateLimiter } from "./constants/rate-limit";
-import { and, eq, getDb, inArray, isNull, lt, or, sql } from "./db";
+import type { DbClient } from "./db";
+import { and, eq, inArray, isNull, lt, or, sql } from "./db";
 import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
 import type { SelectIssueForEmbedding } from "./db/schema/entities/issue.schema";
 import { issues } from "./db/schema/entities/issue.sql";
 import type { SelectLabelForEmbedding } from "./db/schema/entities/label.schema";
 import { labels as labelTable } from "./db/schema/entities/label.sql";
 import { repos } from "./db/schema/entities/repo.sql";
-import { getOpenAIClient } from "./openai";
+import type { OpenAIClient } from "./openai";
 import { isReducePromptError } from "./openai/errors";
 import { embeddingsCreateSchema } from "./openai/schema";
 import { sleep } from "./util";
 
 export namespace Embedding {
-  export async function createEmbedding({
-    input,
-    rateLimiter,
-  }: {
-    input: string;
-    rateLimiter?: RateLimiter;
-  }) {
-    const client = getOpenAIClient();
+  export async function createEmbedding(
+    {
+      input,
+      rateLimiter,
+    }: {
+      input: string;
+      rateLimiter?: RateLimiter;
+    },
+    openAIClient: OpenAIClient,
+  ) {
     if (rateLimiter) {
       while (true) {
         const millisecondsToNextRequest =
@@ -32,15 +35,14 @@ export namespace Embedding {
         await sleep(millisecondsToNextRequest);
       }
     }
-    const res = await client.embeddings.create({
+    const res = await openAIClient.embeddings.create({
       model: EMBEDDING_MODEL,
       input,
     });
     const result = embeddingsCreateSchema.parse(res);
     return result.data[0]!.embedding;
   }
-  export async function getOutdatedIssues() {
-    const { db } = getDb();
+  export async function getOutdatedIssues(db: DbClient) {
     return await db
       .select({ id: issues.id })
       .from(issues)
@@ -56,14 +58,17 @@ export namespace Embedding {
         ),
       );
   }
-  export async function updateIssueEmbeddings({
-    issueIds,
-    rateLimiter,
-  }: {
-    issueIds: Awaited<ReturnType<typeof getOutdatedIssues>>;
-    rateLimiter?: RateLimiter;
-  }) {
-    const { db } = getDb();
+  export async function updateIssueEmbeddings(
+    {
+      issueIds,
+      rateLimiter,
+    }: {
+      issueIds: Awaited<ReturnType<typeof getOutdatedIssues>>;
+      rateLimiter?: RateLimiter;
+    },
+    db: DbClient,
+    openai: OpenAIClient,
+  ) {
     const TRUNCATION_MAX_ATTEMPTS = 8;
     const BATCH_SIZE = 20;
 
@@ -127,14 +132,17 @@ export namespace Embedding {
                   .where(eq(issuesToLabels.issueId, issue.id));
                 while (attempt <= TRUNCATION_MAX_ATTEMPTS) {
                   try {
-                    return await createEmbedding({
-                      input: formatIssueForEmbedding({
-                        issue,
-                        labels,
-                        attempt,
-                      }),
-                      rateLimiter,
-                    });
+                    return await createEmbedding(
+                      {
+                        input: formatIssueForEmbedding({
+                          issue,
+                          labels,
+                          attempt,
+                        }),
+                        rateLimiter,
+                      },
+                      openai,
+                    );
                   } catch (error) {
                     if (
                       isReducePromptError(error) &&

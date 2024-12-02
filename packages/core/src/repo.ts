@@ -1,4 +1,5 @@
-import { and, eq, getDb, isNotNull, sql } from "@/db";
+import type { DbClient } from "@/db";
+import { and, eq, isNotNull, sql } from "@/db";
 import { comments } from "@/db/schema/entities/comment.sql";
 import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import { issues as issueTable } from "@/db/schema/entities/issue.sql";
@@ -8,8 +9,7 @@ import { conflictUpdateAllExcept } from "@/db/utils/conflict";
 import type { Github } from "@/github";
 
 export namespace Repo {
-  export async function getReposForCron() {
-    const { db } = getDb();
+  export async function getReposForCron(db: DbClient) {
     return await db
       .select({
         repoId: repos.id,
@@ -34,8 +34,8 @@ export namespace Repo {
           syncedAt: Date;
         }
       | { repoId: string; isSyncing: false; successfulSynced: false },
+    db: DbClient,
   ) {
-    const { db } = getDb();
     if (args.isSyncing) {
       await db
         .update(repos)
@@ -54,8 +54,8 @@ export namespace Repo {
 
   export async function createRepo(
     data: Awaited<ReturnType<typeof Github.getRepo>>,
+    db: DbClient,
   ) {
-    const { db } = getDb();
     const {
       owner: { login: owner },
       name,
@@ -84,17 +84,19 @@ export namespace Repo {
       });
     return result;
   }
-  export async function upsertIssuesCommentsLabels({
-    issuesToInsert,
-    commentsToInsert,
-    labelsToInsert,
-    issueToLabelRelationsToInsertNodeIds,
-    lastIssueUpdatedAt,
-    repoId,
-  }: Awaited<ReturnType<typeof Github.getIssuesCommentsLabels>> & {
-    repoId: string;
-  }) {
-    const { db } = getDb();
+  export async function upsertIssuesCommentsLabels(
+    {
+      issuesToInsert,
+      commentsToInsert,
+      labelsToInsert,
+      issueToLabelRelationsToInsertNodeIds,
+      lastIssueUpdatedAt,
+      repoId,
+    }: Awaited<ReturnType<typeof Github.getIssuesCommentsLabels>> & {
+      repoId: string;
+    },
+    db: DbClient,
+  ) {
     await db.transaction(async (tx) => {
       await tx
         .insert(issueTable)

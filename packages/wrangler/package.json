@@ -13,7 +13,7 @@
     "deploy:all": "bun run cf:deploy rate-limiter && bun run cf:deploy workflow"
   },
   "dependencies": {
-    "@semhub/core": "*",
+    "@semhub/core": "workspace:*",
     "p-map": "^7.0.2",
     "zod": "^3.23.8"
   },

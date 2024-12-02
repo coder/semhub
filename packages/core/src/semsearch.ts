@@ -1,5 +1,6 @@
 import type { RateLimiter } from "./constants/rate-limit";
-import { and, cosineDistance, desc, eq, getDb, gt, ilike, or, sql } from "./db";
+import type { DbClient } from "./db";
+import { and, cosineDistance, desc, eq, gt, ilike, or, sql } from "./db";
 import { comments } from "./db/schema/entities/comment.sql";
 import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
 import { convertToIssueStateSql, issues } from "./db/schema/entities/issue.sql";
@@ -8,20 +9,24 @@ import { repos } from "./db/schema/entities/repo.sql";
 import { count, lower } from "./db/utils/general";
 import { jsonAggBuildObjectFromJoin, jsonContains } from "./db/utils/json";
 import { Embedding } from "./embedding";
+import type { OpenAIClient } from "./openai";
 import { parseSearchQuery } from "./semsearch.util";
 
 export namespace SemanticSearch {
-  export async function getIssues({
-    query,
-    rateLimiter,
-    lucky = false,
-  }: {
-    query: string;
-    rateLimiter?: RateLimiter;
-    lucky?: boolean;
-  }) {
+  export async function getIssues(
+    {
+      query,
+      rateLimiter,
+      lucky = false,
+    }: {
+      query: string;
+      rateLimiter?: RateLimiter;
+      lucky?: boolean;
+    },
+    db: DbClient,
+    openai: OpenAIClient,
+  ) {
     const SIMILARITY_THRESHOLD = 0.15; // arbitrary threshold, to be tuned
-    const { db } = getDb();
 
     const {
       substringQueries,
@@ -35,10 +40,13 @@ export namespace SemanticSearch {
     } = parseSearchQuery(query);
 
     // Use the entire query for semantic search
-    const embedding = await Embedding.createEmbedding({
-      input: query,
-      rateLimiter,
-    });
+    const embedding = await Embedding.createEmbedding(
+      {
+        input: query,
+        rateLimiter,
+      },
+      openai,
+    );
     const similarity = sql<number>`1-(${cosineDistance(issues.embedding, embedding)})`;
 
     const selected = db

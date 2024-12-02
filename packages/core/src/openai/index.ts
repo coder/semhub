@@ -1,8 +1,9 @@
 import OpenAI from "openai";
-import { Resource } from "sst";
 
-export function getOpenAIClient() {
+export function createOpenAIClient(apiKey: string) {
   return new OpenAI({
-    apiKey: Resource.OPENAI_API_KEY.value,
+    apiKey,
   });
 }
+
+export type OpenAIClient = ReturnType<typeof createOpenAIClient>;

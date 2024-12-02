@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 
 import { SemanticSearch } from "@/core/semsearch";
+import { db, openai } from "@/deps";
 
 import type { Context } from "..";
 import type { PaginatedResponse } from "../response";
@@ -15,11 +16,15 @@ export const searchRouter = new Hono<Context>().get(
     const pageNumber = page ?? 1;
     const pageSize = 30;
 
-    const issues = await SemanticSearch.getIssues({
-      query,
-      rateLimiter: c.env.RATE_LIMITER,
-      lucky: lucky === "y",
-    });
+    const issues = await SemanticSearch.getIssues(
+      {
+        query,
+        rateLimiter: c.env.RATE_LIMITER,
+        lucky: lucky === "y",
+      },
+      db,
+      openai,
+    );
     // unsure why, redirect doesn't work, redirect on client instead
     // if (lucky === "y" && issues[0]) {
     //   const { issueUrl } = issues[0];
