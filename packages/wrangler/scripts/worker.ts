@@ -20,7 +20,7 @@ try {
     worker: process.argv[3],
   });
 
-  const command = `sst shell -- bun scripts/wrangler.ts ${action} --config src/wrangler/${worker}/wrangler.toml`;
+  const command = `sst shell -- bun scripts/wrangler.ts ${action} --config src/${worker}/wrangler.toml`;
   const proc = Bun.spawn(["sh", "-c", command], {
     stdout: "inherit",
     stderr: "inherit",

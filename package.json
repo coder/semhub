@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "dev": "sst dev",
-    "typecheck": "bun --filter=@semhub/core typecheck && bun --filter=* typecheck",
+    "typecheck": "bun --filter=@semhub/core typecheck && bun --filter=@semhub/wrangler typecheck && bun --filter=* typecheck",
     "format:write": "prettier . --write",
     "format:check": "prettier . --check || (echo '⚠️  Warning: Formatting issues found' && exit 0)",
     "lint": "eslint . && cd packages/web && eslint .",
