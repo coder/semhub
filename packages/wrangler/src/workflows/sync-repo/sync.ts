@@ -49,7 +49,7 @@ export const syncRepo = async (
       return chunks;
     });
     const issueUpdatedCandidates = await step.do(
-      `get issues metadata and upsert issues and associated comments and labels for chunk no. ${name}`,
+      `get issues metadata and upsert issues and associated comments and labels for ${name}`,
       async () => {
         const processIssues = async (
           issueNumbers: (typeof chunkedIssues)[number],
@@ -84,7 +84,6 @@ export const syncRepo = async (
         );
       },
     );
-    // get biggest last issue updated at
     const lastIssueUpdatedAt = await step.do(
       "get biggest last issue updated at",
       async () => {
@@ -111,6 +110,7 @@ export const syncRepo = async (
     }
     const outdatedIssueIds = await step.do(
       `get issues with outdated embeddings for repo ${name}`,
+
       async () => {
         return await Embedding.getOutdatedIssues(db, repoId);
       },
@@ -161,7 +161,7 @@ export const syncRepo = async (
           async (issueIds, idx) => {
             await processIssueIdsStep(issueIds, idx);
           },
-          { concurrency: 4 },
+          { concurrency: 3 },
         );
         return new Date();
       },

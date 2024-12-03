@@ -8,10 +8,12 @@ import type { DbClient } from "@/core/db";
 import type { GraphqlOctokit } from "@/core/github/shared";
 import type { OpenAIClient } from "@/core/openai";
 import type { Repo } from "@/core/repo";
+import type RateLimiterWorker from "@/rate-limiter";
 
 import { syncRepo } from "../sync";
 
 interface Env extends WranglerSecrets {
+  RATE_LIMITER: Service<RateLimiterWorker>;
   SYNC_REPO_CRON_WORKFLOW: Workflow;
 }
 

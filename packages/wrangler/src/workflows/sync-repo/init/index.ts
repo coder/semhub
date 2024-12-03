@@ -6,11 +6,13 @@ import type { WranglerSecrets } from "@/core/constants/wrangler";
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
+import type RateLimiterWorker from "@/rate-limiter";
 
 import { syncRepo } from "../sync";
 import type { WorkflowWithTypedParams } from "../util";
 
 interface Env extends WranglerSecrets {
+  RATE_LIMITER: Service<RateLimiterWorker>;
   SYNC_REPO_INIT_WORKFLOW: WorkflowWithTypedParams<InitSyncParams>;
 }
 
@@ -25,7 +27,6 @@ export type InitSyncParams = {
 export class SyncWorkflow extends WorkflowEntrypoint<Env, InitSyncParams> {
   async run(event: WorkflowEvent<InitSyncParams>, step: WorkflowStep) {
     const { repo } = event.payload;
-    console.log("run params", event.payload);
     const { DATABASE_URL, GITHUB_PERSONAL_ACCESS_TOKEN, OPENAI_API_KEY } =
       this.env;
     const { db, graphqlOctokit, openai, restOctokit } = getDeps({
@@ -46,7 +47,15 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, InitSyncParams> {
       // should not initialize repo that has already been initialized
       throw new NonRetryableError("Repo has been initialized");
     }
-    await syncRepo(createdRepo, step, db, graphqlOctokit, openai, "init", null);
+    await syncRepo(
+      createdRepo,
+      step,
+      db,
+      graphqlOctokit,
+      openai,
+      "init",
+      this.env.RATE_LIMITER,
+    );
     await step.do("update repo.issuesLastUpdatedAt", async () => {
       await Repo.updateSyncStatus(
         {
