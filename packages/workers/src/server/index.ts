@@ -32,16 +32,17 @@ app.get("/test", async (c) => {
   const { db, graphqlOctokit, openai, restOctokit } = getDeps();
   const workflow = c.env.SYNC_REPO_INIT_WORKFLOW;
   await workflow.create({
-    id: "",
+    // id: "",
     params: {
       db,
       repo: {
-        name: "semhub",
-        owner: "semhub-ai",
+        owner: "getcursor",
+        name: "cursor",
       },
       restOctokit,
       graphqlOctokit,
       openai,
+      rateLimiter: c.env.RATE_LIMITER,
     },
   });
 });

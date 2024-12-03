@@ -2,6 +2,7 @@ import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import { WorkflowEntrypoint } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
 
+import type { RateLimiter } from "@/core/constants/rate-limit";
 import type { DbClient } from "@/core/db";
 import { Github } from "@/core/github";
 import type { GraphqlOctokit, RestOctokit } from "@/core/github/shared";
@@ -24,11 +25,13 @@ export type InitSyncParams = {
   restOctokit: RestOctokit;
   graphqlOctokit: GraphqlOctokit;
   openai: OpenAIClient;
+  rateLimiter: RateLimiter;
 };
 
 export class SyncWorkflow extends WorkflowEntrypoint<Env, InitSyncParams> {
   async run(event: WorkflowEvent<InitSyncParams>, step: WorkflowStep) {
-    const { repo, restOctokit, graphqlOctokit, db, openai } = event.payload;
+    const { repo, restOctokit, graphqlOctokit, db, openai, rateLimiter } =
+      event.payload;
     const data = await Github.getRepo(repo.name, repo.owner, restOctokit);
     const createdRepo = await Repo.createRepo(data, db);
     if (!createdRepo) {
@@ -38,7 +41,15 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, InitSyncParams> {
       // should not initialize repo that has already been initialized
       throw new NonRetryableError("Repo has been initialized");
     }
-    await syncRepo(createdRepo, step, db, graphqlOctokit, openai, "init");
+    await syncRepo(
+      createdRepo,
+      step,
+      db,
+      graphqlOctokit,
+      openai,
+      "init",
+      rateLimiter,
+    );
     await step.do("update repo.issuesLastUpdatedAt", async () => {
       await Repo.updateSyncStatus(
         {
