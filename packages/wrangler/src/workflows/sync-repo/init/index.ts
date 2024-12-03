@@ -17,50 +17,49 @@ type Env = {
 
 // User-defined params passed to your workflow
 export type InitSyncParams = {
-  db: DbClient;
   repo: {
     name: string;
     owner: string;
   };
-  restOctokit: RestOctokit;
-  graphqlOctokit: GraphqlOctokit;
-  openai: OpenAIClient;
-  rateLimiter: RateLimiter;
+  // restOctokit: RestOctokit;
+  // graphqlOctokit: GraphqlOctokit;
+  // openai: OpenAIClient;
 };
 
 export class SyncWorkflow extends WorkflowEntrypoint<Env, InitSyncParams> {
   async run(event: WorkflowEvent<InitSyncParams>, step: WorkflowStep) {
-    const { repo, restOctokit, graphqlOctokit, db, openai, rateLimiter } =
-      event.payload;
-    const data = await Github.getRepo(repo.name, repo.owner, restOctokit);
-    const createdRepo = await Repo.createRepo(data, db);
-    if (!createdRepo) {
-      throw new NonRetryableError("Failed to create repo");
-    }
-    if (!createdRepo.issuesLastUpdatedAt) {
-      // should not initialize repo that has already been initialized
-      throw new NonRetryableError("Repo has been initialized");
-    }
-    await syncRepo(
-      createdRepo,
-      step,
-      db,
-      graphqlOctokit,
-      openai,
-      "init",
-      rateLimiter,
-    );
-    await step.do("update repo.issuesLastUpdatedAt", async () => {
-      await Repo.updateSyncStatus(
-        {
-          repoId: createdRepo.repoId,
-          isSyncing: false,
-          successfulSynced: true,
-          syncedAt: new Date(),
-        },
-        db,
-      );
-    });
+    const { repo } = event.payload;
+    console.log("what is on env");
+    console.log(this.env);
+    // const data = await Github.getRepo(repo.name, repo.owner, restOctokit);
+    // const createdRepo = await Repo.createRepo(data, db);
+    // if (!createdRepo) {
+    //   throw new NonRetryableError("Failed to create repo");
+    // }
+    // if (!createdRepo.issuesLastUpdatedAt) {
+    //   // should not initialize repo that has already been initialized
+    //   throw new NonRetryableError("Repo has been initialized");
+    // }
+    // await syncRepo(
+    //   createdRepo,
+    //   step,
+    //   db,
+    //   graphqlOctokit,
+    //   openai,
+    //   "init",
+    //   rateLimiter,
+    // );
+    // await step.do("update repo.issuesLastUpdatedAt", async () => {
+    //   await Repo.updateSyncStatus(
+    //     {
+    //       repoId: createdRepo.repoId,
+    //       isSyncing: false,
+    //       successfulSynced: true,
+    //       syncedAt: new Date(),
+    //     },
+    //     db,
+    //   );
+    // });
     return;
   }
 }

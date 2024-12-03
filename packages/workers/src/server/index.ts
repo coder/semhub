@@ -29,20 +29,16 @@ export const app = new Hono<Context>();
 app.use("*", cors());
 
 app.get("/test", async (c) => {
-  const { db, graphqlOctokit, openai, restOctokit } = getDeps();
-  const workflow = c.env.SYNC_REPO_INIT_WORKFLOW;
-  await workflow.create({
+  await c.env.SYNC_REPO_INIT_WORKFLOW.create({
     // id: "",
     params: {
-      db,
       repo: {
         owner: "getcursor",
         name: "cursor",
       },
-      restOctokit,
-      graphqlOctokit,
-      openai,
-      rateLimiter: c.env.RATE_LIMITER,
+      // restOctokit,
+      // graphqlOctokit,
+      // openai,
     },
   });
 });
