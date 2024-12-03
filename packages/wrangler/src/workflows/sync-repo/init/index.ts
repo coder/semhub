@@ -2,18 +2,17 @@ import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import { WorkflowEntrypoint } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
 
-import type { RateLimiter } from "@/core/constants/rate-limit";
-import type { DbClient } from "@/core/db";
+import type { WranglerSecrets } from "@/core/constants/wrangler";
 import { Github } from "@/core/github";
-import type { GraphqlOctokit, RestOctokit } from "@/core/github/shared";
-import type { OpenAIClient } from "@/core/openai";
 import { Repo } from "@/core/repo";
+import { getDeps } from "@/deps";
 
 import { syncRepo } from "../sync";
+import type { WorkflowWithTypedParams } from "../util";
 
-type Env = {
-  SYNC_REPO_INIT_WORKFLOW: Workflow;
-};
+interface Env extends WranglerSecrets {
+  SYNC_REPO_INIT_WORKFLOW: WorkflowWithTypedParams<InitSyncParams>;
+}
 
 // User-defined params passed to your workflow
 export type InitSyncParams = {
@@ -21,45 +20,44 @@ export type InitSyncParams = {
     name: string;
     owner: string;
   };
-  // restOctokit: RestOctokit;
-  // graphqlOctokit: GraphqlOctokit;
-  // openai: OpenAIClient;
 };
 
 export class SyncWorkflow extends WorkflowEntrypoint<Env, InitSyncParams> {
   async run(event: WorkflowEvent<InitSyncParams>, step: WorkflowStep) {
     const { repo } = event.payload;
-    console.log("what is on env");
-    console.log(this.env);
-    // const data = await Github.getRepo(repo.name, repo.owner, restOctokit);
-    // const createdRepo = await Repo.createRepo(data, db);
-    // if (!createdRepo) {
-    //   throw new NonRetryableError("Failed to create repo");
-    // }
-    // if (!createdRepo.issuesLastUpdatedAt) {
-    //   // should not initialize repo that has already been initialized
-    //   throw new NonRetryableError("Repo has been initialized");
-    // }
-    // await syncRepo(
-    //   createdRepo,
-    //   step,
-    //   db,
-    //   graphqlOctokit,
-    //   openai,
-    //   "init",
-    //   rateLimiter,
-    // );
-    // await step.do("update repo.issuesLastUpdatedAt", async () => {
-    //   await Repo.updateSyncStatus(
-    //     {
-    //       repoId: createdRepo.repoId,
-    //       isSyncing: false,
-    //       successfulSynced: true,
-    //       syncedAt: new Date(),
-    //     },
-    //     db,
-    //   );
-    // });
+    console.log("run params", event.payload);
+    const { DATABASE_URL, GITHUB_PERSONAL_ACCESS_TOKEN, OPENAI_API_KEY } =
+      this.env;
+    const { db, graphqlOctokit, openai, restOctokit } = getDeps({
+      databaseUrl: DATABASE_URL,
+      githubPersonalAccessToken: GITHUB_PERSONAL_ACCESS_TOKEN,
+      openaiApiKey: OPENAI_API_KEY,
+    });
+    const data = await step.do("get repo", async () => {
+      return await Github.getRepo(repo.name, repo.owner, restOctokit);
+    });
+    const createdRepo = await step.do("create repo", async () => {
+      return await Repo.createRepo(data, db);
+    });
+    if (!createdRepo) {
+      throw new NonRetryableError("Failed to create repo");
+    }
+    if (!createdRepo.issuesLastUpdatedAt) {
+      // should not initialize repo that has already been initialized
+      throw new NonRetryableError("Repo has been initialized");
+    }
+    await syncRepo(createdRepo, step, db, graphqlOctokit, openai, "init", null);
+    await step.do("update repo.issuesLastUpdatedAt", async () => {
+      await Repo.updateSyncStatus(
+        {
+          repoId: createdRepo.repoId,
+          isSyncing: false,
+          successfulSynced: true,
+          syncedAt: new Date(),
+        },
+        db,
+      );
+    });
     return;
   }
 }
@@ -71,5 +69,11 @@ export default {
       { error: "Workflows must be triggered via bindings" },
       { status: 400 },
     );
+  },
+  async create(received: { params: InitSyncParams }, env: Env) {
+    const { params } = received;
+    await env.SYNC_REPO_INIT_WORKFLOW.create({
+      params,
+    });
   },
 };

@@ -4,7 +4,6 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { Resource } from "sst";
 
-import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
 import type { InitSyncParams } from "@/wrangler/workflows/sync-repo/init";
 import type { WorkflowWithTypedParams } from "@/wrangler/workflows/sync-repo/util";
@@ -30,7 +29,6 @@ app.use("*", cors());
 
 app.get("/test", async (c) => {
   await c.env.SYNC_REPO_INIT_WORKFLOW.create({
-    // id: "",
     params: {
       repo: {
         owner: "getcursor",
@@ -41,6 +39,8 @@ app.get("/test", async (c) => {
       // openai,
     },
   });
+  console.log("triggered workflow");
+  return c.json({ success: true, message: "triggered workflow" });
 });
 
 const routes = app.basePath("/api").route("/search", searchRouter);

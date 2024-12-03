@@ -17,7 +17,7 @@ export const syncRepo = async (
   graphqlOctokit: GraphqlOctokit,
   openai: OpenAIClient,
   mode: "cron" | "init",
-  rateLimiter: RateLimiter,
+  rateLimiter: RateLimiter | null,
 ) => {
   const { repoId, repoOwner, repoName } = repo;
   const name = `${repoOwner}/${repoName}`;
