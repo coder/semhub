@@ -2,9 +2,10 @@
 // this is a script to deploy cloudflare resources
 // not meant to be referenced by other parts of the codebase
 import { execSync } from "child_process";
-import { Resource } from "sst";
 
-import type { WranglerSecrets } from "@/core/constants/wrangler";
+// import { Resource } from "sst";
+
+// import type { WranglerSecrets } from "@/core/constants/wrangler";
 
 async function deploy() {
   const wranglerArgs = process.argv.slice(2).join(" ");
@@ -19,27 +20,26 @@ async function deploy() {
     execSync(`${cloudflareEnvVars} wrangler ${wranglerArgs}`, {
       stdio: "inherit",
     });
-    if (wranglerArgs.startsWith("deploy")) {
-      // Extract config path from arguments
-      const configMatch = wranglerArgs.match(/--config\s+([^\s]+)/);
-      const configPath = configMatch ? `--config ${configMatch[1]}` : "";
-      // Then add the secrets with the config path
-      const secrets: WranglerSecrets = {
-        DATABASE_URL: Resource.Supabase.databaseUrl,
-        OPENAI_API_KEY: Resource.OPENAI_API_KEY.value,
-        GITHUB_PERSONAL_ACCESS_TOKEN:
-          Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value,
-      };
-      for (const [key, value] of Object.entries(secrets)) {
-        execSync(
-          `echo "${value}" | ${cloudflareEnvVars} wrangler secret put ${key} ${configPath} ${envFlag}`,
-          {
-            stdio: "inherit",
-          },
-        );
-      }
-    }
-
+    // if (wranglerArgs.startsWith("deploy")) {
+    //   // Extract config path from arguments
+    //   const configMatch = wranglerArgs.match(/--config\s+([^\s]+)/);
+    //   const configPath = configMatch ? `--config ${configMatch[1]}` : "";
+    //   // Then add the secrets with the config path
+    //   const secrets: WranglerSecrets = {
+    //     DATABASE_URL: Resource.Supabase.databaseUrl,
+    //     OPENAI_API_KEY: Resource.OPENAI_API_KEY.value,
+    //     GITHUB_PERSONAL_ACCESS_TOKEN:
+    //       Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value,
+    //   };
+    //   for (const [key, value] of Object.entries(secrets)) {
+    //     execSync(
+    //       `echo "${value}" | ${cloudflareEnvVars} wrangler secret put ${key} ${configPath} ${envFlag}`,
+    //       {
+    //         stdio: "inherit",
+    //       },
+    //     );
+    //   }
+    // }
     console.log("Done!");
   } catch (error) {
     console.error("Error:", error);

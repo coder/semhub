@@ -7,8 +7,9 @@ import type { Repo } from "@/repo";
 
 import { graphql } from "./graphql";
 import {
+  getIssueNumbersResSchema,
   githubRepoSchema,
-  loadIssuesWithCommentsQuerySchema,
+  loadIssuesWithCommentsResSchema,
   type CommentGraphql,
   type IssueGraphql,
 } from "./schema";
@@ -38,6 +39,8 @@ export namespace Github {
       issuesLastUpdatedAt,
     }: Awaited<ReturnType<typeof Repo.getReposForCron>>[number],
     octokit: GraphqlOctokit,
+    batchSize = 100,
+    skipCount = 0,
   ) {
     const iterator = octokit.graphql.paginate.iterator(getIssueUpsertQuery(), {
       organization: repoOwner,
@@ -52,7 +55,7 @@ export namespace Github {
     const rawIssueToLabelRelations = [];
     for await (const response of iterator) {
       const { success, data, error } =
-        loadIssuesWithCommentsQuerySchema.safeParse(response);
+        loadIssuesWithCommentsResSchema.safeParse(response);
       if (!success) {
         throw new Error("error parsing issues with issues", error);
       }
@@ -209,10 +212,11 @@ export namespace Github {
         $organization: String!
         $repo: String!
         $since: DateTime
+        $first: Int!
       ) {
         repository(owner: $organization, name: $repo) {
           issues(
-            first: 100
+            first: $first
             after: $cursor
             orderBy: { field: UPDATED_AT, direction: ASC }
             filterBy: { since: $since }
@@ -265,5 +269,60 @@ export namespace Github {
       }
     `);
     return print(query);
+  }
+
+  export async function getIssueNumbers({
+    repoOwner,
+    repoName,
+    octokit,
+    since,
+  }: {
+    repoOwner: string;
+    repoName: string;
+    octokit: GraphqlOctokit;
+    since?: Date;
+  }) {
+    const query = graphql(`
+      query getIssueNumbers(
+        $cursor: String
+        $organization: String!
+        $repo: String!
+        $since: DateTime
+      ) {
+        repository(owner: $organization, name: $repo) {
+          issues(
+            first: 100
+            after: $cursor
+            orderBy: { field: CREATED_AT, direction: ASC }
+            filterBy: { since: $since }
+          ) {
+            nodes {
+              number
+            }
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+          }
+        }
+      }
+    `);
+    const allIssueNumbers: number[] = [];
+    const iterator = octokit.graphql.paginate.iterator(print(query), {
+      organization: repoOwner,
+      repo: repoName,
+      since: since?.toISOString() ?? null,
+    });
+    for await (const response of iterator) {
+      const { success, data, error } =
+        getIssueNumbersResSchema.safeParse(response);
+      if (!success) {
+        throw new Error("error parsing issue numbers from GitHub", error);
+      }
+      allIssueNumbers.push(
+        ...data.repository.issues.nodes.map((n) => n.number),
+      );
+    }
+    return allIssueNumbers;
   }
 }

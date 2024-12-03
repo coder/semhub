@@ -13,7 +13,7 @@ export function getDeps({
 }) {
   const { db } = createDb({
     connectionString: databaseUrl,
-    isProd: false,
+    isProd: process.env.ENVIRONMENT === "prod",
   });
 
   const openai = createOpenAIClient(openaiApiKey);

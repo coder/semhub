@@ -50,7 +50,7 @@ export const loadRepoIssuesQueryIssueSchema = z.object({
 
 export type IssueGraphql = z.infer<typeof loadRepoIssuesQueryIssueSchema>;
 
-export const loadIssuesWithCommentsQuerySchema = z.object({
+export const loadIssuesWithCommentsResSchema = z.object({
   repository: z.object({
     issues: z.object({
       nodes: z.array(loadRepoIssuesQueryIssueSchema),
@@ -62,13 +62,21 @@ export const loadIssuesWithCommentsQuerySchema = z.object({
   }),
 });
 
+export const getIssueNumbersResSchema = z.object({
+  repository: z.object({
+    issues: z.object({
+      nodes: z.array(z.object({ number: z.number() })),
+    }),
+  }),
+});
+
 /* NB there are significant differences between GraphQL and REST:
 - unlike REST API, GraphQL API distinguishes between issues and pull requests
 - `author` object is nullable in GraphQL, whereas user is non-nullable. this is potentially problematic as it would make normalisation difficult
 - `state` is different, GraphQL uses `OPEN` and `CLOSED`, REST includes `deleted`
 - state reasons are different, GraphQL includes duplicate
-- `isDraft` is only in REST
-- I included GitHub GraphQL schema for reference
+- `isDraft` is only in REST (probably because it's only relevant for pull requests)
+- hooked up GitHub GraphQL schema for type inference
 */
 
 // shape from REST API
