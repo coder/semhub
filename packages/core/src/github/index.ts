@@ -31,7 +31,112 @@ export namespace Github {
     }
     return data;
   }
-  export async function getIssuesCommentsLabels(
+  export async function getIssuesCommentsLabels({
+    issueNumbers,
+    repoId,
+    repoName,
+    repoOwner,
+    octokit,
+  }: {
+    issueNumbers: Awaited<ReturnType<typeof getAllIssuesToProcess>>;
+    repoId: string;
+    repoName: string;
+    repoOwner: string;
+    octokit: GraphqlOctokit;
+  }) {
+    if (issueNumbers.length === 0) {
+      return {
+        issuesAndCommentsLabels: {
+          issuesToInsert: [],
+          commentsToInsert: [],
+          labelsToInsert: [],
+          issueToLabelRelationsToInsertNodeIds: [],
+        },
+        lastIssueUpdatedAt: null,
+      };
+    }
+    const firstIssueUpdatedAt = new Date(issueNumbers[0]!.updatedAt);
+    const response = await octokit.graphql(getIssuesForUpsertQuery(), {
+      organization: repoOwner,
+      repo: repoName,
+      cursor: null,
+      since: firstIssueUpdatedAt.toISOString(),
+    });
+    const { success, data, error } =
+      loadIssuesWithCommentsResSchema.safeParse(response);
+    if (!success) {
+      throw new Error("error parsing issues with issues", error);
+    }
+    const issues = data.repository.issues.nodes;
+    if (issues.length === 0) {
+      return {
+        issuesAndCommentsLabels: {
+          issuesToInsert: [],
+          commentsToInsert: [],
+          labelsToInsert: [],
+          issueToLabelRelationsToInsertNodeIds: [],
+        },
+        lastIssueUpdatedAt: null,
+      };
+    }
+    const lastIssueUpdatedAt = new Date(issues[issues.length - 1]!.updatedAt);
+    const issueLabelsToInsert = issues.map((issue) =>
+      mapIssuesLabels(issue, repoId),
+    );
+    const rawIssues = issueLabelsToInsert.map((entity) => entity.issue);
+    const rawComments = issues.flatMap((issue) =>
+      issue.comments.nodes.map((comment) =>
+        mapCreateComment(comment, issue.id),
+      ),
+    );
+    const rawLabels = issueLabelsToInsert.flatMap((entity) => entity.labels);
+    const rawIssueToLabelRelations = issueLabelsToInsert.flatMap(
+      (entity) => entity.issToLblRelationsNodeIds,
+    );
+    // Dedupe labels across all issues
+    const nodeIdToLabelMap = new Map<string, CreateLabel>();
+    rawLabels.forEach((label) => {
+      nodeIdToLabelMap.set(label.nodeId, label);
+    });
+    const allLabels = Array.from(nodeIdToLabelMap.values());
+
+    // Dedupe issue to label relations across all issues
+    const uniqueIssueLabelPairs = new Set<string>();
+    rawIssueToLabelRelations.forEach(({ issueNodeId, labelNodeIds }) => {
+      labelNodeIds.forEach((labelNodeId) => {
+        uniqueIssueLabelPairs.add(`${issueNodeId}:${labelNodeId}`);
+      });
+    });
+    const allIssueToLabelRelations = Array.from(uniqueIssueLabelPairs).map(
+      (issueLabelPair) => {
+        const [issueNodeId, labelNodeId] = issueLabelPair.split(":") as [
+          string,
+          string,
+        ];
+        return { issueNodeId, labelNodeId };
+      },
+    );
+
+    const allIssues = [
+      ...new Map(rawIssues.map((issue) => [issue.nodeId, issue])).values(),
+    ];
+    const allComments = [
+      ...new Map(
+        rawComments.map((comment) => [comment.nodeId, comment]),
+      ).values(),
+    ];
+
+    return {
+      issuesAndCommentsLabels: {
+        issuesToInsert: allIssues,
+        commentsToInsert: allComments,
+        labelsToInsert: allLabels,
+        issueToLabelRelationsToInsertNodeIds: allIssueToLabelRelations,
+      },
+      lastIssueUpdatedAt,
+    };
+  }
+  export async function getAllIssuesCommentsLabels(
     {
       repoId,
       repoName,
@@ -39,15 +144,16 @@ export namespace Github {
       issuesLastUpdatedAt,
     }: Awaited<ReturnType<typeof Repo.getReposForCron>>[number],
     octokit: GraphqlOctokit,
-    batchSize = 100,
-    skipCount = 0,
   ) {
-    const iterator = octokit.graphql.paginate.iterator(getIssueUpsertQuery(), {
-      organization: repoOwner,
-      repo: repoName,
-      cursor: null,
-      since: issuesLastUpdatedAt?.toISOString() ?? null,
-    });
+    const iterator = octokit.graphql.paginate.iterator(
+      getIssuesForUpsertQuery(),
+      {
+        organization: repoOwner,
+        repo: repoName,
+        cursor: null,
+        since: issuesLastUpdatedAt?.toISOString() ?? null,
+      },
+    );
     let lastIssueUpdatedAt: Date | null = null;
     const rawIssues = [];
     const rawComments = [];
@@ -203,7 +309,7 @@ export namespace Github {
     };
   }
 
-  function getIssueUpsertQuery() {
+  function getIssuesForUpsertQuery() {
     // use explorer to test GraphQL queries: https://docs.github.com/en/graphql/overview/explorer
     // for extension: get Reactions to body as well as to comments, and aggregate them somehow hmm
     const query = graphql(`
@@ -212,11 +318,10 @@ export namespace Github {
         $organization: String!
         $repo: String!
         $since: DateTime
-        $first: Int!
       ) {
         repository(owner: $organization, name: $repo) {
           issues(
-            first: $first
+            first: 100
             after: $cursor
             orderBy: { field: UPDATED_AT, direction: ASC }
             filterBy: { since: $since }
@@ -271,7 +376,7 @@ export namespace Github {
     return print(query);
   }
 
-  export async function getIssueNumbers({
+  export async function getAllIssuesToProcess({
     repoOwner,
     repoName,
     octokit,
@@ -293,11 +398,12 @@ export namespace Github {
           issues(
             first: 100
             after: $cursor
-            orderBy: { field: CREATED_AT, direction: ASC }
+            orderBy: { field: UPDATED_AT, direction: ASC }
             filterBy: { since: $since }
           ) {
             nodes {
               number
+              updatedAt
             }
             pageInfo {
               hasNextPage
@@ -307,7 +413,7 @@ export namespace Github {
         }
       }
     `);
-    const allIssueNumbers: number[] = [];
+    const allIssueNumbers: Array<{ number: number; updatedAt: Date }> = [];
     const iterator = octokit.graphql.paginate.iterator(print(query), {
       organization: repoOwner,
       repo: repoName,
@@ -320,7 +426,10 @@ export namespace Github {
         throw new Error("error parsing issue numbers from GitHub", error);
       }
       allIssueNumbers.push(
-        ...data.repository.issues.nodes.map((n) => n.number),
+        ...data.repository.issues.nodes.map((n) => ({
+          number: n.number,
+          updatedAt: new Date(n.updatedAt),
+        })),
       );
     }
     return allIssueNumbers;

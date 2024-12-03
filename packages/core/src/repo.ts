@@ -91,7 +91,7 @@ export namespace Repo {
       labelsToInsert,
       issueToLabelRelationsToInsertNodeIds,
     }: Awaited<
-      ReturnType<typeof Github.getIssuesCommentsLabels>
+      ReturnType<typeof Github.getAllIssuesCommentsLabels>
     >["issuesAndCommentsLabels"],
     db: DbClient,
   ) {

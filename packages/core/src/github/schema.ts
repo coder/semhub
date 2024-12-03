@@ -65,7 +65,9 @@ export const loadIssuesWithCommentsResSchema = z.object({
 export const getIssueNumbersResSchema = z.object({
   repository: z.object({
     issues: z.object({
-      nodes: z.array(z.object({ number: z.number() })),
+      nodes: z.array(
+        z.object({ number: z.number(), updatedAt: z.string().datetime() }),
+      ),
     }),
   }),
 });

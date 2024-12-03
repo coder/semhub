@@ -3,7 +3,7 @@ import { getDeps } from "@/deps";
 
 const { graphqlOctokit } = getDeps();
 
-const query = await Github.getIssueNumbers({
+const query = await Github.getAllIssuesToProcess({
   repoOwner: "getcursor",
   repoName: "cursor",
   octokit: graphqlOctokit,

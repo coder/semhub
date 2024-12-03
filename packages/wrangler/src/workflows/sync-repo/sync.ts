@@ -32,23 +32,67 @@ export const syncRepo = async (
   });
   // use try catch so that in failure, we will mark repo as not syncing
   try {
-    const issueNumbers = await step.do("get issue numbers", async () => {
-      return await Github.getIssueNumbers({
+    const issues = await step.do("get all issues to process", async () => {
+      return await Github.getAllIssuesToProcess({
         repoOwner,
         repoName,
         octokit: graphqlOctokit,
       });
     });
-    // return value max size of 1MiB, chunk extraction into batches of 100?
-    const { issuesAndCommentsLabels, lastIssueUpdatedAt } = await step.do(
-      `get issues and associated comments and labels for ${name}`,
+    const chunkedIssues = await step.do("chunk issues", async () => {
+      // return value max size of 1MiB, chunk issues to extract into batches of 100
+      const chunks = [];
+      for (let i = 0; i < issues.length; i += 100) {
+        chunks.push(issues.slice(i, i + 100));
+      }
+      return chunks;
+    });
+    const issueUpdatedCandidates = await step.do(
+      `get issues metadata and upsert issues and associated comments and labels for chunk no. ${name}`,
       async () => {
-        return await Github.getIssuesCommentsLabels(repo, graphqlOctokit);
+        const processIssues = async (
+          issueNumbers: (typeof chunkedIssues)[number],
+          idx: number,
+        ) => {
+          const { issuesAndCommentsLabels, lastIssueUpdatedAt } = await step.do(
+            `get issues and associated comments and labels for batch ${idx}`,
+            async () => {
+              return await Github.getIssuesCommentsLabels({
+                issueNumbers,
+                repoId,
+                repoName,
+                repoOwner,
+                octokit: graphqlOctokit,
+              });
+            },
+          );
+          await step.do("upsert issues, comments, and labels", async () => {
+            return await Repo.upsertIssuesCommentsLabels(
+              issuesAndCommentsLabels,
+              db,
+            );
+          });
+          return lastIssueUpdatedAt;
+        };
+        return await pMap(
+          chunkedIssues,
+          async (issueNumbers, idx) => {
+            return await processIssues(issueNumbers, idx);
+          },
+          { concurrency: 2 },
+        );
       },
     );
-    await step.do("upsert issues, comments, and labels", async () => {
-      return await Repo.upsertIssuesCommentsLabels(issuesAndCommentsLabels, db);
-    });
+    // get biggest last issue updated at
+    const lastIssueUpdatedAt = await step.do(
+      "get biggest last issue updated at",
+      async () => {
+        return issueUpdatedCandidates
+          .filter((date): date is Date => date !== null)
+          .reduce((a, b) => (a > b ? a : b));
+      },
+    );
+
     if (mode === "cron") {
       // can set this once issues have been inserted; no need to wait for embeddings
       // search may be slightly outdated, but it's fine + it's tracked in issues table
@@ -82,7 +126,7 @@ export const syncRepo = async (
       },
     );
     const completedAt = await step.do(
-      `batch process issues with outdated embeddings for repo ${name}`,
+      `process issues with outdated embeddings for repo ${name}`,
       async () => {
         const processIssueIdsStep = async (
           issueIds: typeof outdatedIssueIds,
