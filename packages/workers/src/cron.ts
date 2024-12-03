@@ -26,6 +26,7 @@ export default {
             repos,
             graphqlOctokit,
             openai,
+            rateLimiter: env.RATE_LIMITER,
           },
         });
         break;

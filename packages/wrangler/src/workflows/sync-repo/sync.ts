@@ -59,39 +59,53 @@ export const syncRepo = async (
       );
     }
     const outdatedIssueIds = await step.do(
-      "get issues with outdated embeddings from syncing repo",
+      `get issues with outdated embeddings for repo ${name}`,
       async () => {
         return await Embedding.getOutdatedIssues(db, repoId);
       },
     );
-    // we choose to batch embedding generation and upserting in the same step
-    // because if there is intermittent failure, there will still be incremental progress
-    // (as opposed to fetching all embeddings in one go and then doing upsert)
-    const batchProcessIssues = async (issueIds: typeof outdatedIssueIds) => {
-      // Split issueIds into chunks of 10
-      const chunks = [];
-      for (let i = 0; i < issueIds.length; i += 10) {
-        chunks.push(issueIds.slice(i, i + 10));
-      }
-      // Process chunks with concurrency of 2
-      await pMap(
-        chunks,
-        async (batch) => {
-          await Embedding.txGetEmbAndUpdateDb(
-            {
-              issueIds: batch,
-              rateLimiter,
-            },
-            db,
-            openai,
-          );
-        },
-        { concurrency: 2 },
-      );
-      const completedAt = new Date();
-      return completedAt;
-    };
-    const completedAt = await batchProcessIssues(outdatedIssueIds);
+    const chunkedIssueIds = await step.do(
+      `chunk issues with outdated embeddings for repo ${name}`,
+      async () => {
+        // Split issueIds into chunks of 10
+        const chunks = [];
+        for (let i = 0; i < outdatedIssueIds.length; i += 10) {
+          chunks.push(outdatedIssueIds.slice(i, i + 10));
+        }
+        return chunks;
+      },
+    );
+    const completedAt = await step.do(
+      `batch process issues with outdated embeddings for repo ${name}`,
+      async () => {
+        const processIssueIdsStep = async (
+          issueIds: typeof outdatedIssueIds,
+          idx: number,
+        ) => {
+          // we choose to batch embedding generation and upserting in the same step
+          // because if there is intermittent failure, there will still be incremental progress
+          // (as opposed to fetching all embeddings in one go and then doing upsert)
+          await step.do(`process issue ids: batch ${idx}`, async () => {
+            await Embedding.txGetEmbAndUpdateDb(
+              {
+                issueIds,
+                rateLimiter,
+              },
+              db,
+              openai,
+            );
+          });
+        };
+        await pMap(
+          chunkedIssueIds,
+          async (issueIds, idx) => {
+            await processIssueIdsStep(issueIds, idx);
+          },
+          { concurrency: 2 },
+        );
+        return new Date();
+      },
+    );
     if (mode === "init") {
       // for init, only update this when embeddings are synced. this prevents users from searching before embeddings are synced and getting no results
       await step.do(
