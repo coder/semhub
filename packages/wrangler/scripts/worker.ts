@@ -22,9 +22,10 @@ try {
     prod: process.argv[4] === "--prod",
   });
 
-  const stageFlag = prod ? "--stage prod" : "";
+  const stageFlag = prod ? "--stage prod " : "";
   const envFlag = prod ? "--env prod" : "";
-  const command = `sst shell ${stageFlag} -- bun scripts/wrangler.ts ${action} --config src/${worker}/wrangler.toml ${envFlag}`;
+  const configPath = `--config src/${worker}/wrangler.toml`;
+  const command = `sst shell ${stageFlag}-- bun scripts/wrangler.ts ${action} ${configPath} ${envFlag}`;
 
   const proc = Bun.spawn(["sh", "-c", command], {
     stdout: "inherit",
