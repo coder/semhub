@@ -3,6 +3,7 @@ import { WorkflowEntrypoint } from "cloudflare:workers";
 import pMap from "p-map";
 
 import type { RateLimiter } from "@/core/constants/rate-limit";
+import type { WranglerSecrets } from "@/core/constants/wrangler";
 import type { DbClient } from "@/core/db";
 import type { GraphqlOctokit } from "@/core/github/shared";
 import type { OpenAIClient } from "@/core/openai";
@@ -10,9 +11,9 @@ import type { Repo } from "@/core/repo";
 
 import { syncRepo } from "../sync";
 
-type Env = {
+interface Env extends WranglerSecrets {
   SYNC_REPO_CRON_WORKFLOW: Workflow;
-};
+}
 
 export interface CronSyncParams {
   db: DbClient;

@@ -4,6 +4,8 @@
 import { execSync } from "child_process";
 import { Resource } from "sst";
 
+import type { WranglerSecrets } from "@/core/constants/wrangler";
+
 async function deploy() {
   const wranglerArgs = process.argv.slice(2).join(" ");
   const isProd = wranglerArgs.includes("prod");
@@ -22,7 +24,7 @@ async function deploy() {
       const configMatch = wranglerArgs.match(/--config\s+([^\s]+)/);
       const configPath = configMatch ? `--config ${configMatch[1]}` : "";
       // Then add the secrets with the config path
-      const secrets = {
+      const secrets: WranglerSecrets = {
         DATABASE_URL: Resource.Supabase.databaseUrl,
         OPENAI_API_KEY: Resource.OPENAI_API_KEY.value,
         GITHUB_PERSONAL_ACCESS_TOKEN:
