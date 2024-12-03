@@ -1,12 +1,14 @@
 import type { DbClient } from "@/db";
-import { and, eq, isNotNull, sql } from "@/db";
+import { and, eq, inArray, isNotNull, isNull, lt, or, sql } from "@/db";
 import { comments } from "@/db/schema/entities/comment.sql";
 import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
-import { issues as issueTable } from "@/db/schema/entities/issue.sql";
+import { issueTable } from "@/db/schema/entities/issue.sql";
 import { labels as labelTable } from "@/db/schema/entities/label.sql";
 import { repos } from "@/db/schema/entities/repo.sql";
 import { conflictUpdateAllExcept } from "@/db/utils/conflict";
 import type { Github } from "@/github";
+
+import { jsonAggBuildObjectFromJoin } from "./db/utils/json";
 
 export namespace Repo {
   export async function getReposForCron(db: DbClient) {

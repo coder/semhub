@@ -32,7 +32,7 @@ export const syncRepo = async (
   });
   // use try catch so that in failure, we will mark repo as not syncing
   try {
-    const issues = await step.do("get all issues to process", async () => {
+    const allIssues = await step.do("get all issues to process", async () => {
       return await Github.getAllIssuesToProcess({
         repoOwner,
         repoName,
@@ -41,9 +41,10 @@ export const syncRepo = async (
     });
     const chunkedIssues = await step.do("chunk issues", async () => {
       // return value max size of 1MiB, chunk issues to extract into batches of 100
+      const CHUNK_SIZE = 100;
       const chunks = [];
-      for (let i = 0; i < issues.length; i += 100) {
-        chunks.push(issues.slice(i, i + 100));
+      for (let i = 0; i < allIssues.length; i += CHUNK_SIZE) {
+        chunks.push(allIssues.slice(i, i + CHUNK_SIZE));
       }
       return chunks;
     });
@@ -117,10 +118,10 @@ export const syncRepo = async (
     const chunkedIssueIds = await step.do(
       `chunk issues with outdated embeddings for repo ${name}`,
       async () => {
-        // Split issueIds into chunks of 10
+        const CHUNK_SIZE = 25;
         const chunks = [];
-        for (let i = 0; i < outdatedIssueIds.length; i += 10) {
-          chunks.push(outdatedIssueIds.slice(i, i + 10));
+        for (let i = 0; i < outdatedIssueIds.length; i += CHUNK_SIZE) {
+          chunks.push(outdatedIssueIds.slice(i, i + CHUNK_SIZE));
         }
         return chunks;
       },
@@ -132,18 +133,27 @@ export const syncRepo = async (
           issueIds: typeof outdatedIssueIds,
           idx: number,
         ) => {
-          // we choose to batch embedding generation and upserting in the same step
-          // because if there is intermittent failure, there will still be incremental progress
-          // (as opposed to fetching all embeddings in one go and then doing upsert)
-          await step.do(`process issue ids: batch ${idx}`, async () => {
-            await Embedding.txGetEmbAndUpdateDb(
-              {
-                issueIds,
+          const selectedIssues = await step.do(
+            `get issues for batch ${idx}`,
+            async () => {
+              return await Embedding.selectIssuesForEmbedding(
+                issueIds.map((b) => b.id),
+                db,
+              );
+            },
+          );
+          const embeddings = await step.do(
+            `get embeddings for batch ${idx}`,
+            async () => {
+              return await Embedding.createEmbeddingsBatch(
+                selectedIssues,
                 rateLimiter,
-              },
-              db,
-              openai,
-            );
+                openai,
+              );
+            },
+          );
+          await step.do("update issue embeddings", async () => {
+            await Embedding.bulkUpdateIssueEmbeddings(embeddings, db);
           });
         };
         await pMap(
@@ -151,7 +161,7 @@ export const syncRepo = async (
           async (issueIds, idx) => {
             await processIssueIdsStep(issueIds, idx);
           },
-          { concurrency: 2 },
+          { concurrency: 4 },
         );
         return new Date();
       },

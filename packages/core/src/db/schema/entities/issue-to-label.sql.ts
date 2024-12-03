@@ -2,7 +2,7 @@ import { relations } from "drizzle-orm";
 import { index, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
 
 import { getTimestampColumns } from "../base.sql";
-import { issues } from "./issue.sql";
+import { issueTable } from "./issue.sql";
 import { labels } from "./label.sql";
 
 export const issuesToLabels = pgTable(
@@ -10,7 +10,7 @@ export const issuesToLabels = pgTable(
   {
     issueId: text("issue_id")
       .notNull()
-      .references(() => issues.id, {
+      .references(() => issueTable.id, {
         onDelete: "cascade",
       }),
     labelId: text("label_id")
@@ -28,9 +28,9 @@ export const issuesToLabels = pgTable(
 );
 
 export const issuesToLabelsRelations = relations(issuesToLabels, ({ one }) => ({
-  issue: one(issues, {
+  issue: one(issueTable, {
     fields: [issuesToLabels.issueId],
-    references: [issues.id],
+    references: [issueTable.id],
   }),
   label: one(labels, {
     fields: [issuesToLabels.labelId],
