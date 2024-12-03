@@ -20,5 +20,6 @@
       "path": "../core"
     }
   ],
-  "include": ["src/**/*", "scripts/**/*", "@types/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["scripts/**/*"]
 }

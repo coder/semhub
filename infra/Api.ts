@@ -12,11 +12,11 @@ const hono = new sst.cloudflare.Worker("Hono", {
       serviceBindings: [
         {
           name: "RATE_LIMITER",
-          service: "rate-limiter",
+          service: `semhub-rate-limiter-${$app.stage === "prod" ? "prod" : "dev"}`,
         },
         {
           name: "SYNC_REPO_INIT_WORKFLOW",
-          service: "sync-repo-init",
+          service: `semhub-sync-repo-init-${$app.stage === "prod" ? "prod" : "dev"}`,
         },
       ],
     },

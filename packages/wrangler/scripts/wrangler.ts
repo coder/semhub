@@ -2,17 +2,37 @@
 // this is a script to deploy cloudflare resources
 // not meant to be referenced by other parts of the codebase
 import { execSync } from "child_process";
+import { Resource } from "sst";
 
 async function deploy() {
-  // Get command line arguments
   const wranglerArgs = process.argv.slice(2).join(" ");
-  console.log(`Running wrangler ${wranglerArgs}`);
+  const isProd = wranglerArgs.includes("prod");
+  const env = isProd ? "prod" : "dev";
+  const envFlag = isProd ? "--env prod" : "";
+  const cloudflareEnvVars = `CF_ACCOUNT_ID=${process.env.CLOUDFLARE_ACCOUNT_ID} CF_API_TOKEN=${process.env.CLOUDFLARE_API_TOKEN}`;
+
+  console.log(`Running wrangler ${wranglerArgs} for ${env} environment`);
 
   try {
-    execSync(
-      `CF_API_TOKEN=${process.env.CLOUDFLARE_API_TOKEN} wrangler ${wranglerArgs}`,
-      { stdio: "inherit" },
-    );
+    const secrets = {
+      DATABASE_URL: Resource.Supabase.databaseUrl,
+      OPENAI_API_KEY: Resource.OPENAI_API_KEY.value,
+      GITHUB_TOKEN: Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value,
+    };
+
+    for (const [key, value] of Object.entries(secrets)) {
+      execSync(
+        `${cloudflareEnvVars} wrangler secret put ${key} ${envFlag} --value="${value}"`,
+        {
+          stdio: "inherit",
+        },
+      );
+    }
+
+    // Deploy the worker
+    execSync(`${cloudflareEnvVars} wrangler ${wranglerArgs}`, {
+      stdio: "inherit",
+    });
     console.log("Done!");
   } catch (error) {
     console.error("Error:", error);
