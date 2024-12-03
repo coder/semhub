@@ -70,10 +70,7 @@ export default {
       { status: 400 },
     );
   },
-  async create(received: { params: InitSyncParams }, env: Env) {
-    const { params } = received;
-    await env.SYNC_REPO_INIT_WORKFLOW.create({
-      params,
-    });
+  async create({ params }: { params: InitSyncParams }, env: Env) {
+    await env.SYNC_REPO_INIT_WORKFLOW.create({ params });
   },
 };

@@ -34,9 +34,6 @@ app.get("/test", async (c) => {
         owner: "getcursor",
         name: "cursor",
       },
-      // restOctokit,
-      // graphqlOctokit,
-      // openai,
     },
   });
   console.log("triggered workflow");
