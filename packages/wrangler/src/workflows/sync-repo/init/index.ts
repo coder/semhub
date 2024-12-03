@@ -42,7 +42,7 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, InitSyncParams> {
     if (!createdRepo) {
       throw new NonRetryableError("Failed to create repo");
     }
-    if (!createdRepo.issuesLastUpdatedAt) {
+    if (createdRepo.issuesLastUpdatedAt) {
       // should not initialize repo that has already been initialized
       throw new NonRetryableError("Repo has been initialized");
     }

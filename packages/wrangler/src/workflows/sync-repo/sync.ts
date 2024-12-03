@@ -32,8 +32,14 @@ export const syncRepo = async (
   });
   // use try catch so that in failure, we will mark repo as not syncing
   try {
-    // TODO: batch this? try inserting in chunks of 100? 1000?
-    // same logic for doing embedding + upserts separately below should apply here?
+    const issueNumbers = await step.do("get issue numbers", async () => {
+      return await Github.getIssueNumbers({
+        repoOwner,
+        repoName,
+        octokit: graphqlOctokit,
+      });
+    });
+    // return value max size of 1MiB, chunk extraction into batches of 100?
     const { issuesAndCommentsLabels, lastIssueUpdatedAt } = await step.do(
       `get issues and associated comments and labels for ${name}`,
       async () => {
