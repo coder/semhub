@@ -7,6 +7,10 @@ compatibility_flags = ["nodejs_compat"]
 enabled = true
 head_sampling_rate = 1
 
+[[services]]
+binding = "RATE_LIMITER"
+service = "semhub-rate-limiter-dev"
+
 [[workflows]]
 name = "semhub-sync-repo-init-workflow-dev"
 binding = "SYNC_REPO_INIT_WORKFLOW"
@@ -15,6 +19,10 @@ class_name = "SyncWorkflow"
 # Production environment
 [env.prod]
 name = "semhub-sync-repo-init-prod"
+
+[[env.prod.services]]
+binding = "RATE_LIMITER"
+service = "semhub-rate-limiter-prod"
 
 [[env.prod.workflows]]
 name = "semhub-sync-repo-init-workflow-prod"

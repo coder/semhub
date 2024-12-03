@@ -12,6 +12,10 @@ name = "semhub-sync-repo-cron-workflow-dev"
 binding = "SYNC_REPO_CRON_WORKFLOW"
 class_name = "SyncWorkflow"
 
+[[services]]
+binding = "RATE_LIMITER"
+service = "semhub-rate-limiter-dev"
+
 # Production environment
 [env.prod]
 name = "semhub-sync-repo-cron-prod"
@@ -20,3 +24,7 @@ name = "semhub-sync-repo-cron-prod"
 name = "semhub-sync-repo-cron-workflow-prod"
 binding = "SYNC_REPO_CRON_WORKFLOW"
 class_name = "SyncWorkflow"
+
+[[env.prod.services]]
+binding = "RATE_LIMITER"
+service = "semhub-rate-limiter-prod"
