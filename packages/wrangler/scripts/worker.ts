@@ -12,15 +12,20 @@ const WorkerSchema = z.union([
 const ArgsSchema = z.object({
   action: ActionSchema,
   worker: WorkerSchema,
+  prod: z.boolean().optional().default(false),
 });
 
 try {
-  const { action, worker } = ArgsSchema.parse({
+  const { action, worker, prod } = ArgsSchema.parse({
     action: process.argv[2],
     worker: process.argv[3],
+    prod: process.argv[4] === "--prod",
   });
 
-  const command = `sst shell -- bun scripts/wrangler.ts ${action} --config src/${worker}/wrangler.toml`;
+  const stageFlag = prod ? "--stage prod" : "";
+  const envFlag = prod ? "--env prod" : "";
+  const command = `sst shell ${stageFlag} -- bun scripts/wrangler.ts ${action} --config src/${worker}/wrangler.toml ${envFlag}`;
+
   const proc = Bun.spawn(["sh", "-c", command], {
     stdout: "inherit",
     stderr: "inherit",
@@ -34,7 +39,7 @@ try {
       error.errors.map((e) => `- ${e.path.join(".")}: ${e.message}`).join("\n"),
     );
     console.error(
-      "\nUsage: bun worker.ts <dev|deploy|delete> <rate-limiter|workflows/path/to/worker>",
+      "\nUsage: bun worker.ts <dev|deploy|delete> <rate-limiter|workflows/path/to/worker> [--prod]",
     );
   } else {
     console.error("An unexpected error occurred:", error);

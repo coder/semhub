@@ -1,4 +1,4 @@
-name = "rate-limiter"
+name = "semhub-rate-limiter-dev"
 compatibility_date = "2024-10-22" # keep in sync with @cloudflare/workers-types
 main = "./index.ts"
 
@@ -7,15 +7,23 @@ name = "RATE_LIMITER"
 class_name = "RateLimiter"
 
 [[migrations]]
-tag = "v1"                           # tag must be unique for each entry
-new_sqlite_classes = ["RateLimiter"] # Array of new classes
+tag = "v1"
+new_sqlite_classes = ["RateLimiter"]
 
 [observability]
 enabled = true
 head_sampling_rate = 0.9
 
-# [env.prod]
-# name = "rate-limiter-prod"
-# [[env.prod.durable_objects.bindings]]
-# name = "RATE_LIMITER_PROD"
-# class_name = "RateLimiter"
+# Production environment
+[env.prod]
+name = "semhub-rate-limiter-prod"
+
+# Prod needs its own DO binding
+[[env.prod.durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+# Prod needs its own migrations
+[[env.prod.migrations]]
+tag = "v1"
+new_sqlite_classes = ["RateLimiter"]
