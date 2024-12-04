@@ -92,7 +92,7 @@ export namespace Repo {
       labelsToInsert,
       issueToLabelRelationsToInsertNodeIds,
     }: Awaited<
-      ReturnType<typeof Github.getIssuesSinceLastUpdated>
+      ReturnType<typeof Github.getIssuesViaIterator>
     >["issuesAndCommentsLabels"],
     db: DbClient,
   ) {

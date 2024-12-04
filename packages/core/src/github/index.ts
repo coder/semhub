@@ -38,7 +38,7 @@ export namespace Github {
     repoOwner,
     octokit,
   }: {
-    issueNumbers: Awaited<ReturnType<typeof getIssuesToProcess>>;
+    issueNumbers: Awaited<ReturnType<typeof getIssuesArrayToChunk>>;
     repoId: string;
     repoName: string;
     repoOwner: string;
@@ -136,7 +136,7 @@ export namespace Github {
       lastIssueUpdatedAt,
     };
   }
-  export async function getIssuesSinceLastUpdated(
+  export async function getIssuesViaIterator(
     {
       repoId,
       repoName,
@@ -376,7 +376,7 @@ export namespace Github {
     return print(query);
   }
 
-  export async function getIssuesToProcess({
+  export async function getIssuesArrayToChunk({
     repoOwner,
     repoName,
     octokit,
