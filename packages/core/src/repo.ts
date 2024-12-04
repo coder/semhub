@@ -8,8 +8,6 @@ import { repos } from "@/db/schema/entities/repo.sql";
 import { conflictUpdateAllExcept } from "@/db/utils/conflict";
 import type { Github } from "@/github";
 
-import { jsonAggBuildObjectFromJoin } from "./db/utils/json";
-
 export namespace Repo {
   export async function getReposForCron(db: DbClient) {
     return await db

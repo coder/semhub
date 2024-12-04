@@ -1,6 +1,5 @@
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
-import type RateLimiterWorker from "@/wrangler/rate-limiter";
 import type { CronSyncParams } from "@/wrangler/workflows/sync-repo/cron";
 import {
   generateCronSyncWorkflowId,

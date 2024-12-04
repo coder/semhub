@@ -130,19 +130,25 @@ export const syncRepo = async ({
       `process issues with outdated embeddings for repo ${name}`,
       async () => {
         const processIssueIdsStep = async (issueIds: string[], idx: number) => {
-          const workflow = await step.do(
+          const workflowId = await step.do(
             `launch workflow for issueIds batch ${idx}`,
             async () => {
               // the reason we launch a workflow is because there is a 1000-subrequest limit per worker
               const workflow = await embeddingWorkflow.create({
                 params: { issueIds },
               });
-              return workflow;
+              return workflow.id;
             },
           );
           while (true) {
-            const { status } = await workflow.status();
-            switch (status) {
+            const workflowStatus = await step.do(
+              "get workflow status",
+              async () => {
+                const workflow = await embeddingWorkflow.get(workflowId);
+                return await workflow.status();
+              },
+            );
+            switch (workflowStatus.status) {
               case "complete":
               case "errored":
               case "terminated":
