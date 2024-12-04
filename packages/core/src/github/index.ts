@@ -38,7 +38,7 @@ export namespace Github {
     repoOwner,
     octokit,
   }: {
-    issueNumbers: Awaited<ReturnType<typeof getAllIssuesToProcess>>;
+    issueNumbers: Awaited<ReturnType<typeof getIssuesToProcess>>;
     repoId: string;
     repoName: string;
     repoOwner: string;
@@ -136,7 +136,7 @@ export namespace Github {
       lastIssueUpdatedAt,
     };
   }
-  export async function getAllIssuesCommentsLabels(
+  export async function getIssuesSinceLastUpdated(
     {
       repoId,
       repoName,
@@ -376,7 +376,7 @@ export namespace Github {
     return print(query);
   }
 
-  export async function getAllIssuesToProcess({
+  export async function getIssuesToProcess({
     repoOwner,
     repoName,
     octokit,
@@ -385,7 +385,7 @@ export namespace Github {
     repoOwner: string;
     repoName: string;
     octokit: GraphqlOctokit;
-    since?: Date;
+    since: Date | null;
   }) {
     const query = graphql(`
       query getIssueNumbers(

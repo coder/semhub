@@ -31,17 +31,18 @@ export const syncRepo = async ({
   const name = `${repoOwner}/${repoName}`;
   // use try catch so that in failure, we will mark repo as not syncing
   try {
-    const allIssues = await step.do("get all issues to process", async () => {
-      return await Github.getAllIssuesToProcess({
+    const issuesToProcess = await step.do("get issues to process", async () => {
+      return await Github.getIssuesToProcess({
         repoOwner,
         repoName,
         octokit: graphqlOctokit,
+        since: repo.issuesLastUpdatedAt,
       });
     });
     const chunkedIssues = await step.do("chunk issues", async () => {
       // return value max size of 1MiB, chunk issues to extract into batches of 100
       const CHUNK_SIZE = 100;
-      return chunkArray(allIssues, CHUNK_SIZE);
+      return chunkArray(issuesToProcess, CHUNK_SIZE);
     });
     const issueUpdatedCandidates = await step.do(
       `get issues metadata and upsert issues and associated comments and labels for ${name}`,
