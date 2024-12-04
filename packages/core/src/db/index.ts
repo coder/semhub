@@ -23,7 +23,7 @@ class EmbeddingAwareLogger implements Logger {
           if (Array.isArray(array) && array.length > 10) {
             return `$${index + 1}=[Embedding Array: length=${array.length}]`;
           }
-        } catch (e) {
+        } catch (_) {
           // If JSON.parse fails, return original param
           return param;
         }

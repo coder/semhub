@@ -3,8 +3,9 @@ import type { Env } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { Resource } from "sst";
-import { ulid } from "ulidx";
 
+import { Repo } from "@/core/repo";
+import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
 import type { InitSyncParams } from "@/wrangler/workflows/sync-repo/init";
 import type { RPCWorkflow } from "@/wrangler/workflows/sync-repo/util";
@@ -30,30 +31,18 @@ app.use("*", cors());
 
 // TODO: delete before merging
 app.get("/test", async (c) => {
-  const workflowId = await c.env.SYNC_REPO_INIT_WORKFLOW.create({
-    params: {
-      repo: {
-        owner: "getcursor",
-        name: "cursor",
-      },
-    },
-  });
-  console.log("workflowId", workflowId);
-  console.log("reached here?");
-  const status =
-    await c.env.SYNC_REPO_INIT_WORKFLOW.getInstanceStatus(workflowId);
-  console.log("test test");
-  console.log("status", status.status);
+  const { db } = getDeps();
+  const repos = await Repo.getReposForCron(db);
+  console.log("repos", repos);
   return c.json({
     success: true,
-    message: "triggered and terminated workflow",
-    id: workflowId,
+    repos,
   });
 });
 
-const routes = app.basePath("/api").route("/search", searchRouter);
+const _routes = app.basePath("/api").route("/search", searchRouter);
 
-export type ApiRoutes = typeof routes;
+export type ApiRoutes = typeof _routes;
 
 app.onError((err, c) => {
   if (err instanceof HTTPException && err.res) {

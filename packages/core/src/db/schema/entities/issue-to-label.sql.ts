@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { index, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
+import { pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
 
 import { getTimestampColumns } from "../base.sql";
 import { issueTable } from "./issue.sql";

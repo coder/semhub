@@ -1,5 +1,5 @@
 import type { DbClient } from "@/db";
-import { and, eq, inArray, isNotNull, isNull, lt, or, sql } from "@/db";
+import { and, eq, isNotNull, sql } from "@/db";
 import { comments } from "@/db/schema/entities/comment.sql";
 import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
@@ -81,6 +81,7 @@ export namespace Repo {
         issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
         repoName: repos.name,
         repoOwner: repos.owner,
+        isSyncing: repos.isSyncing,
       });
     return result;
   }

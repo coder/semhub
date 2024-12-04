@@ -6,7 +6,6 @@ import { repos } from "@/core/db/schema/entities/repo.sql";
 import { Embedding } from "@/core/embedding";
 import { Github } from "@/core/github";
 import type { GraphqlOctokit } from "@/core/github/shared";
-import type { OpenAIClient } from "@/core/openai";
 import { Repo } from "@/core/repo";
 
 import type { EmbeddingParams } from "./embedding";

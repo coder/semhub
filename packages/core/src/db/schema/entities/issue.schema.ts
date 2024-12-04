@@ -20,7 +20,7 @@ const selectIssueSchema = createSelectSchema(issueTable).extend({
 
 export type SelectIssue = z.infer<typeof selectIssueSchema>;
 
-const selectIssueForEmbedding = selectIssueSchema.pick({
+const _selectIssueForEmbeddingSchema = selectIssueSchema.pick({
   id: true,
   number: true,
   author: true,
@@ -32,4 +32,6 @@ const selectIssueForEmbedding = selectIssueSchema.pick({
   issueClosedAt: true,
 });
 
-export type SelectIssueForEmbedding = z.infer<typeof selectIssueForEmbedding>;
+export type SelectIssueForEmbedding = z.infer<
+  typeof _selectIssueForEmbeddingSchema
+>;

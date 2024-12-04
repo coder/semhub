@@ -14,7 +14,6 @@ import { jsonAggBuildObjectFromJoin } from "./db/utils/json";
 import type { OpenAIClient } from "./openai";
 import { isReducePromptError } from "./openai/errors";
 import { embeddingsCreateSchema } from "./openai/schema";
-import type { Repo } from "./repo";
 import { sleep } from "./util";
 
 export namespace Embedding {

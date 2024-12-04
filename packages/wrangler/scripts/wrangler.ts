@@ -11,7 +11,7 @@ async function deploy() {
   const wranglerArgs = process.argv.slice(2).join(" ");
   const isProd = wranglerArgs.includes("prod");
   const env = isProd ? "prod" : "dev";
-  const envFlag = isProd ? "--env prod" : "";
+  const _envFlag = isProd ? "--env prod" : "";
   const cloudflareEnvVars = `CF_ACCOUNT_ID=${process.env.CLOUDFLARE_ACCOUNT_ID} CF_API_TOKEN=${process.env.CLOUDFLARE_API_TOKEN}`;
 
   console.log(`Running wrangler ${wranglerArgs} for ${env} environment`);
