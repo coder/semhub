@@ -3,7 +3,7 @@ import { WorkflowEntrypoint } from "cloudflare:workers";
 import pMap from "p-map";
 
 import type { WranglerSecrets } from "@/core/constants/wrangler";
-import type { Repo } from "@/core/repo";
+import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 
 import type { EmbeddingParams } from "../embedding";
@@ -29,6 +29,17 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, CronSyncParams> {
       githubPersonalAccessToken: GITHUB_PERSONAL_ACCESS_TOKEN,
       openaiApiKey: OPENAI_API_KEY,
     });
+    for (const { repoId } of repos) {
+      await step.do("sync started, mark repo as syncing", async () => {
+        await Repo.updateSyncStatus(
+          {
+            repoId,
+            isSyncing: true,
+          },
+          db,
+        );
+      });
+    }
     await pMap(
       repos,
       (repo) =>

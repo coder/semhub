@@ -30,15 +30,6 @@ export const syncRepo = async ({
 }) => {
   const { repoId, repoOwner, repoName } = repo;
   const name = `${repoOwner}/${repoName}`;
-  await step.do("sync started, mark repo as syncing", async () => {
-    await Repo.updateSyncStatus(
-      {
-        repoId,
-        isSyncing: true,
-      },
-      db,
-    );
-  });
   // use try catch so that in failure, we will mark repo as not syncing
   try {
     const allIssues = await step.do("get all issues to process", async () => {

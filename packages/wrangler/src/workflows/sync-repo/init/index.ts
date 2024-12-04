@@ -29,7 +29,7 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, InitSyncParams> {
     const { repo } = event.payload;
     const { DATABASE_URL, GITHUB_PERSONAL_ACCESS_TOKEN, OPENAI_API_KEY } =
       this.env;
-    const { db, graphqlOctokit, openai, restOctokit } = getDeps({
+    const { db, graphqlOctokit, restOctokit } = getDeps({
       databaseUrl: DATABASE_URL,
       githubPersonalAccessToken: GITHUB_PERSONAL_ACCESS_TOKEN,
       openaiApiKey: OPENAI_API_KEY,
@@ -47,6 +47,15 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, InitSyncParams> {
       // should not initialize repo that has already been initialized
       throw new NonRetryableError("Repo has been initialized");
     }
+    await step.do("sync started, mark repo as syncing", async () => {
+      await Repo.updateSyncStatus(
+        {
+          repoId: createdRepo.repoId,
+          isSyncing: true,
+        },
+        db,
+      );
+    });
     await syncRepo({
       repo: createdRepo,
       step,
