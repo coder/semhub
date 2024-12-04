@@ -1,4 +1,4 @@
-import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
+import type { WorkflowStep } from "cloudflare:workers";
 import { WorkflowEntrypoint } from "cloudflare:workers";
 import pMap from "p-map";
 
@@ -15,19 +15,17 @@ interface Env extends WranglerSecrets {
   SYNC_REPO_EMBEDDING_WORKFLOW: WorkflowRPC<EmbeddingParams>;
 }
 
-export interface CronSyncParams {
-  repos: Awaited<ReturnType<typeof Repo.getReposForCron>>;
-}
-
-export class SyncWorkflow extends WorkflowEntrypoint<Env, CronSyncParams> {
-  async run(event: WorkflowEvent<CronSyncParams>, step: WorkflowStep) {
-    const { repos } = event.payload;
+export class SyncWorkflow extends WorkflowEntrypoint<Env> {
+  async run(_: unknown, step: WorkflowStep) {
     const { DATABASE_URL, GITHUB_PERSONAL_ACCESS_TOKEN, OPENAI_API_KEY } =
       this.env;
     const { db, graphqlOctokit } = getDeps({
       databaseUrl: DATABASE_URL,
       githubPersonalAccessToken: GITHUB_PERSONAL_ACCESS_TOKEN,
       openaiApiKey: OPENAI_API_KEY,
+    });
+    const repos = await step.do("get repos", async () => {
+      return await Repo.getReposForCron(db);
     });
     for (const { repoId } of repos) {
       await step.do("sync started, mark repo as syncing", async () => {
@@ -82,8 +80,8 @@ export default {
       { status: 400 },
     );
   },
-  async create({ params }: { params: CronSyncParams }, env: Env) {
-    const { id } = await env.SYNC_REPO_CRON_WORKFLOW.create({ params });
+  async create(_, env: Env) {
+    const { id } = await env.SYNC_REPO_CRON_WORKFLOW.create();
     return id;
   },
   async terminate(id: string, env: Env) {
@@ -94,4 +92,4 @@ export default {
     const instance = await env.SYNC_REPO_CRON_WORKFLOW.get(id);
     return await instance.status();
   },
-} satisfies WorkflowRPC<CronSyncParams>;
+} satisfies WorkflowRPC;

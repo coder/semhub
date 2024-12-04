@@ -1,5 +1,6 @@
 // cannot send WorkflowInstance over RPC, so must write substitute methods
-export interface WorkflowRPC<T, E = unknown> {
+// be careful: if you send a non-string payload, it will be serialized to string and lose its methods
+export interface WorkflowRPC<T = unknown, E = unknown> {
   fetch(request: Request, env?: E): Promise<Response>;
   create(
     options?: Omit<WorkflowInstanceCreateOptions, "params"> & { params?: T },

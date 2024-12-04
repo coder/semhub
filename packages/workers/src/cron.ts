@@ -1,13 +1,7 @@
-import { Repo } from "@/core/repo";
-import { getDeps } from "@/deps";
-import type { CronSyncParams } from "@/wrangler/workflows/sync-repo/cron";
-import {
-  generateCronSyncWorkflowId,
-  type WorkflowRPC,
-} from "@/wrangler/workflows/sync-repo/util";
+import { generateCronSyncWorkflowId } from "@/wrangler/workflows/sync-repo/util";
 
 type Env = {
-  SYNC_REPO_CRON_WORKFLOW: WorkflowRPC<CronSyncParams>;
+  SYNC_REPO_CRON_WORKFLOW: Workflow;
 };
 
 export default {
@@ -15,13 +9,8 @@ export default {
     switch (controller.cron) {
       // Every ten minutes
       case "*/10 * * * *":
-        const { db } = getDeps();
-        const repos = await Repo.getReposForCron(db);
         await env.SYNC_REPO_CRON_WORKFLOW.create({
           id: generateCronSyncWorkflowId(),
-          params: {
-            repos,
-          },
         });
         break;
     }
