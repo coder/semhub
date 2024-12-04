@@ -91,8 +91,8 @@ export default {
       { status: 400 },
     );
   },
-  async create({ params }: { params: InitSyncParams }, env: Env) {
-    const workflow = await env.SYNC_REPO_INIT_WORKFLOW.create({ params });
+  async create(options, env: Env) {
+    const workflow = await env.SYNC_REPO_INIT_WORKFLOW.create(options);
     return workflow.id;
   },
   async terminate(id: string, env: Env) {

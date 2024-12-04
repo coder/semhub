@@ -80,8 +80,8 @@ export default {
       { status: 400 },
     );
   },
-  async create(_, env: Env) {
-    const { id } = await env.SYNC_REPO_CRON_WORKFLOW.create();
+  async create(options, env: Env) {
+    const { id } = await env.SYNC_REPO_CRON_WORKFLOW.create(options);
     return id;
   },
   async terminate(id: string, env: Env) {

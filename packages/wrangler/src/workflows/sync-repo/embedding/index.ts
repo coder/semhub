@@ -87,8 +87,8 @@ export default {
       { status: 400 },
     );
   },
-  async create({ params }: { params: EmbeddingParams }, env: Env) {
-    const { id } = await env.SYNC_REPO_EMBEDDING_WORKFLOW.create({ params });
+  async create(options, env: Env) {
+    const { id } = await env.SYNC_REPO_EMBEDDING_WORKFLOW.create(options);
     return id;
   },
   async terminate(id: string, env: Env) {
