@@ -40,6 +40,10 @@ export const syncRepo = async ({
       });
     },
   );
+  if (issuesToChunk.length === 0) {
+    await finalizeSync({ repoId, completedAt: new Date(), db, step });
+    return;
+  }
   const chunkedIssues = await step.do("chunk issues", async () => {
     // return value max size of 1MiB, chunk issues to extract into batches of 100
     const CHUNK_SIZE = 100;
@@ -111,6 +115,10 @@ export const syncRepo = async ({
       return await Embedding.getOutdatedIssues(db, repoId);
     },
   );
+  if (outdatedIssueIds.length === 0) {
+    await finalizeSync({ repoId, completedAt: new Date(), db, step });
+    return;
+  }
   const chunkedIssueIds = await step.do(
     `chunk issues with outdated embeddings for repo ${name}`,
     async () => {
@@ -179,6 +187,20 @@ export const syncRepo = async ({
       },
     );
   }
+  await finalizeSync({ repoId, completedAt, db, step });
+};
+
+async function finalizeSync({
+  repoId,
+  completedAt,
+  db,
+  step,
+}: {
+  repoId: string;
+  completedAt: Date;
+  db: DbClient;
+  step: WorkflowStep;
+}) {
   await step.do("sync successful, mark repo as not syncing", async () => {
     await Repo.updateSyncStatus(
       {
@@ -190,4 +212,4 @@ export const syncRepo = async ({
       db,
     );
   });
-};
+}
