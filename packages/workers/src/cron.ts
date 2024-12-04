@@ -8,7 +8,6 @@ import {
 } from "@/wrangler/workflows/sync-repo/util";
 
 type Env = {
-  RATE_LIMITER: Service<RateLimiterWorker>;
   SYNC_REPO_CRON_WORKFLOW: WorkflowWithTypedParams<CronSyncParams>;
 };
 
@@ -17,16 +16,12 @@ export default {
     switch (controller.cron) {
       // Every ten minutes
       case "*/10 * * * *":
-        const { db, graphqlOctokit, openai } = getDeps();
+        const { db } = getDeps();
         const repos = await Repo.getReposForCron(db);
         await env.SYNC_REPO_CRON_WORKFLOW.create({
           id: generateCronSyncWorkflowId(),
           params: {
-            db,
             repos,
-            graphqlOctokit,
-            openai,
-            rateLimiter: env.RATE_LIMITER,
           },
         });
         break;

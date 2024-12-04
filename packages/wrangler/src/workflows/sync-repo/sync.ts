@@ -1,7 +1,6 @@
 import type { WorkflowStep } from "cloudflare:workers";
 import pMap from "p-map";
 
-import type { RateLimiter } from "@/core/constants/rate-limit";
 import { eq, type DbClient } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { Embedding } from "@/core/embedding";
@@ -10,15 +9,25 @@ import type { GraphqlOctokit } from "@/core/github/shared";
 import type { OpenAIClient } from "@/core/openai";
 import { Repo } from "@/core/repo";
 
-export const syncRepo = async (
-  repo: Awaited<ReturnType<typeof Repo.getReposForCron>>[number],
-  step: WorkflowStep,
-  db: DbClient,
-  graphqlOctokit: GraphqlOctokit,
-  openai: OpenAIClient,
-  mode: "cron" | "init",
-  rateLimiter: RateLimiter | null,
-) => {
+import type { EmbeddingParams } from "./embedding";
+import type { WorkflowWithTypedParams } from "./util";
+import { chunkArray } from "./util";
+
+export const syncRepo = async ({
+  repo,
+  step,
+  db,
+  graphqlOctokit,
+  mode,
+  embeddingWorkflow,
+}: {
+  repo: Awaited<ReturnType<typeof Repo.getReposForCron>>[number];
+  step: WorkflowStep;
+  db: DbClient;
+  graphqlOctokit: GraphqlOctokit;
+  mode: "cron" | "init";
+  embeddingWorkflow: WorkflowWithTypedParams<EmbeddingParams>;
+}) => {
   const { repoId, repoOwner, repoName } = repo;
   const name = `${repoOwner}/${repoName}`;
   await step.do("sync started, mark repo as syncing", async () => {
@@ -42,16 +51,12 @@ export const syncRepo = async (
     const chunkedIssues = await step.do("chunk issues", async () => {
       // return value max size of 1MiB, chunk issues to extract into batches of 100
       const CHUNK_SIZE = 100;
-      const chunks = [];
-      for (let i = 0; i < allIssues.length; i += CHUNK_SIZE) {
-        chunks.push(allIssues.slice(i, i + CHUNK_SIZE));
-      }
-      return chunks;
+      return chunkArray(allIssues, CHUNK_SIZE);
     });
     const issueUpdatedCandidates = await step.do(
       `get issues metadata and upsert issues and associated comments and labels for ${name}`,
       async () => {
-        const processIssues = async (
+        const processChunkedIssues = async (
           issueNumbers: (typeof chunkedIssues)[number],
           idx: number,
         ) => {
@@ -78,7 +83,7 @@ export const syncRepo = async (
         return await pMap(
           chunkedIssues,
           async (issueNumbers, idx) => {
-            return await processIssues(issueNumbers, idx);
+            return await processChunkedIssues(issueNumbers, idx);
           },
           { concurrency: 2 },
         );
@@ -92,7 +97,6 @@ export const syncRepo = async (
           .reduce((a, b) => (a > b ? a : b));
       },
     );
-
     if (mode === "cron") {
       // can set this once issues have been inserted; no need to wait for embeddings
       // search may be slightly outdated, but it's fine + it's tracked in issues table
@@ -118,50 +122,49 @@ export const syncRepo = async (
     const chunkedIssueIds = await step.do(
       `chunk issues with outdated embeddings for repo ${name}`,
       async () => {
-        const CHUNK_SIZE = 25;
-        const chunks = [];
-        for (let i = 0; i < outdatedIssueIds.length; i += CHUNK_SIZE) {
-          chunks.push(outdatedIssueIds.slice(i, i + CHUNK_SIZE));
-        }
-        return chunks;
+        const CHUNK_SIZE = 200;
+        return chunkArray(outdatedIssueIds, CHUNK_SIZE);
       },
     );
     const completedAt = await step.do(
       `process issues with outdated embeddings for repo ${name}`,
       async () => {
-        const processIssueIdsStep = async (
-          issueIds: typeof outdatedIssueIds,
-          idx: number,
-        ) => {
-          const selectedIssues = await step.do(
-            `get issues for batch ${idx}`,
+        const processIssueIdsStep = async (issueIds: string[], idx: number) => {
+          const workflow = await step.do(
+            `launch workflow for issueIds batch ${idx}`,
             async () => {
-              return await Embedding.selectIssuesForEmbedding(
-                issueIds.map((b) => b.id),
-                db,
-              );
+              // the reason we launch a workflow is because there is a 1000-subrequest limit per worker
+              const workflow = await embeddingWorkflow.create({
+                params: { issueIds },
+              });
+              return workflow;
             },
           );
-          const embeddings = await step.do(
-            `get embeddings for batch ${idx}`,
-            async () => {
-              return await Embedding.createEmbeddingsBatch(
-                selectedIssues,
-                rateLimiter,
-                openai,
-              );
-            },
-          );
-          await step.do("update issue embeddings", async () => {
-            await Embedding.bulkUpdateIssueEmbeddings(embeddings, db);
-          });
+          while (true) {
+            const { status } = await workflow.status();
+            switch (status) {
+              case "complete":
+              case "errored":
+              case "terminated":
+                return;
+              default: {
+                await step.sleep(
+                  "wait for workflow to complete or error out",
+                  "30 seconds",
+                );
+              }
+            }
+          }
         };
         await pMap(
           chunkedIssueIds,
           async (issueIds, idx) => {
-            await processIssueIdsStep(issueIds, idx);
+            await processIssueIdsStep(
+              issueIds.map((b) => b.id),
+              idx,
+            );
           },
-          { concurrency: 3 },
+          { concurrency: 2 },
         );
         return new Date();
       },

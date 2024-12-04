@@ -8,8 +8,8 @@ enabled = true
 head_sampling_rate = 1
 
 [[services]]
-binding = "RATE_LIMITER"
-service = "semhub-rate-limiter-dev"
+binding = "SYNC_REPO_EMBEDDING_WORKFLOW"
+service = "semhub-sync-repo-embedding-dev"
 
 [[workflows]]
 name = "semhub-sync-repo-init-workflow-dev"
@@ -21,8 +21,8 @@ class_name = "SyncWorkflow"
 name = "semhub-sync-repo-init-prod"
 
 [[env.prod.services]]
-binding = "RATE_LIMITER"
-service = "semhub-rate-limiter-prod"
+binding = "SYNC_REPO_EMBEDDING_WORKFLOW"
+service = "semhub-sync-repo-embedding-prod"
 
 [[env.prod.workflows]]
 name = "semhub-sync-repo-init-workflow-prod"

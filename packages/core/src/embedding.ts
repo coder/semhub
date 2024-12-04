@@ -146,6 +146,7 @@ export namespace Embedding {
     embeddings: Awaited<ReturnType<typeof Embedding.createEmbeddingsBatch>>,
     db: DbClient,
   ) {
+    if (embeddings.length === 0) return;
     const sqlChunks: SQL[] = [];
     const issueIdArray: string[] = [];
     sqlChunks.push(sql`(case`);

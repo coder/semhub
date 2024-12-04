@@ -13,8 +13,8 @@ binding = "SYNC_REPO_CRON_WORKFLOW"
 class_name = "SyncWorkflow"
 
 [[services]]
-binding = "RATE_LIMITER"
-service = "semhub-rate-limiter-dev"
+binding = "SYNC_REPO_EMBEDDING_WORKFLOW"
+service = "semhub-sync-repo-embedding-dev"
 
 # Production environment
 [env.prod]
@@ -26,5 +26,5 @@ binding = "SYNC_REPO_CRON_WORKFLOW"
 class_name = "SyncWorkflow"
 
 [[env.prod.services]]
-binding = "RATE_LIMITER"
-service = "semhub-rate-limiter-prod"
+binding = "SYNC_REPO_EMBEDDING_WORKFLOW"
+service = "semhub-sync-repo-embedding-prod"

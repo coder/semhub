@@ -22,3 +22,9 @@ export function generateCronSyncWorkflowId(): string {
   const tenMinutesInMs = 10 * 60 * 1000;
   return `cron-sync-${getCurrentWindowTimestamp(tenMinutesInMs)}`;
 }
+
+export function chunkArray<T>(array: T[], size: number): T[][] {
+  return Array.from({ length: Math.ceil(array.length / size) }, (_, index) =>
+    array.slice(index * size, (index + 1) * size),
+  );
+}

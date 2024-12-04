@@ -6,14 +6,14 @@ import type { WranglerSecrets } from "@/core/constants/wrangler";
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
-import type RateLimiterWorker from "@/rate-limiter";
 
+import type { EmbeddingParams } from "../embedding";
 import { syncRepo } from "../sync";
 import type { WorkflowWithTypedParams } from "../util";
 
 interface Env extends WranglerSecrets {
-  RATE_LIMITER: Service<RateLimiterWorker>;
   SYNC_REPO_INIT_WORKFLOW: WorkflowWithTypedParams<InitSyncParams>;
+  SYNC_REPO_EMBEDDING_WORKFLOW: WorkflowWithTypedParams<EmbeddingParams>;
 }
 
 // User-defined params passed to your workflow
@@ -47,15 +47,14 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, InitSyncParams> {
       // should not initialize repo that has already been initialized
       throw new NonRetryableError("Repo has been initialized");
     }
-    await syncRepo(
-      createdRepo,
+    await syncRepo({
+      repo: createdRepo,
       step,
       db,
       graphqlOctokit,
-      openai,
-      "init",
-      this.env.RATE_LIMITER,
-    );
+      mode: "init",
+      embeddingWorkflow: this.env.SYNC_REPO_EMBEDDING_WORKFLOW,
+    });
     await step.do("update repo.issuesLastUpdatedAt", async () => {
       await Repo.updateSyncStatus(
         {

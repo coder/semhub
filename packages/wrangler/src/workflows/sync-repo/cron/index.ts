@@ -2,38 +2,45 @@ import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import { WorkflowEntrypoint } from "cloudflare:workers";
 import pMap from "p-map";
 
-import type { RateLimiter } from "@/core/constants/rate-limit";
 import type { WranglerSecrets } from "@/core/constants/wrangler";
-import type { DbClient } from "@/core/db";
-import type { GraphqlOctokit } from "@/core/github/shared";
-import type { OpenAIClient } from "@/core/openai";
 import type { Repo } from "@/core/repo";
-import type RateLimiterWorker from "@/rate-limiter";
+import { getDeps } from "@/deps";
 
+import type { EmbeddingParams } from "../embedding";
 import { syncRepo } from "../sync";
+import type { WorkflowWithTypedParams } from "../util";
 
 interface Env extends WranglerSecrets {
-  RATE_LIMITER: Service<RateLimiterWorker>;
   SYNC_REPO_CRON_WORKFLOW: Workflow;
+  SYNC_REPO_EMBEDDING_WORKFLOW: WorkflowWithTypedParams<EmbeddingParams>;
 }
 
 export interface CronSyncParams {
-  db: DbClient;
   repos: Awaited<ReturnType<typeof Repo.getReposForCron>>;
-  graphqlOctokit: GraphqlOctokit;
-  openai: OpenAIClient;
-  rateLimiter: RateLimiter;
 }
 
 export class SyncWorkflow extends WorkflowEntrypoint<Env, CronSyncParams> {
   async run(event: WorkflowEvent<CronSyncParams>, step: WorkflowStep) {
-    const { db, repos, graphqlOctokit, openai, rateLimiter } = event.payload;
+    const { repos } = event.payload;
+    const { DATABASE_URL, GITHUB_PERSONAL_ACCESS_TOKEN, OPENAI_API_KEY } =
+      this.env;
+    const { db, graphqlOctokit } = getDeps({
+      databaseUrl: DATABASE_URL,
+      githubPersonalAccessToken: GITHUB_PERSONAL_ACCESS_TOKEN,
+      openaiApiKey: OPENAI_API_KEY,
+    });
     await pMap(
       repos,
       (repo) =>
-        syncRepo(repo, step, db, graphqlOctokit, openai, "cron", rateLimiter),
+        syncRepo({
+          repo,
+          step,
+          db,
+          graphqlOctokit,
+          mode: "cron",
+          embeddingWorkflow: this.env.SYNC_REPO_EMBEDDING_WORKFLOW,
+        }),
       {
-        // syncing two repos at a time
         concurrency: 2,
       },
     );
