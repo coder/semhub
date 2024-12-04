@@ -125,7 +125,7 @@ export const syncRepo = async ({
             async () => {
               // the reason we launch a new workflow is because there is a 1000-subrequest limit per worker
               return await embeddingWorkflow.create({
-                params: { issueIds },
+                params: { issueIds, name },
               });
             },
           );

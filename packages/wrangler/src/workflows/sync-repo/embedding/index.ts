@@ -16,6 +16,7 @@ interface Env extends WranglerSecrets {
 
 export type EmbeddingParams = {
   issueIds: string[];
+  name: string;
 };
 
 export class EmbeddingWorkflow extends WorkflowEntrypoint<
@@ -23,7 +24,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
   EmbeddingParams
 > {
   async run(event: WorkflowEvent<EmbeddingParams>, step: WorkflowStep) {
-    const { issueIds } = event.payload;
+    const { issueIds, name: repoName } = event.payload;
     const { DATABASE_URL, GITHUB_PERSONAL_ACCESS_TOKEN, OPENAI_API_KEY } =
       this.env;
     const { db, openai } = getDeps({
@@ -32,7 +33,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
       openaiApiKey: OPENAI_API_KEY,
     });
     const issueIdBatches = await step.do(
-      "Preparing issue batches for processing",
+      `Preparing issue batches for processing issues of ${repoName}`,
       async () => {
         const BATCH_SIZE = 25;
         return chunkArray(issueIds, BATCH_SIZE);
@@ -44,7 +45,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         `Processing batch ${batchIndex + 1}/${issueIdBatches.length}`,
         async () => {
           const selectedIssues = await step.do(
-            `selecting issues from db for embedding (batch ${batchIndex + 1})`,
+            `selecting issues from db for embedding (batch ${batchIndex + 1}) for ${repoName}`,
             async () => {
               return await Embedding.selectIssuesForEmbedding(
                 batchIssueIds,
@@ -54,7 +55,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
           );
 
           const embeddings = await step.do(
-            `create embeddings for selected issues from API`,
+            `create embeddings for selected issues from API for ${repoName}`,
             async () => {
               // TODO: move this out into steps and increase concurrency. pMap 5?
               return await Embedding.createEmbeddingsBatch({
@@ -66,9 +67,12 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
             },
           );
 
-          await step.do(`update issue embeddings in db`, async () => {
-            await Embedding.bulkUpdateIssueEmbeddings(embeddings, db);
-          });
+          await step.do(
+            `update issue embeddings in db for ${repoName}`,
+            async () => {
+              await Embedding.bulkUpdateIssueEmbeddings(embeddings, db);
+            },
+          );
         },
       );
     }
