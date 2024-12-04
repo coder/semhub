@@ -9,11 +9,11 @@ import { getDeps } from "@/deps";
 
 import type { EmbeddingParams } from "../embedding";
 import { syncRepo } from "../sync";
-import type { RPCWorkflow } from "../util";
+import type { WorkflowRPC } from "../util";
 
 interface Env extends WranglerSecrets {
   SYNC_REPO_INIT_WORKFLOW: Workflow;
-  SYNC_REPO_EMBEDDING_WORKFLOW: RPCWorkflow<EmbeddingParams>;
+  SYNC_REPO_EMBEDDING_WORKFLOW: WorkflowRPC<EmbeddingParams>;
 }
 
 // User-defined params passed to your workflow
@@ -104,4 +104,4 @@ export default {
     const status = await instance.status();
     return status;
   },
-} satisfies RPCWorkflow<InitSyncParams>;
+} satisfies WorkflowRPC<InitSyncParams>;

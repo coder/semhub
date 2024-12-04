@@ -6,7 +6,7 @@ import { Embedding } from "@/core/embedding";
 import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/rate-limiter";
 
-import type { RPCWorkflow } from "../util";
+import type { WorkflowRPC } from "../util";
 import { chunkArray } from "../util";
 
 interface Env extends WranglerSecrets {
@@ -56,11 +56,13 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
           const embeddings = await step.do(
             `create embeddings for selected issues from API`,
             async () => {
-              return await Embedding.createEmbeddingsBatch(
-                selectedIssues,
-                this.env.RATE_LIMITER,
+              // TODO: move this out into steps and increase concurrency. pMap 5?
+              return await Embedding.createEmbeddingsBatch({
+                issues: selectedIssues,
+                rateLimiter: this.env.RATE_LIMITER,
                 openai,
-              );
+                concurrencyLimit: 10,
+              });
             },
           );
 
@@ -93,4 +95,4 @@ export default {
     const instance = await env.SYNC_REPO_EMBEDDING_WORKFLOW.get(id);
     return await instance.status();
   },
-} satisfies RPCWorkflow<EmbeddingParams>;
+} satisfies WorkflowRPC<EmbeddingParams>;

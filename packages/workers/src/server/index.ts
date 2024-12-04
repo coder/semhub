@@ -4,11 +4,9 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { Resource } from "sst";
 
-import { Repo } from "@/core/repo";
-import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
 import type { InitSyncParams } from "@/wrangler/workflows/sync-repo/init";
-import type { RPCWorkflow } from "@/wrangler/workflows/sync-repo/util";
+import type { WorkflowRPC } from "@/wrangler/workflows/sync-repo/util";
 
 import type { ErrorResponse } from "./response";
 import { searchRouter } from "./router/searchRouter";
@@ -16,7 +14,7 @@ import { searchRouter } from "./router/searchRouter";
 export interface Context extends Env {
   Bindings: {
     RATE_LIMITER: Service<RateLimiterWorker>;
-    SYNC_REPO_INIT_WORKFLOW: RPCWorkflow<InitSyncParams>;
+    SYNC_REPO_INIT_WORKFLOW: WorkflowRPC<InitSyncParams>;
   };
   Variables: {
     // user: User | null;
@@ -28,17 +26,6 @@ export const app = new Hono<Context>();
 
 // TODO: set up auth
 app.use("*", cors());
-
-// TODO: delete before merging
-app.get("/test", async (c) => {
-  const { db } = getDeps();
-  const repos = await Repo.getReposForCron(db);
-  console.log("repos", repos);
-  return c.json({
-    success: true,
-    repos,
-  });
-});
 
 const _routes = app.basePath("/api").route("/search", searchRouter);
 

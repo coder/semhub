@@ -1,5 +1,6 @@
 import dedent from "dedent";
 import type { SQL } from "drizzle-orm";
+import pMap from "p-map";
 
 import { EMBEDDING_MODEL, type RateLimiter } from "./constants/rate-limit";
 import type { DbClient } from "./db";
@@ -58,16 +59,23 @@ export namespace Embedding {
         ),
       );
   }
-  export async function createEmbeddingsBatch(
-    issues: Awaited<ReturnType<typeof Embedding.selectIssuesForEmbedding>>,
-    rateLimiter: RateLimiter | null,
-    openai: OpenAIClient,
-  ) {
+  export async function createEmbeddingsBatch({
+    issues,
+    rateLimiter,
+    openai,
+    concurrencyLimit,
+  }: {
+    issues: Awaited<ReturnType<typeof Embedding.selectIssuesForEmbedding>>;
+    rateLimiter: RateLimiter | null;
+    openai: OpenAIClient;
+    concurrencyLimit: number;
+  }) {
     const TRUNCATION_MAX_ATTEMPTS = 8;
-    const result = [];
-    for (const issue of issues) {
+
+    const processIssue = async (issue: (typeof issues)[number]) => {
       let attempt = 1;
       const labels = issue.labels;
+
       while (attempt <= TRUNCATION_MAX_ATTEMPTS) {
         try {
           const embedding = await createEmbedding(
@@ -81,24 +89,26 @@ export namespace Embedding {
             },
             openai,
           );
-          result.push({
+          return {
             issueId: issue.id,
             embedding,
-          });
-          break;
+          };
         } catch (error) {
           if (isReducePromptError(error) && attempt < TRUNCATION_MAX_ATTEMPTS) {
             console.log(
               `Retrying issue #${issue.number} with truncation attempt ${attempt + 1}`,
             );
             attempt++;
-            continue;
+          } else {
+            throw error;
           }
-          throw error;
         }
       }
-    }
-    return result;
+      throw new Error(
+        `Failed to create embedding for issue #${issue.number} after ${TRUNCATION_MAX_ATTEMPTS} attempts`,
+      );
+    };
+    return await pMap(issues, processIssue, { concurrency: concurrencyLimit });
   }
   export async function selectIssuesForEmbedding(
     issueIds: string[],

@@ -9,7 +9,7 @@ import type { GraphqlOctokit } from "@/core/github/shared";
 import { Repo } from "@/core/repo";
 
 import type { EmbeddingParams } from "./embedding";
-import type { RPCWorkflow } from "./util";
+import type { WorkflowRPC } from "./util";
 import { chunkArray } from "./util";
 
 export const syncRepo = async ({
@@ -25,7 +25,7 @@ export const syncRepo = async ({
   db: DbClient;
   graphqlOctokit: GraphqlOctokit;
   mode: "cron" | "init";
-  embeddingWorkflow: RPCWorkflow<EmbeddingParams>;
+  embeddingWorkflow: WorkflowRPC<EmbeddingParams>;
 }) => {
   const { repoId, repoOwner, repoName } = repo;
   const name = `${repoOwner}/${repoName}`;
