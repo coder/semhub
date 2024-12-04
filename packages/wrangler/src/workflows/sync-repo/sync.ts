@@ -10,7 +10,7 @@ import type { OpenAIClient } from "@/core/openai";
 import { Repo } from "@/core/repo";
 
 import type { EmbeddingParams } from "./embedding";
-import type { WorkflowWithTypedParams } from "./util";
+import type { RPCWorkflow } from "./util";
 import { chunkArray } from "./util";
 
 export const syncRepo = async ({
@@ -26,7 +26,7 @@ export const syncRepo = async ({
   db: DbClient;
   graphqlOctokit: GraphqlOctokit;
   mode: "cron" | "init";
-  embeddingWorkflow: WorkflowWithTypedParams<EmbeddingParams>;
+  embeddingWorkflow: RPCWorkflow<EmbeddingParams>;
 }) => {
   const { repoId, repoOwner, repoName } = repo;
   const name = `${repoOwner}/${repoName}`;
@@ -133,22 +133,20 @@ export const syncRepo = async ({
           const workflowId = await step.do(
             `launch workflow for issueIds batch ${idx}`,
             async () => {
-              // the reason we launch a workflow is because there is a 1000-subrequest limit per worker
-              const workflow = await embeddingWorkflow.create({
+              // the reason we launch a new workflow is because there is a 1000-subrequest limit per worker
+              return await embeddingWorkflow.create({
                 params: { issueIds },
               });
-              return workflow.id;
             },
           );
           while (true) {
-            const workflowStatus = await step.do(
+            const instanceStatus = await step.do(
               "get workflow status",
               async () => {
-                const workflow = await embeddingWorkflow.get(workflowId);
-                return await workflow.status();
+                return await embeddingWorkflow.getInstanceStatus(workflowId);
               },
             );
-            switch (workflowStatus.status) {
+            switch (instanceStatus.status) {
               case "complete":
               case "errored":
               case "terminated":

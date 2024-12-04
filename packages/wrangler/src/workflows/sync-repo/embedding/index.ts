@@ -6,12 +6,11 @@ import { Embedding } from "@/core/embedding";
 import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/rate-limiter";
 
-import type { WorkflowWithTypedParams } from "../util";
 import { chunkArray } from "../util";
 
 interface Env extends WranglerSecrets {
   RATE_LIMITER: Service<RateLimiterWorker>;
-  SYNC_REPO_EMBEDDING_WORKFLOW: WorkflowWithTypedParams<EmbeddingParams>;
+  SYNC_REPO_EMBEDDING_WORKFLOW: Workflow;
 }
 
 export type EmbeddingParams = {
@@ -82,6 +81,15 @@ export default {
     );
   },
   async create({ params }: { params: EmbeddingParams }, env: Env) {
-    await env.SYNC_REPO_EMBEDDING_WORKFLOW.create({ params });
+    const { id } = await env.SYNC_REPO_EMBEDDING_WORKFLOW.create({ params });
+    return id;
+  },
+  async terminate(id: string, env: Env) {
+    const instance = await env.SYNC_REPO_EMBEDDING_WORKFLOW.get(id);
+    await instance.terminate();
+  },
+  async getInstanceStatus(id: string, env: Env) {
+    const instance = await env.SYNC_REPO_EMBEDDING_WORKFLOW.get(id);
+    return await instance.status();
   },
 };

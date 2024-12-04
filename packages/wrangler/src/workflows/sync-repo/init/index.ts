@@ -9,11 +9,11 @@ import { getDeps } from "@/deps";
 
 import type { EmbeddingParams } from "../embedding";
 import { syncRepo } from "../sync";
-import type { WorkflowWithTypedParams } from "../util";
+import type { RPCWorkflow } from "../util";
 
 interface Env extends WranglerSecrets {
-  SYNC_REPO_INIT_WORKFLOW: WorkflowWithTypedParams<InitSyncParams>;
-  SYNC_REPO_EMBEDDING_WORKFLOW: WorkflowWithTypedParams<EmbeddingParams>;
+  SYNC_REPO_INIT_WORKFLOW: Workflow;
+  SYNC_REPO_EMBEDDING_WORKFLOW: RPCWorkflow<EmbeddingParams>;
 }
 
 // User-defined params passed to your workflow
@@ -79,6 +79,17 @@ export default {
     );
   },
   async create({ params }: { params: InitSyncParams }, env: Env) {
-    await env.SYNC_REPO_INIT_WORKFLOW.create({ params });
+    const workflow = await env.SYNC_REPO_INIT_WORKFLOW.create({ params });
+    return workflow.id;
+  },
+  async terminate(id: string, env: Env) {
+    const instance = await env.SYNC_REPO_INIT_WORKFLOW.get(id);
+    await instance.terminate();
+  },
+  async getInstanceStatus(id: string, env: Env) {
+    const instance = await env.SYNC_REPO_INIT_WORKFLOW.get(id);
+    const status = await instance.status();
+    console.log("status", status.status);
+    return status;
   },
 };

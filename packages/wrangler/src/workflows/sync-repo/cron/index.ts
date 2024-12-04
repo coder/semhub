@@ -8,11 +8,11 @@ import { getDeps } from "@/deps";
 
 import type { EmbeddingParams } from "../embedding";
 import { syncRepo } from "../sync";
-import type { WorkflowWithTypedParams } from "../util";
+import type { RPCWorkflow } from "../util";
 
 interface Env extends WranglerSecrets {
   SYNC_REPO_CRON_WORKFLOW: Workflow;
-  SYNC_REPO_EMBEDDING_WORKFLOW: WorkflowWithTypedParams<EmbeddingParams>;
+  SYNC_REPO_EMBEDDING_WORKFLOW: RPCWorkflow<EmbeddingParams>;
 }
 
 export interface CronSyncParams {
@@ -55,5 +55,17 @@ export default {
       { error: "Workflows must be triggered via bindings" },
       { status: 400 },
     );
+  },
+  async create({ params }: { params: CronSyncParams }, env: Env) {
+    const { id } = await env.SYNC_REPO_CRON_WORKFLOW.create({ params });
+    return id;
+  },
+  async terminate(id: string, env: Env) {
+    const instance = await env.SYNC_REPO_CRON_WORKFLOW.get(id);
+    await instance.terminate();
+  },
+  async getInstanceStatus(id: string, env: Env) {
+    const instance = await env.SYNC_REPO_CRON_WORKFLOW.get(id);
+    return await instance.status();
   },
 };

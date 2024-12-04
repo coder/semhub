@@ -1,8 +1,11 @@
-export type WorkflowWithTypedParams<T> = Omit<Workflow, "create"> & {
+// cannot send WorkflowInstance over RPC, so must write substitute methods
+export interface RPCWorkflow<T> {
   create(
     options?: Omit<WorkflowInstanceCreateOptions, "params"> & { params?: T },
-  ): Promise<WorkflowInstance>;
-};
+  ): Promise<WorkflowInstance["id"]>;
+  terminate(id: string): Promise<void>;
+  getInstanceStatus(id: string): Promise<InstanceStatus>;
+}
 
 /**
  * Calculates the timestamp for the current time window

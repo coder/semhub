@@ -3,10 +3,11 @@ import type { Env } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { Resource } from "sst";
+import { ulid } from "ulidx";
 
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
 import type { InitSyncParams } from "@/wrangler/workflows/sync-repo/init";
-import type { WorkflowWithTypedParams } from "@/wrangler/workflows/sync-repo/util";
+import type { RPCWorkflow } from "@/wrangler/workflows/sync-repo/util";
 
 import type { ErrorResponse } from "./response";
 import { searchRouter } from "./router/searchRouter";
@@ -14,7 +15,7 @@ import { searchRouter } from "./router/searchRouter";
 export interface Context extends Env {
   Bindings: {
     RATE_LIMITER: Service<RateLimiterWorker>;
-    SYNC_REPO_INIT_WORKFLOW: WorkflowWithTypedParams<InitSyncParams>;
+    SYNC_REPO_INIT_WORKFLOW: RPCWorkflow<InitSyncParams>;
   };
   Variables: {
     // user: User | null;
@@ -28,7 +29,7 @@ export const app = new Hono<Context>();
 app.use("*", cors());
 
 app.get("/test", async (c) => {
-  await c.env.SYNC_REPO_INIT_WORKFLOW.create({
+  const workflowId = await c.env.SYNC_REPO_INIT_WORKFLOW.create({
     params: {
       repo: {
         owner: "getcursor",
@@ -36,8 +37,17 @@ app.get("/test", async (c) => {
       },
     },
   });
-  console.log("triggered workflow");
-  return c.json({ success: true, message: "triggered workflow" });
+  console.log("workflowId", workflowId);
+  console.log("reached here?");
+  const status =
+    await c.env.SYNC_REPO_INIT_WORKFLOW.getInstanceStatus(workflowId);
+  console.log("test test");
+  console.log("status", status.status);
+  return c.json({
+    success: true,
+    message: "triggered and terminated workflow",
+    id: workflowId,
+  });
 });
 
 const routes = app.basePath("/api").route("/search", searchRouter);

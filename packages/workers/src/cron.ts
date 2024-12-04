@@ -3,11 +3,11 @@ import { getDeps } from "@/deps";
 import type { CronSyncParams } from "@/wrangler/workflows/sync-repo/cron";
 import {
   generateCronSyncWorkflowId,
-  type WorkflowWithTypedParams,
+  type RPCWorkflow,
 } from "@/wrangler/workflows/sync-repo/util";
 
 type Env = {
-  SYNC_REPO_CRON_WORKFLOW: WorkflowWithTypedParams<CronSyncParams>;
+  SYNC_REPO_CRON_WORKFLOW: RPCWorkflow<CronSyncParams>;
 };
 
 export default {
