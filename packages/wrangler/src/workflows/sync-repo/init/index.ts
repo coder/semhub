@@ -89,7 +89,6 @@ export default {
   async getInstanceStatus(id: string, env: Env) {
     const instance = await env.SYNC_REPO_INIT_WORKFLOW.get(id);
     const status = await instance.status();
-    console.log("status", status.status);
     return status;
   },
-};
+} satisfies RPCWorkflow<InitSyncParams>;

@@ -28,6 +28,7 @@ export const app = new Hono<Context>();
 // TODO: set up auth
 app.use("*", cors());
 
+// TODO: delete before merging
 app.get("/test", async (c) => {
   const workflowId = await c.env.SYNC_REPO_INIT_WORKFLOW.create({
     params: {

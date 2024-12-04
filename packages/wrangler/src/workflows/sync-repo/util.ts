@@ -1,10 +1,12 @@
 // cannot send WorkflowInstance over RPC, so must write substitute methods
-export interface RPCWorkflow<T> {
+export interface RPCWorkflow<T, E = unknown> {
+  fetch(request: Request, env?: E): Promise<Response>;
   create(
     options?: Omit<WorkflowInstanceCreateOptions, "params"> & { params?: T },
+    env?: E,
   ): Promise<WorkflowInstance["id"]>;
-  terminate(id: string): Promise<void>;
-  getInstanceStatus(id: string): Promise<InstanceStatus>;
+  terminate(id: string, env?: E): Promise<void>;
+  getInstanceStatus(id: string, env?: E): Promise<InstanceStatus>;
 }
 
 /**

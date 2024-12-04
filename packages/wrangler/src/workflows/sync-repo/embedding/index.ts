@@ -6,6 +6,7 @@ import { Embedding } from "@/core/embedding";
 import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/rate-limiter";
 
+import type { RPCWorkflow } from "../util";
 import { chunkArray } from "../util";
 
 interface Env extends WranglerSecrets {
@@ -92,4 +93,4 @@ export default {
     const instance = await env.SYNC_REPO_EMBEDDING_WORKFLOW.get(id);
     return await instance.status();
   },
-};
+} satisfies RPCWorkflow<EmbeddingParams>;

@@ -68,4 +68,4 @@ export default {
     const instance = await env.SYNC_REPO_CRON_WORKFLOW.get(id);
     return await instance.status();
   },
-};
+} satisfies RPCWorkflow<CronSyncParams>;
