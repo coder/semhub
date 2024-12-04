@@ -31,8 +31,13 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
       githubPersonalAccessToken: GITHUB_PERSONAL_ACCESS_TOKEN,
       openaiApiKey: OPENAI_API_KEY,
     });
-    const BATCH_SIZE = 25;
-    const issueIdBatches = chunkArray(issueIds, BATCH_SIZE);
+    const issueIdBatches = await step.do(
+      "Preparing issue batches for processing",
+      async () => {
+        const BATCH_SIZE = 25;
+        return chunkArray(issueIds, BATCH_SIZE);
+      },
+    );
 
     for (const [batchIndex, batchIssueIds] of issueIdBatches.entries()) {
       await step.do(
