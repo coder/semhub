@@ -4,10 +4,7 @@
     "types": ["bun-types"],
     "rootDir": "..",
     "outDir": "../dist/scripts",
-    "typeRoots": [
-      "../",
-      "../node_modules/@types"
-    ],
+    "typeRoots": ["../", "../node_modules/@types"],
     "paths": {
       "@/core/*": ["../../core/src/*"]
     }
@@ -17,9 +14,6 @@
       "path": "../../core"
     }
   ],
-  "include": [
-    "./**/*",
-    "../sst-env.d.ts"
-  ],
+  "include": ["./**/*", "../sst-env.d.ts"],
   "exclude": ["../src/**/*"]
 }
