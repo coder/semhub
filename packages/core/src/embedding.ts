@@ -44,7 +44,7 @@ export namespace Embedding {
     const result = embeddingsCreateSchema.parse(res);
     return result.data[0]!.embedding;
   }
-  export async function getOutdatedIssues(db: DbClient, repoId: string) {
+  export async function getRepoOutdatedIssues(db: DbClient, repoId: string) {
     return await db
       .select({ id: issueTable.id })
       .from(issueTable)
@@ -56,6 +56,17 @@ export namespace Embedding {
             lt(issueTable.embeddingCreatedAt, issueTable.issueUpdatedAt),
           ),
           eq(repos.id, repoId),
+        ),
+      );
+  }
+  export async function getAllOutdatedIssues(db: DbClient) {
+    return await db
+      .select({ id: issueTable.id })
+      .from(issueTable)
+      .where(
+        or(
+          isNull(issueTable.embedding),
+          lt(issueTable.embeddingCreatedAt, issueTable.issueUpdatedAt),
         ),
       );
   }

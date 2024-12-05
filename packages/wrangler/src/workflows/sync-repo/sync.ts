@@ -3,12 +3,15 @@ import pMap from "p-map";
 
 import { eq, type DbClient } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
-import { Embedding } from "@/core/embedding";
 import { Github } from "@/core/github";
 import type { GraphqlOctokit } from "@/core/github/shared";
 import { Repo } from "@/core/repo";
 
 import type { EmbeddingParams } from "./embedding";
+import {
+  processCronEmbeddings,
+  processRepoEmbeddings,
+} from "./process-embedding";
 import type { WorkflowRPC } from "./util";
 import { chunkArray } from "./util";
 
@@ -141,86 +144,22 @@ export const syncRepo = async ({
         },
       );
     }
-    const outdatedIssueIds = await step.do(
-      `get issues with outdated embeddings for repo ${name}`,
-
-      async () => {
-        return await Embedding.getOutdatedIssues(db, repoId);
-      },
-    );
-    if (outdatedIssueIds.length === 0) {
-      await finalizeSync({ repoId, completedAt: new Date(), db, step });
-      return;
+    switch (mode) {
+      case "init": {
+        await processRepoEmbeddings({
+          repoId,
+          name,
+          step,
+          db,
+          embeddingWorkflow,
+        });
+      }
+      case "cron": {
+        // For cron, process embeddings across all repos
+        await processCronEmbeddings({ step, db, embeddingWorkflow });
+      }
     }
-    const chunkedIssueIds = await step.do(
-      `chunk issues with outdated embeddings for repo ${name}`,
-      async () => {
-        const CHUNK_SIZE = 200;
-        return chunkArray(outdatedIssueIds, CHUNK_SIZE);
-      },
-    );
-    const completedAt = await step.do(
-      `process issues with outdated embeddings for repo ${name}`,
-      async () => {
-        const processIssueIdsStep = async (issueIds: string[], idx: number) => {
-          const workflowId = await step.do(
-            `launch workflow for issueIds batch ${idx}`,
-            async () => {
-              // the reason we launch a new workflow is because there is a 1000-subrequest limit per worker
-              return await embeddingWorkflow.create({
-                params: { issueIds, name },
-              });
-            },
-          );
-          while (true) {
-            const instanceStatus = await step.do(
-              "get workflow status",
-              async () => {
-                return await embeddingWorkflow.getInstanceStatus(workflowId);
-              },
-            );
-            switch (instanceStatus.status) {
-              case "complete":
-              case "errored":
-              case "terminated":
-                return;
-              default: {
-                await step.sleep(
-                  "wait for workflow to complete or error out",
-                  "30 seconds",
-                );
-              }
-            }
-          }
-        };
-        await pMap(
-          chunkedIssueIds,
-          async (issueIds, idx) => {
-            await processIssueIdsStep(
-              issueIds.map((b) => b.id),
-              idx,
-            );
-          },
-          { concurrency: 2 },
-        );
-        return new Date();
-      },
-    );
-    if (mode === "init") {
-      // for init, only update this when embeddings are synced. this prevents users from searching before embeddings are synced and getting severely incomplete results
-      await step.do(
-        "update repo.issuesLastUpdatedAt for initialized repo",
-        async () => {
-          await db
-            .update(repos)
-            .set({
-              issuesLastUpdatedAt: lastIssueUpdatedAt,
-            })
-            .where(eq(repos.id, repoId));
-        },
-      );
-    }
-    await finalizeSync({ repoId, completedAt, db, step });
+    await finalizeSync({ repoId, completedAt: new Date(), db, step });
   } catch (e) {
     await step.do("sync unsuccessful, mark repo as not syncing", async () => {
       await Repo.markIsSyncingFalse(

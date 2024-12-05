@@ -27,6 +27,22 @@ export const app = new Hono<Context>();
 // TODO: set up auth
 app.use("*", cors());
 
+app.get("/test", async (c) => {
+  const workflowId = await c.env.SYNC_REPO_INIT_WORKFLOW.create({
+    params: {
+      repo: {
+        owner: "vuejs",
+        name: "core",
+      },
+    },
+  });
+  return c.json({
+    success: true,
+    message: "triggered workflow",
+    id: workflowId,
+  });
+});
+
 const _routes = app.basePath("/api").route("/search", searchRouter);
 
 export type ApiRoutes = typeof _routes;
