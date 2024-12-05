@@ -44,8 +44,12 @@ export namespace Embedding {
     const result = embeddingsCreateSchema.parse(res);
     return result.data[0]!.embedding;
   }
-  export async function getRepoOutdatedIssues(db: DbClient, repoId: string) {
-    return await db
+  export async function getRepoOutdatedIssues(
+    db: DbClient,
+    repoId: string,
+    pagination?: { limit: number; offset: number },
+  ) {
+    const query = db
       .select({ id: issueTable.id })
       .from(issueTable)
       .innerJoin(repos, eq(issueTable.repoId, repos.id))
@@ -58,6 +62,12 @@ export namespace Embedding {
           eq(repos.id, repoId),
         ),
       );
+
+    if (pagination) {
+      query.limit(pagination.limit).offset(pagination.offset);
+    }
+
+    return await query;
   }
   export async function getAllOutdatedIssuesFromNonSyncingRepos(db: DbClient) {
     return await db

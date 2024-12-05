@@ -35,7 +35,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
     const issueIdBatches = await step.do(
       `Preparing issue batches for processing issues of ${repoName}`,
       async () => {
-        const BATCH_SIZE = 25;
+        const BATCH_SIZE = 40;
         return chunkArray(issueIds, BATCH_SIZE);
       },
     );
@@ -58,11 +58,12 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
             `create embeddings for selected issues from API for ${repoName}`,
             async () => {
               // TODO: move this out into steps and increase concurrency. pMap 5?
+              // TODO: move all chunk size, concurrency limit etc. into a file
               return await Embedding.createEmbeddingsBatch({
                 issues: selectedIssues,
                 rateLimiter: this.env.RATE_LIMITER,
                 openai,
-                concurrencyLimit: 10,
+                concurrencyLimit: 20,
               });
             },
           );

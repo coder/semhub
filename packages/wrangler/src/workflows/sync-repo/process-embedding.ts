@@ -75,27 +75,51 @@ export async function processRepoEmbeddings({
   repoId: string;
   name: string;
 }) {
-  const outdatedIssueIds = await step.do(
-    `get issues with outdated embeddings for repo ${name}`,
-    async () => {
-      return await Embedding.getRepoOutdatedIssues(db, repoId);
-    },
-  );
-  if (outdatedIssueIds.length === 0) return;
+  const BATCH_SIZE = 10000;
+  let processedCount = 0;
 
-  const chunkedIssueIds = chunkArray(
-    outdatedIssueIds.map((i) => i.id),
-    200,
-  );
+  while (true) {
+    const outdatedIssueIds = await step.do(
+      `get issues with outdated embeddings for repo ${name} (offset: ${processedCount})`,
+      async () => {
+        return await Embedding.getRepoOutdatedIssues(db, repoId, {
+          limit: BATCH_SIZE,
+          offset: processedCount,
+        });
+      },
+    );
 
-  await step.do(`process embeddings for repo ${name}`, async () => {
-    await processEmbeddingBatches({
-      step,
-      chunkedIssueIds,
-      embeddingWorkflow,
-      name,
-    });
-  });
+    if (outdatedIssueIds.length === 0) break;
+
+    const CHUNK_SIZE = 200;
+    const chunkedIssueIds = chunkArray(
+      outdatedIssueIds.map((i) => i.id),
+      CHUNK_SIZE,
+    );
+
+    await step.do(
+      `process embeddings for repo ${name} (batch ${processedCount}-${processedCount + outdatedIssueIds.length})`,
+      {
+        retries: {
+          limit: 1,
+          delay: 10000,
+          backoff: "linear",
+        },
+        // arbitrary number, to tune later
+        timeout: "90 minutes",
+      },
+      async () => {
+        await processEmbeddingBatches({
+          step,
+          chunkedIssueIds,
+          embeddingWorkflow,
+          name,
+        });
+      },
+    );
+
+    processedCount += outdatedIssueIds.length;
+  }
 }
 
 export async function processCronEmbeddings({
