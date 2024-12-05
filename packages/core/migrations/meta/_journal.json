@@ -78,6 +78,13 @@
       "when": 1732762306935,
       "tag": "0010_colorful_silver_sable",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1733201562317,
+      "tag": "0011_fluffy_major_mapleleaf",
+      "breakpoints": true
     }
   ]
 }

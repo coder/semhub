@@ -7,8 +7,8 @@
   ],
   "scripts": {
     "dev": "sst dev",
-    "dev:cf": "wrangler dev",
-    "typecheck": "bun --filter=@semhub/core typecheck && bun --filter=* typecheck",
+    "typecheck": "bun --filter=@semhub/core typecheck && bun --filter=@semhub/wrangler typecheck && bun --filter=@semhub/workers typecheck && bun --filter=@semhub/scripts typecheck && bun --filter=@semhub/web typecheck",
+    "typecheck:parallel": "concurrently -g --prefix \"[{name}]\" --prefix-colors \"blue.bold,green.bold,yellow.bold,red.bold,magenta.bold\" --names \"core,wrangler,workers,scripts,web\" \"bun --filter=@semhub/core typecheck\" \"bun --filter=@semhub/wrangler typecheck\" \"bun --filter=@semhub/workers typecheck\" \"bun --filter=@semhub/scripts typecheck\" \"bun --filter=@semhub/web typecheck\"",
     "format:write": "prettier . --write",
     "format:check": "prettier . --check || (echo '⚠️  Warning: Formatting issues found' && exit 0)",
     "lint": "eslint . && cd packages/web && eslint .",
@@ -17,7 +17,7 @@
     "secret:load": "sst secret load .secrets",
     "secret:load:prod": "sst secret load .secrets --stage prod",
     "script": "cd packages/scripts && bun run shell",
-    "check:all": "concurrently -g --prefix \"[{name}]\" --prefix-colors \"blue.bold,green.bold,yellow.bold,magenta.bold,cyan.bold\" --names \"typecheck,test,test:types,lint,format\" \"bun typecheck\" \"bun --filter=@semhub/core test\" \"bun --filter=@semhub/core test:types\" \"bun lint\" \"bun format:check\""
+    "check:all": "concurrently -g --prefix \"[{name}]\" --prefix-colors \"blue.bold,green.bold,yellow.bold,red.bold,magenta.bold,cyan.bold\" --names \"typecheck,test,test:types,lint,format\" \"bun typecheck\" \"bun --filter=* test\" \"bun --filter=@semhub/core test:types\" \"bun lint\" \"bun format:check\""
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.0",
@@ -31,7 +31,6 @@
     "prettier": "^3.3.3",
     "typescript": "5.6.2",
     "typescript-eslint": "^8.8.1",
-    "wrangler": "^3.84.1",
     "concurrently": "^8.2.2"
   },
   "dependencies": {

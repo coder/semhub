@@ -1,0 +1,30 @@
+name = "semhub-sync-repo-embedding-dev"
+main = "./index.ts"
+compatibility_date = "2024-10-22"       # keep in sync with @cloudflare/workers-types
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[[services]]
+binding = "RATE_LIMITER"
+service = "semhub-rate-limiter-dev"
+
+[[workflows]]
+name = "semhub-sync-repo-embedding-workflow-dev"
+binding = "SYNC_REPO_EMBEDDING_WORKFLOW"
+class_name = "EmbeddingWorkflow"
+
+# Production environment
+[env.prod]
+name = "semhub-sync-repo-embedding-prod"
+
+[[env.prod.services]]
+binding = "RATE_LIMITER"
+service = "semhub-rate-limiter-prod"
+
+[[env.prod.workflows]]
+name = "semhub-sync-repo-embedding-workflow-prod"
+binding = "SYNC_REPO_EMBEDDING_WORKFLOW"
+class_name = "EmbeddingWorkflow"

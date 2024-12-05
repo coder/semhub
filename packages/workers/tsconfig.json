@@ -2,22 +2,27 @@
   "extends": "@tsconfig/node20/tsconfig.json",
   "compilerOptions": {
     "composite": true,
+    "skipLibCheck": true,
     "declaration": true,
     "declarationMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
     "module": "esnext",
     "moduleResolution": "bundler",
     "noUncheckedIndexedAccess": true,
     "types": ["@cloudflare/workers-types"],
     "paths": {
       "@/core/*": ["../core/src/*"],
+      "@semhub/wrangler/*": ["../wrangler/src/*"],
+      "@/wrangler/*": ["../wrangler/src/*"],
       "@/*": ["./src/*"]
     }
   },
   "references": [
     {
       "path": "../core"
+    },
+    {
+      "path": "../wrangler"
     }
   ]
 }

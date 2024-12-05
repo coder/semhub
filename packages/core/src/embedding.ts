@@ -1,27 +1,33 @@
 import dedent from "dedent";
 import type { SQL } from "drizzle-orm";
+import pMap from "p-map";
 
 import { EMBEDDING_MODEL, type RateLimiter } from "./constants/rate-limit";
-import { and, eq, getDb, inArray, isNull, lt, or, sql } from "./db";
+import type { DbClient } from "./db";
+import { and, eq, inArray, isNull, lt, or, sql } from "./db";
 import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
 import type { SelectIssueForEmbedding } from "./db/schema/entities/issue.schema";
-import { issues } from "./db/schema/entities/issue.sql";
+import { issueTable } from "./db/schema/entities/issue.sql";
 import type { SelectLabelForEmbedding } from "./db/schema/entities/label.schema";
 import { labels as labelTable } from "./db/schema/entities/label.sql";
-import { getOpenAIClient } from "./openai";
+import { repos } from "./db/schema/entities/repo.sql";
+import { jsonAggBuildObjectFromJoin } from "./db/utils/json";
+import type { OpenAIClient } from "./openai";
 import { isReducePromptError } from "./openai/errors";
 import { embeddingsCreateSchema } from "./openai/schema";
 import { sleep } from "./util";
 
 export namespace Embedding {
-  export async function createEmbedding({
-    input,
-    rateLimiter,
-  }: {
-    input: string;
-    rateLimiter?: RateLimiter;
-  }) {
-    const client = getOpenAIClient();
+  export async function createEmbedding(
+    {
+      input,
+      rateLimiter,
+    }: {
+      input: string;
+      rateLimiter: RateLimiter | null;
+    },
+    openAIClient: OpenAIClient,
+  ) {
     if (rateLimiter) {
       while (true) {
         const millisecondsToNextRequest =
@@ -31,171 +37,170 @@ export namespace Embedding {
         await sleep(millisecondsToNextRequest);
       }
     }
-    const res = await client.embeddings.create({
+    const res = await openAIClient.embeddings.create({
       model: EMBEDDING_MODEL,
       input,
     });
     const result = embeddingsCreateSchema.parse(res);
     return result.data[0]!.embedding;
   }
-  export async function syncIssues(rateLimiter?: RateLimiter) {
-    const TRUNCATION_MAX_ATTEMPTS = 8;
-    const BATCH_SIZE = 20;
-    const { db } = getDb();
-    // First, get all IDs that need processing (no lock needed)
-    const issueIds = await db
-      .select({ id: issues.id })
-      .from(issues)
+  export async function getRepoOutdatedIssues(
+    db: DbClient,
+    repoId: string,
+    pagination?: { limit: number; offset: number },
+  ) {
+    const query = db
+      .select({ id: issueTable.id })
+      .from(issueTable)
+      .innerJoin(repos, eq(issueTable.repoId, repos.id))
       .where(
-        or(
-          isNull(issues.embedding),
-          lt(issues.embeddingCreatedAt, issues.issueUpdatedAt),
+        and(
+          or(
+            isNull(issueTable.embedding),
+            lt(issueTable.embeddingCreatedAt, issueTable.issueUpdatedAt),
+          ),
+          eq(repos.id, repoId),
         ),
       );
 
-    console.log(`${issueIds.length} issues with missing/outdated embeddings`);
-    // TODO: in future, add these issues to a queue and process them in separate workers to prevent timeout
-
-    // Process issues in batches
-    for (let i = 0; i < issueIds.length; i += BATCH_SIZE) {
-      const batchIds = issueIds.slice(i, i + BATCH_SIZE);
-      if (batchIds.length === 0) continue;
-      // Now lock only the batch we're processing
-      await db.transaction(async (tx) => {
-        const batchedIssues = await tx
-          .select({
-            id: issues.id,
-            number: issues.number,
-            author: issues.author,
-            title: issues.title,
-            body: issues.body,
-            issueState: issues.issueState,
-            issueStateReason: issues.issueStateReason,
-            issueCreatedAt: issues.issueCreatedAt,
-            issueClosedAt: issues.issueClosedAt,
-          })
-          .from(issues)
-          .where(
-            and(
-              inArray(
-                issues.id,
-                batchIds.map((b) => b.id),
-              ),
-              // adding this in case there is race condition
-              // not strictly necessary
-              or(
-                isNull(issues.embedding),
-                lt(issues.embeddingCreatedAt, issues.issueUpdatedAt),
-              ),
-            ),
-          )
-          .for("update");
-
-        if (batchedIssues.length === 0) {
-          console.log(
-            "No issues to process in this batch, likely race condition, skipping processing",
-          );
-          return;
-        }
-        const embeddings = await Promise.all(
-          batchedIssues.map(async (issue) => {
-            try {
-              const embedding = await (async () => {
-                let attempt = 1;
-                const labels = await tx
-                  .select({
-                    name: labelTable.name,
-                    description: labelTable.description,
-                  })
-                  .from(labelTable)
-                  .innerJoin(
-                    issuesToLabels,
-                    eq(labelTable.id, issuesToLabels.labelId),
-                  )
-                  .where(eq(issuesToLabels.issueId, issue.id));
-                while (attempt <= TRUNCATION_MAX_ATTEMPTS) {
-                  try {
-                    return await createEmbedding({
-                      input: formatIssueForEmbedding({
-                        issue,
-                        labels,
-                        attempt,
-                      }),
-                      rateLimiter,
-                    });
-                  } catch (error) {
-                    if (
-                      isReducePromptError(error) &&
-                      attempt < TRUNCATION_MAX_ATTEMPTS
-                    ) {
-                      console.log(
-                        `Retrying issue #${issue.number} with truncation attempt ${attempt + 1}`,
-                      );
-                      attempt++;
-                      continue;
-                    }
-                    throw error;
-                  }
-                }
-                throw new Error(
-                  `Failed to create embedding after ${TRUNCATION_MAX_ATTEMPTS} attempts`,
-                );
-              })();
-              console.log(`created embedding for issue #${issue.number}`);
-              return {
-                issueId: issue.id,
-                embedding,
-              };
-            } catch (error) {
-              console.error(`Failed to process issue #${issue.number}:`, error);
-              return null;
-            }
-          }),
-        );
-
-        // Bulk update the database with valid embeddings
-        const validEmbeddings = embeddings.filter(
-          (e): e is NonNullable<typeof e> => e !== null,
-        );
-        if (validEmbeddings.length === 0) {
-          console.log(
-            "No valid embeddings to process in this batch, skipping update",
-          );
-          return;
-        }
-        const sqlChunks: SQL[] = [];
-        const issueIdArray: string[] = [];
-
-        sqlChunks.push(sql`(case`);
-
-        for (const e of validEmbeddings) {
-          sqlChunks.push(
-            sql`when ${issues.id} = ${e.issueId} then '[${sql.raw(e.embedding.join(","))}]'::vector`,
-          );
-          issueIdArray.push(e.issueId);
-        }
-
-        sqlChunks.push(sql`end)`);
-
-        const embeddingSql = sql.join(sqlChunks, sql.raw(" "));
-
-        await tx
-          .update(issues)
-          .set({
-            embedding: embeddingSql,
-            embeddingModel: EMBEDDING_MODEL,
-            embeddingCreatedAt: new Date(),
-          })
-          .where(inArray(issues.id, issueIdArray));
-        console.log(
-          `Processed batch ${Math.ceil(i / BATCH_SIZE + 1)} of ${Math.ceil(issueIds.length / BATCH_SIZE)}`,
-        );
-        console.log(`${validEmbeddings.length} embeddings created`);
-        console.log(
-          `Invalid count: ${embeddings.length - validEmbeddings.length}`,
-        );
-      });
+    if (pagination) {
+      query.limit(pagination.limit).offset(pagination.offset);
     }
+
+    return await query;
+  }
+  export async function getAllOutdatedIssuesFromNonSyncingRepos(db: DbClient) {
+    return await db
+      .select({ id: issueTable.id })
+      .from(issueTable)
+      .innerJoin(repos, eq(issueTable.repoId, repos.id))
+      .where(
+        and(
+          // this prevents embedding issues from initializing repos
+          eq(repos.isSyncing, false),
+          or(
+            isNull(issueTable.embedding),
+            lt(issueTable.embeddingCreatedAt, issueTable.issueUpdatedAt),
+          ),
+        ),
+      );
+  }
+  export async function createEmbeddingsBatch({
+    issues,
+    rateLimiter,
+    openai,
+    concurrencyLimit,
+  }: {
+    issues: Awaited<ReturnType<typeof Embedding.selectIssuesForEmbedding>>;
+    rateLimiter: RateLimiter | null;
+    openai: OpenAIClient;
+    concurrencyLimit: number;
+  }) {
+    const TRUNCATION_MAX_ATTEMPTS = 8;
+
+    const processIssue = async (issue: (typeof issues)[number]) => {
+      let attempt = 1;
+      const labels = issue.labels;
+
+      while (attempt <= TRUNCATION_MAX_ATTEMPTS) {
+        try {
+          const embedding = await createEmbedding(
+            {
+              input: formatIssueForEmbedding({
+                issue,
+                labels,
+                attempt,
+              }),
+              rateLimiter,
+            },
+            openai,
+          );
+          return {
+            issueId: issue.id,
+            embedding,
+          };
+        } catch (error) {
+          if (isReducePromptError(error) && attempt < TRUNCATION_MAX_ATTEMPTS) {
+            console.log(
+              `Retrying issue #${issue.number} with truncation attempt ${attempt + 1}`,
+            );
+            attempt++;
+          } else {
+            throw error;
+          }
+        }
+      }
+      throw new Error(
+        `Failed to create embedding for issue #${issue.number} after ${TRUNCATION_MAX_ATTEMPTS} attempts`,
+      );
+    };
+    return await pMap(issues, processIssue, { concurrency: concurrencyLimit });
+  }
+  export async function selectIssuesForEmbedding(
+    issueIds: string[],
+    db: DbClient,
+  ) {
+    return await db
+      .select({
+        id: issueTable.id,
+        number: issueTable.number,
+        author: issueTable.author,
+        title: issueTable.title,
+        body: issueTable.body,
+        issueState: issueTable.issueState,
+        issueStateReason: issueTable.issueStateReason,
+        issueCreatedAt: issueTable.issueCreatedAt,
+        issueClosedAt: issueTable.issueClosedAt,
+        labels: jsonAggBuildObjectFromJoin(
+          {
+            name: labelTable.name,
+            description: labelTable.description,
+          },
+          {
+            from: issuesToLabels,
+            joinTable: labelTable,
+            joinCondition: eq(labelTable.id, issuesToLabels.labelId),
+            whereCondition: eq(issuesToLabels.issueId, issueTable.id),
+          },
+        ),
+      })
+      .from(issueTable)
+      .where(
+        and(
+          inArray(issueTable.id, issueIds),
+          // adding this in case there is race condition
+          // not strictly necessary
+          or(
+            isNull(issueTable.embedding),
+            lt(issueTable.embeddingCreatedAt, issueTable.issueUpdatedAt),
+          ),
+        ),
+      );
+  }
+  export async function bulkUpdateIssueEmbeddings(
+    embeddings: Awaited<ReturnType<typeof Embedding.createEmbeddingsBatch>>,
+    db: DbClient,
+  ) {
+    if (embeddings.length === 0) return;
+    const sqlChunks: SQL[] = [];
+    const issueIdArray: string[] = [];
+    sqlChunks.push(sql`(case`);
+    for (const e of embeddings) {
+      sqlChunks.push(
+        sql`when ${issueTable.id} = ${e.issueId} then '[${sql.raw(e.embedding.join(","))}]'::vector`,
+      );
+      issueIdArray.push(e.issueId);
+    }
+    sqlChunks.push(sql`end)`);
+    const embeddingSql = sql.join(sqlChunks, sql.raw(" "));
+    await db
+      .update(issueTable)
+      .set({
+        embedding: embeddingSql,
+        embeddingModel: EMBEDDING_MODEL,
+        embeddingCreatedAt: new Date(),
+      })
+      .where(inArray(issueTable.id, issueIdArray));
   }
   interface FormatIssueParams {
     attempt: number;

@@ -9,8 +9,8 @@ new sst.cloudflare.Cron("Sync", {
       worker: {
         serviceBindings: [
           {
-            name: "RATE_LIMITER",
-            service: "rate-limiter",
+            name: "SYNC_REPO_CRON_WORKFLOW",
+            service: `semhub-sync-repo-cron-${$app.stage === "prod" ? "prod" : "dev"}`,
           },
         ],
       },

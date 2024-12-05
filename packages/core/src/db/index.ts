@@ -1,7 +1,6 @@
 import type { Logger } from "drizzle-orm/logger";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { Resource } from "sst";
 
 export * from "drizzle-orm";
 
@@ -24,7 +23,7 @@ class EmbeddingAwareLogger implements Logger {
           if (Array.isArray(array) && array.length > 10) {
             return `$${index + 1}=[Embedding Array: length=${array.length}]`;
           }
-        } catch (e) {
+        } catch (_) {
           // If JSON.parse fails, return original param
           return param;
         }
@@ -36,15 +35,18 @@ class EmbeddingAwareLogger implements Logger {
   }
 }
 
-// Initialize db lazily
-export function getDb() {
-  const connectionString = Resource.Supabase.databaseUrl;
-  const isProd = Resource.App.stage === "prod";
-  const client = postgres(connectionString, { prepare: false });
+export function createDb(config: {
+  connectionString: string;
+  isProd: boolean;
+}) {
+  const client = postgres(config.connectionString, { prepare: false });
   return {
     db: drizzle(client, {
-      logger: !isProd && new EmbeddingAwareLogger(),
+      logger: !config.isProd && new EmbeddingAwareLogger(),
     }),
+    // used to close connection when running scripts
     closeConnection: async () => await client.end(),
   };
 }
+
+export type DbClient = ReturnType<typeof createDb>["db"];

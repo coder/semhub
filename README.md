@@ -77,11 +77,12 @@ Right now, deployment is manual. Eventually, will set up GitHub Actions to autom
 
 ### Deploying to prod
 
-- Deploy Cloudflare resources via `wrangler`. We are using `wrangler` to deploy Durable Objects, which act as a rate limiter. At the time of writing, DO cannot be deployed via Pulumi/SST. `wrangler` also provides more configurability.
-  - If deploying for the first time, these should be run before the SST deployment as the latter resources are linked to them. From `scripts` folder, run: `bun deploy:cf`.
-  - Currently, we are using the same rate limiter for dev and prod, which is not ideal, but it also makes sense since I'm using the same API key (and OpenAI account) for both dev and prod.
+- Deploy Cloudflare resources via `wrangler`. These are all defined in the `/packages/wrangler` folder.
+  - We use Durable Objects as a rate limiter. At the time of writing, DO cannot be deployed via Pulumi/SST. `wrangler` also provides more configurability. Currently, we are using the same rate limiter for dev and prod, which is not ideal, but it also makes sense since I'm using the same API key (and OpenAI account) for both dev and prod.
+  - We use Cloudflare Workflows to orchestrate the sync process.
+  - To deploy Cloudflare resources to prod, run `bun run deploy:all:prod` from the `/packages/wrangler` folder.
 - First, ensure SST secrets are loaded. From root folder, run `bun secret:load:prod`. Then, deploy SST resources by running `deploy:prod`.
-- Run database migrations on prod. From `core` folder, run: `bun db:migrate:prod`. Then, from `scripts` folder, run `bun shell:prod src/init.ts` to load data into the prod db.
+- Run database migrations on prod. From `core` folder, run: `bun db:migrate:prod`.
 
 ## Misc dev notes
 
@@ -89,7 +90,6 @@ When bulk inserting using Drizzle, make sure that the array in `values()` is not
 
 ## Known issues / todos
 
-1. Currently, due to the runtime limitation of Cloudflare Workers, if there is too many things to do by the cron, it may not be able to complete all of them before its timeout. The proper way to fix this is to either use a long-running compute or split out the work using a queue (probably this if we want to keep to the serverless setup). Not a big deal for now if we run the `init.ts` script, just something to note for the future.
-2. Need some way to deal with error logging. Logging for SST-deployed workers is off by default (can turn it on via console, but it'll be overridden at the next update). At scale, will need to set something up so we will be informed of unknown errors.
-3. During I/O calls, might need to do more error handling. So far,
-4. Set up proper OAuth to allow users to log in and authorise to read their repos?
+1. Set up proper OAuth to allow users to log in and authorise to load issues from private repos.
+1. Need some way to deal with error logging. Logging for SST-deployed workers is off by default (can turn it on via console, but it'll be overridden at the next update). At scale, will need to set something up so we will be informed of unknown errors.
+1. During I/O calls, might need to do more error handling. So far,
