@@ -31,8 +31,8 @@ app.get("/test", async (c) => {
   const workflowId = await c.env.SYNC_REPO_INIT_WORKFLOW.create({
     params: {
       repo: {
-        owner: "vuejs",
-        name: "core",
+        owner: "vercel",
+        name: "next.js",
       },
     },
   });

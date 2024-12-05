@@ -135,48 +135,38 @@ export const syncRepo = async ({
           .reduce((a, b) => (a > b ? a : b));
       },
     );
-    switch (mode) {
-      case "cron": {
-        // in cron, once issues are upserted, we will finalize sync and update issuesLastUpdatedAt
-        // embeddings are dealt with back in cron/index.ts across all repos
-        await step.do(
-          `update repo.issuesLastUpdatedAt for cron repo ${name}`,
-          async () => {
-            await db
-              .update(repos)
-              .set({
-                // can set this once issues have been inserted; no need to wait for embeddings
-                // search may be slightly outdated, but it's fine
-                issuesLastUpdatedAt: lastIssueUpdatedAt,
-              })
-              .where(eq(repos.id, repoId));
-          },
-        );
-        await finalizeSuccessfulSync({
-          repoId,
-          completedAt: new Date(),
-          db,
-          step,
-        });
-        return;
-      }
-      case "init": {
-        await processRepoEmbeddings({
-          repoId,
-          name,
-          step,
-          db,
-          embeddingWorkflow,
-        });
-        await finalizeSuccessfulSync({
-          repoId,
-          completedAt: new Date(),
-          db,
-          step,
-        });
-        return;
-      }
+    if (mode === "init") {
+      // for cron repo, we do embeddings update back in cron/index.ts
+      // this is because we we want to consolidate embeddings processing across all repos
+      await step.do(
+        `process repo embeddings for ${name}`,
+        async () =>
+          await processRepoEmbeddings({
+            repoId,
+            name,
+            step,
+            db,
+            embeddingWorkflow,
+          }),
+      );
     }
+    await step.do(
+      `update repo.issuesLastUpdatedAt for repo ${name}`,
+      async () => {
+        await db
+          .update(repos)
+          .set({
+            issuesLastUpdatedAt: lastIssueUpdatedAt,
+          })
+          .where(eq(repos.id, repoId));
+      },
+    );
+    await finalizeSuccessfulSync({
+      repoId,
+      completedAt: new Date(),
+      db,
+      step,
+    });
   } catch (e) {
     await step.do("sync unsuccessful, mark repo as not syncing", async () => {
       await Repo.markIsSyncingFalse(
