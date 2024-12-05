@@ -56,11 +56,12 @@ export namespace Github {
       };
     }
     const firstIssueUpdatedAt = new Date(issueNumbers[0]!.updatedAt);
-    const response = await octokit.graphql(getIssuesForUpsertQuery(), {
+    const response = await octokit.graphql(getIssuesWithMetadataForUpsert(), {
       organization: repoOwner,
       repo: repoName,
       cursor: null,
       since: firstIssueUpdatedAt.toISOString(),
+      first: issueNumbers.length,
     });
     const { success, data, error } =
       loadIssuesWithCommentsResSchema.safeParse(response);
@@ -136,6 +137,8 @@ export namespace Github {
       lastIssueUpdatedAt,
     };
   }
+  // currently unused in cron job, could be useful to invoke in a long running process
+  // should have the same return type as getIssuesCommentsLabels
   export async function getIssuesViaIterator(
     {
       repoId,
@@ -144,14 +147,16 @@ export namespace Github {
       issuesLastUpdatedAt,
     }: Awaited<ReturnType<typeof Repo.getReposForCron>>[number],
     octokit: GraphqlOctokit,
+    numIssues: number,
   ) {
     const iterator = octokit.graphql.paginate.iterator(
-      getIssuesForUpsertQuery(),
+      getIssuesWithMetadataForUpsert(),
       {
         organization: repoOwner,
         repo: repoName,
         cursor: null,
         since: issuesLastUpdatedAt?.toISOString() ?? null,
+        first: numIssues,
       },
     );
     let lastIssueUpdatedAt: Date | null = null;
@@ -309,7 +314,7 @@ export namespace Github {
     };
   }
 
-  function getIssuesForUpsertQuery() {
+  function getIssuesWithMetadataForUpsert() {
     // use explorer to test GraphQL queries: https://docs.github.com/en/graphql/overview/explorer
     // for extension: get Reactions to body as well as to comments, and aggregate them somehow hmm
     const query = graphql(`
@@ -318,10 +323,11 @@ export namespace Github {
         $organization: String!
         $repo: String!
         $since: DateTime
+        $first: Int!
       ) {
         repository(owner: $organization, name: $repo) {
           issues(
-            first: 100
+            first: $first
             after: $cursor
             orderBy: { field: UPDATED_AT, direction: ASC }
             filterBy: { since: $since }

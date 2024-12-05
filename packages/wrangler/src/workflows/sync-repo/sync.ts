@@ -87,6 +87,11 @@ export const syncRepo = async ({
           const { issuesAndCommentsLabels, lastIssueUpdatedAt } = await step.do(
             `get issues and associated comments and labels for batch ${idx}`,
             async () => {
+              // currently, Github API is called for each chunk in the same worker (unlike with embeddings)
+              // this puts a limit on the size of repos we can sync (roughly 1000 sub requests * 100 issues per sub request = 100,000 issues)
+              // we can modify e.g. CHUNK_SIZE to 1000 and see if it fits within the return size (this has implications on GitHub API rate limit too)
+              // alternatively, we can spin up a new worker for each chunk a la embedding
+              // vscode (~200k issues) seems like a good upper bound for this
               return await Github.getIssuesCommentsLabels({
                 issueNumbers,
                 repoId,
@@ -123,7 +128,7 @@ export const syncRepo = async ({
     );
     if (mode === "cron") {
       // can set this once issues have been inserted; no need to wait for embeddings
-      // search may be slightly outdated, but it's fine + it's tracked in issues table
+      // search may be slightly outdated, but it's fine
       await step.do(
         `update repo.issuesLastUpdatedAt for cron repo ${name}`,
         async () => {
@@ -202,7 +207,7 @@ export const syncRepo = async ({
       },
     );
     if (mode === "init") {
-      // for init, only update this when embeddings are synced. this prevents users from searching before embeddings are synced and getting no results
+      // for init, only update this when embeddings are synced. this prevents users from searching before embeddings are synced and getting severely incomplete results
       await step.do(
         "update repo.issuesLastUpdatedAt for initialized repo",
         async () => {

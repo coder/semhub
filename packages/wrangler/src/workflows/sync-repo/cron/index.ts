@@ -17,6 +17,8 @@ interface Env extends WranglerSecrets {
 
 export class SyncWorkflow extends WorkflowEntrypoint<Env> {
   async run(_: unknown, step: WorkflowStep) {
+    // in a cron, repos are synced two at a time; can adjust if cron takes too long to complete
+    const NUM_REPOS_TO_SYNC_CONCURRENTLY = 2;
     const { DATABASE_URL, GITHUB_PERSONAL_ACCESS_TOKEN, OPENAI_API_KEY } =
       this.env;
     const { db, graphqlOctokit } = getDeps({
@@ -39,7 +41,7 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env> {
           embeddingWorkflow: this.env.SYNC_REPO_EMBEDDING_WORKFLOW,
         }),
       {
-        concurrency: 2,
+        concurrency: NUM_REPOS_TO_SYNC_CONCURRENTLY,
       },
     );
   }
