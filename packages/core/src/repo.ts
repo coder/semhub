@@ -6,6 +6,7 @@ import { issueTable } from "@/db/schema/entities/issue.sql";
 import { labels as labelTable } from "@/db/schema/entities/label.sql";
 import { repos } from "@/db/schema/entities/repo.sql";
 import { conflictUpdateAllExcept } from "@/db/utils/conflict";
+import { sanitizeForPg } from "@/db/utils/string";
 import type { Github } from "@/github";
 
 export namespace Repo {
@@ -86,10 +87,24 @@ export namespace Repo {
     >["issuesAndCommentsLabels"],
     db: DbClient,
   ) {
+    const sanitizedIssuesToInsert = issuesToInsert.map((issue) => ({
+      ...issue,
+      title: sanitizeForPg(issue.title),
+      body: sanitizeForPg(issue.body),
+    }));
+    const sanitizedCommentsToInsert = commentsToInsert.map((comment) => ({
+      ...comment,
+      body: sanitizeForPg(comment.body),
+    }));
+    const sanitizedLabelsToInsert = labelsToInsert.map((label) => ({
+      ...label,
+      description: label.description ? sanitizeForPg(label.description) : null,
+    }));
+
     await db.transaction(async (tx) => {
       await tx
         .insert(issueTable)
-        .values(issuesToInsert)
+        .values(sanitizedIssuesToInsert)
         .onConflictDoUpdate({
           target: [issueTable.nodeId],
           set: conflictUpdateAllExcept(issueTable, [
@@ -102,7 +117,7 @@ export namespace Repo {
         console.log("inserting labels");
         await tx
           .insert(labelTable)
-          .values(labelsToInsert)
+          .values(sanitizedLabelsToInsert)
           .onConflictDoUpdate({
             target: [labelTable.nodeId],
             set: conflictUpdateAllExcept(labelTable, [
@@ -120,18 +135,17 @@ export namespace Repo {
           })
           .from(issueTable),
       );
-      const commentsToInsertWithIssueId = commentsToInsert.map(
-        ({ issueNodeId, ...comment }) => ({
+      const sanitizedCommentsToInsertWithIssueId =
+        sanitizedCommentsToInsert.map(({ issueNodeId, ...comment }) => ({
           ...comment,
           issueId: sql<string>`((SELECT id FROM issue_ids WHERE node_id = ${issueNodeId}))`,
-        }),
-      );
-      if (commentsToInsertWithIssueId.length > 0) {
+        }));
+      if (sanitizedCommentsToInsertWithIssueId.length > 0) {
         console.log("inserting comments");
         await tx
           .with(issueIds)
           .insert(comments)
-          .values(commentsToInsertWithIssueId)
+          .values(sanitizedCommentsToInsertWithIssueId)
           .onConflictDoUpdate({
             target: [comments.nodeId],
             set: conflictUpdateAllExcept(comments, [
