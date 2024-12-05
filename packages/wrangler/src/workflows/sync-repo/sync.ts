@@ -8,10 +8,7 @@ import type { GraphqlOctokit } from "@/core/github/shared";
 import { Repo } from "@/core/repo";
 
 import type { EmbeddingParams } from "./embedding";
-import {
-  processCronEmbeddings,
-  processRepoEmbeddings,
-} from "./process-embedding";
+import { processRepoEmbeddings } from "./process-embedding";
 import type { WorkflowRPC } from "./util";
 import { chunkArray } from "./util";
 
@@ -72,7 +69,7 @@ export const syncRepo = async ({
       },
     );
     if (issuesToChunk.length === 0) {
-      await finalizeSync({ repoId, completedAt: new Date(), db, step });
+      await finalizeSuccessfulSync({ repoId, completedAt: new Date(), db, step });
       return;
     }
     const chunkedIssues = await step.do("chunk issues", async () => {
@@ -132,19 +129,27 @@ export const syncRepo = async ({
     if (mode === "cron") {
       // can set this once issues have been inserted; no need to wait for embeddings
       // search may be slightly outdated, but it's fine
-      await step.do(
-        `update repo.issuesLastUpdatedAt for cron repo ${name}`,
-        async () => {
-          await db
-            .update(repos)
-            .set({
-              issuesLastUpdatedAt: lastIssueUpdatedAt,
-            })
-            .where(eq(repos.id, repoId));
-        },
-      );
     }
     switch (mode) {
+      case "cron": {
+        // in cron, once issues are upserted, we will finalize sync and update issuesLastUpdatedAt
+        // embeddings are dealt with back in cron/index.ts across all repos
+        await step.do(
+          `update repo.issuesLastUpdatedAt for cron repo ${name}`,
+          async () => {
+            await db
+              .update(repos)
+              .set({
+                // can set this once issues have been inserted; no need to wait for embeddings
+                // search may be slightly outdated, but it's fine
+                issuesLastUpdatedAt: lastIssueUpdatedAt,
+              })
+              .where(eq(repos.id, repoId));
+          },
+        );
+        await finalizeSuccessfulSync({ repoId, completedAt: new Date(), db, step });
+        return;
+      }
       case "init": {
         await processRepoEmbeddings({
           repoId,
@@ -153,13 +158,10 @@ export const syncRepo = async ({
           db,
           embeddingWorkflow,
         });
-      }
-      case "cron": {
-        // For cron, process embeddings across all repos
-        await processCronEmbeddings({ step, db, embeddingWorkflow });
+        await finalizeSuccessfulSync({ repoId, completedAt: new Date(), db, step });
+        return;
       }
     }
-    await finalizeSync({ repoId, completedAt: new Date(), db, step });
   } catch (e) {
     await step.do("sync unsuccessful, mark repo as not syncing", async () => {
       await Repo.markIsSyncingFalse(
@@ -174,7 +176,7 @@ export const syncRepo = async ({
   }
 };
 
-async function finalizeSync({
+async function finalizeSuccessfulSync({
   repoId,
   completedAt,
   db,

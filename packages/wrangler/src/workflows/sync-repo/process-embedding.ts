@@ -11,15 +11,12 @@ import { chunkArray } from "./util";
 async function waitForWorkflowCompletion(
   step: WorkflowStep,
   workflowId: string,
-  embeddingWorkflow: WorkflowRPC<EmbeddingParams>
+  embeddingWorkflow: WorkflowRPC<EmbeddingParams>,
 ) {
   while (true) {
-    const instanceStatus = await step.do(
-      "get workflow status",
-      async () => {
-        return await embeddingWorkflow.getInstanceStatus(workflowId);
-      },
-    );
+    const instanceStatus = await step.do("get workflow status", async () => {
+      return await embeddingWorkflow.getInstanceStatus(workflowId);
+    });
 
     switch (instanceStatus.status) {
       case "complete":
@@ -92,7 +89,12 @@ export async function processRepoEmbeddings({
   );
 
   await step.do(`process embeddings for repo ${name}`, async () => {
-    await processEmbeddingBatches({ step, chunkedIssueIds, embeddingWorkflow, name });
+    await processEmbeddingBatches({
+      step,
+      chunkedIssueIds,
+      embeddingWorkflow,
+      name,
+    });
   });
 }
 
@@ -108,7 +110,7 @@ export async function processCronEmbeddings({
   const outdatedIssueIds = await step.do(
     "get all outdated embeddings across repos",
     async () => {
-      return await Embedding.getAllOutdatedIssues(db);
+      return await Embedding.getAllOutdatedIssuesFromNonSyncingRepos(db);
     },
   );
   if (outdatedIssueIds.length === 0) return;
@@ -119,6 +121,11 @@ export async function processCronEmbeddings({
   );
 
   await step.do(`process cron embeddings`, async () => {
-    await processEmbeddingBatches({ step, chunkedIssueIds, embeddingWorkflow, name: "cron" });
+    await processEmbeddingBatches({
+      step,
+      chunkedIssueIds,
+      embeddingWorkflow,
+      name: "cron",
+    });
   });
 }

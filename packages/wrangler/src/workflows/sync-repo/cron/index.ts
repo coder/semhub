@@ -7,6 +7,7 @@ import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 
 import type { EmbeddingParams } from "../embedding";
+import { processCronEmbeddings } from "../process-embedding";
 import { syncRepo } from "../sync";
 import type { WorkflowRPC } from "../util";
 
@@ -44,6 +45,12 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env> {
         concurrency: NUM_REPOS_TO_SYNC_CONCURRENTLY,
       },
     );
+    // For cron, process embeddings across all repos
+    await processCronEmbeddings({
+      step,
+      db,
+      embeddingWorkflow: this.env.SYNC_REPO_EMBEDDING_WORKFLOW,
+    });
   }
 }
 

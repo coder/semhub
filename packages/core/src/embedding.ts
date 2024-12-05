@@ -59,14 +59,19 @@ export namespace Embedding {
         ),
       );
   }
-  export async function getAllOutdatedIssues(db: DbClient) {
+  export async function getAllOutdatedIssuesFromNonSyncingRepos(db: DbClient) {
     return await db
       .select({ id: issueTable.id })
       .from(issueTable)
+      .innerJoin(repos, eq(issueTable.repoId, repos.id))
       .where(
-        or(
-          isNull(issueTable.embedding),
-          lt(issueTable.embeddingCreatedAt, issueTable.issueUpdatedAt),
+        and(
+          // this prevents embedding issues from initializing repos
+          eq(repos.isSyncing, false),
+          or(
+            isNull(issueTable.embedding),
+            lt(issueTable.embeddingCreatedAt, issueTable.issueUpdatedAt),
+          ),
         ),
       );
   }
