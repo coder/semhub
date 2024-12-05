@@ -20,36 +20,27 @@ export namespace Repo {
       .from(repos)
       .where(
         // basically, get all repos that have been initialized
-        // isSyncing false is nice-to-have, real safeguards in syncRepo function
+        // isSyncing protects against concurrent sync attempts
         and(isNotNull(repos.issuesLastUpdatedAt), eq(repos.isSyncing, false)),
       );
   }
-  export async function updateSyncStatus(
+  export async function markIsSyncingFalse(
     args:
-      | { repoId: string; isSyncing: true }
       | {
           repoId: string;
-          isSyncing: false;
           successfulSynced: true;
           syncedAt: Date;
         }
-      | { repoId: string; isSyncing: false; successfulSynced: false },
+      | { repoId: string; successfulSynced: false },
     db: DbClient,
   ) {
-    if (args.isSyncing) {
-      await db
-        .update(repos)
-        .set({ isSyncing: true })
-        .where(eq(repos.id, args.repoId));
-    } else {
-      await db
-        .update(repos)
-        .set({
-          isSyncing: false,
-          lastSyncedAt: args.successfulSynced ? args.syncedAt : undefined,
-        })
-        .where(eq(repos.id, args.repoId));
-    }
+    await db
+      .update(repos)
+      .set({
+        isSyncing: false,
+        lastSyncedAt: args.successfulSynced ? args.syncedAt : undefined,
+      })
+      .where(eq(repos.id, args.repoId));
   }
 
   export async function createRepo(

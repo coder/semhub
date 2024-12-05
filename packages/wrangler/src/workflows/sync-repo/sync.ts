@@ -1,5 +1,4 @@
 import type { WorkflowStep } from "cloudflare:workers";
-import { NonRetryableError } from "cloudflare:workflows";
 import pMap from "p-map";
 
 import { eq, type DbClient } from "@/core/db";
@@ -30,32 +29,33 @@ export const syncRepo = async ({
 }) => {
   const { repoId, repoOwner, repoName } = repo;
   const name = `${repoOwner}/${repoName}`;
-  const isAlreadySyncing = await step.do(
-    "check if repo is already syncing",
+
+  const canStartSync = await step.do(
+    "attempt to acquire repo sync lock",
     async () => {
-      const res = await db
-        .select({ isSyncing: repos.isSyncing })
-        .from(repos)
-        .where(eq(repos.id, repoId));
-      if (!res[0]) {
-        throw new NonRetryableError("Repo not found");
-      }
-      return res[0].isSyncing;
+      return await db.transaction(async (tx) => {
+        // First select with lock
+        const [currentRepo] = await tx
+          .select({ isSyncing: repos.isSyncing })
+          .from(repos)
+          .where(eq(repos.id, repoId))
+          .for("update");
+        if (!currentRepo || currentRepo.isSyncing) {
+          return false;
+        }
+        // Then update while still in transaction
+        await tx
+          .update(repos)
+          .set({ isSyncing: true })
+          .where(eq(repos.id, repoId));
+
+        return true;
+      });
     },
   );
-  // earlier sync has not completed, let that run, no hurry
-  if (isAlreadySyncing) {
-    return;
+  if (!canStartSync) {
+    return; // Another sync is in progress
   }
-  await step.do("sync started, mark repo as syncing", async () => {
-    await Repo.updateSyncStatus(
-      {
-        repoId,
-        isSyncing: true,
-      },
-      db,
-    );
-  });
   try {
     const issuesToChunk = await step.do(
       `get issues array to chunk for ${name}`,
@@ -218,10 +218,9 @@ export const syncRepo = async ({
     await finalizeSync({ repoId, completedAt, db, step });
   } catch (e) {
     await step.do("sync unsuccessful, mark repo as not syncing", async () => {
-      await Repo.updateSyncStatus(
+      await Repo.markIsSyncingFalse(
         {
           repoId,
-          isSyncing: false,
           successfulSynced: false,
         },
         db,
@@ -243,10 +242,9 @@ async function finalizeSync({
   step: WorkflowStep;
 }) {
   await step.do("sync successful, mark repo as not syncing", async () => {
-    await Repo.updateSyncStatus(
+    await Repo.markIsSyncingFalse(
       {
         repoId,
-        isSyncing: false,
         successfulSynced: true,
         syncedAt: completedAt,
       },
