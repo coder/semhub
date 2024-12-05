@@ -47,19 +47,6 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, InitSyncParams> {
       // should not initialize repo that has already been initialized
       throw new NonRetryableError("Repo has been initialized");
     }
-    if (createdRepo.isSyncing) {
-      // cannot initialize repo that is already syncing
-      throw new NonRetryableError("Repo is already syncing");
-    }
-    await step.do("sync started, mark repo as syncing", async () => {
-      await Repo.updateSyncStatus(
-        {
-          repoId: createdRepo.repoId,
-          isSyncing: true,
-        },
-        db,
-      );
-    });
     await syncRepo({
       repo: createdRepo,
       step,
@@ -68,18 +55,6 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, InitSyncParams> {
       mode: "init",
       embeddingWorkflow: this.env.SYNC_REPO_EMBEDDING_WORKFLOW,
     });
-    await step.do("update repo.issuesLastUpdatedAt", async () => {
-      await Repo.updateSyncStatus(
-        {
-          repoId: createdRepo.repoId,
-          isSyncing: false,
-          successfulSynced: true,
-          syncedAt: new Date(),
-        },
-        db,
-      );
-    });
-    return;
   }
 }
 

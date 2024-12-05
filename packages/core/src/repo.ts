@@ -20,7 +20,7 @@ export namespace Repo {
       .from(repos)
       .where(
         // basically, get all repos that have been initialized
-        // and repos that are not currently syncing
+        // isSyncing false is nice-to-have, real safeguards in syncRepo function
         and(isNotNull(repos.issuesLastUpdatedAt), eq(repos.isSyncing, false)),
       );
   }
@@ -81,7 +81,6 @@ export namespace Repo {
         issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
         repoName: repos.name,
         repoOwner: repos.owner,
-        isSyncing: repos.isSyncing,
       });
     return result;
   }

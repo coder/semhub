@@ -27,48 +27,21 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env> {
     const repos = await step.do("get repos", async () => {
       return await Repo.getReposForCron(db);
     });
-    for (const { repoId } of repos) {
-      await step.do("sync started, mark repo as syncing", async () => {
-        await Repo.updateSyncStatus(
-          {
-            repoId,
-            isSyncing: true,
-          },
+    await pMap(
+      repos,
+      (repo) =>
+        syncRepo({
+          repo,
+          step,
           db,
-        );
-      });
-    }
-    try {
-      await pMap(
-        repos,
-        (repo) =>
-          syncRepo({
-            repo,
-            step,
-            db,
-            graphqlOctokit,
-            mode: "cron",
-            embeddingWorkflow: this.env.SYNC_REPO_EMBEDDING_WORKFLOW,
-          }),
-        {
-          concurrency: 2,
-        },
-      );
-    } catch (e) {
-      for (const { repoId } of repos) {
-        await step.do("sync started, mark repo as syncing", async () => {
-          await Repo.updateSyncStatus(
-            {
-              repoId,
-              isSyncing: false,
-              successfulSynced: false,
-            },
-            db,
-          );
-        });
-      }
-      throw e;
-    }
+          graphqlOctokit,
+          mode: "cron",
+          embeddingWorkflow: this.env.SYNC_REPO_EMBEDDING_WORKFLOW,
+        }),
+      {
+        concurrency: 2,
+      },
+    );
   }
 }
 
