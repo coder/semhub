@@ -1,0 +1,19 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["bun-types"],
+    "rootDir": "..",
+    "outDir": "../dist/scripts",
+    "typeRoots": ["../", "../node_modules/@types"],
+    "paths": {
+      "@/core/*": ["../../core/src/*"]
+    }
+  },
+  "references": [
+    {
+      "path": "../../core"
+    }
+  ],
+  "include": ["./**/*", "../sst-env.d.ts"],
+  "exclude": ["../src/**/*"]
+}

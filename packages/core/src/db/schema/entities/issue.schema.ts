@@ -4,9 +4,9 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import type { z } from "zod";
 
 import { authorSchema } from "../shared";
-import { issues } from "./issue.sql";
+import { issueTable } from "./issue.sql";
 
-export const createIssueSchema = createInsertSchema(issues, {
+export const createIssueSchema = createInsertSchema(issueTable, {
   author: authorSchema,
 }).omit({
   id: true,
@@ -14,13 +14,13 @@ export const createIssueSchema = createInsertSchema(issues, {
 
 export type CreateIssue = z.infer<typeof createIssueSchema>;
 
-const selectIssueSchema = createSelectSchema(issues).extend({
+const selectIssueSchema = createSelectSchema(issueTable).extend({
   author: authorSchema,
 });
 
 export type SelectIssue = z.infer<typeof selectIssueSchema>;
 
-const selectIssueForEmbedding = selectIssueSchema.pick({
+const _selectIssueForEmbeddingSchema = selectIssueSchema.pick({
   id: true,
   number: true,
   author: true,
@@ -32,4 +32,6 @@ const selectIssueForEmbedding = selectIssueSchema.pick({
   issueClosedAt: true,
 });
 
-export type SelectIssueForEmbedding = z.infer<typeof selectIssueForEmbedding>;
+export type SelectIssueForEmbedding = z.infer<
+  typeof _selectIssueForEmbeddingSchema
+>;

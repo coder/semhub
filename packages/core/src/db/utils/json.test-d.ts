@@ -151,7 +151,7 @@ type NestedArrayPaths = PathsToStringPropertyInArray<NestedArrayType["items"]>;
 expectType<"id" | "details.name" | "details.value">({} as NestedArrayPaths);
 
 const mockNestedColumn = {} as MockNestedArrayColumn;
-const nestedTest1 = jsonArraySome(mockNestedColumn, "items.details.name");
-const nestedTest2 = jsonArrayContains(mockNestedColumn, "items.id", "test");
+const _nestedTest1 = jsonArraySome(mockNestedColumn, "items.details.name");
+const _nestedTest2 = jsonArrayContains(mockNestedColumn, "items.id", "test");
 // @ts-expect-error - should not allow invalid paths
-const nestedTestInvalid = jsonArraySome(mockNestedColumn, "items.invalid");
+const _nestedTestInvalid = jsonArraySome(mockNestedColumn, "items.invalid");

@@ -21,9 +21,9 @@ export const issueStateEnum = pgEnum("issue_state", ["OPEN", "CLOSED"]);
 export const convertToIssueStateSql = (state: StateSubmenuValue) => {
   switch (state) {
     case "open":
-      return eq(issues.issueState, "OPEN");
+      return eq(issueTable.issueState, "OPEN");
     case "closed":
-      return eq(issues.issueState, "CLOSED");
+      return eq(issueTable.issueState, "CLOSED");
     case "all":
       return sql`true`;
   }
@@ -36,7 +36,7 @@ export const issueStateReasonEnum = pgEnum("issue_state_reason", [
   "DUPLICATE",
 ]);
 
-export const issues = pgTable(
+export const issueTable = pgTable(
   "issues",
   {
     ...getBaseColumns("issues"),
@@ -86,6 +86,6 @@ export const issues = pgTable(
   }),
 );
 
-export const issuesRelations = relations(issues, ({ many }) => ({
+export const issuesRelations = relations(issueTable, ({ many }) => ({
   issuesToLabels: many(issuesToLabels),
 }));

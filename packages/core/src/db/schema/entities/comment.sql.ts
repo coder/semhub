@@ -4,14 +4,14 @@ import type { z } from "zod";
 
 import { getBaseColumns, timestamptz } from "../base.sql";
 import { authorSchema, type Author } from "../shared";
-import { issues } from "./issue.sql";
+import { issueTable } from "./issue.sql";
 
 export const comments = pgTable(
   "comments",
   {
     ...getBaseColumns("comments"),
     issueId: text("issue_id")
-      .references(() => issues.id)
+      .references(() => issueTable.id)
       .notNull(),
     nodeId: text("node_id").notNull().unique(),
     author: jsonb("author").$type<Author>(),

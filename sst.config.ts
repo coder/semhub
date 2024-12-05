@@ -5,7 +5,7 @@ export default $config({
   app(input) {
     return {
       name: "semhub",
-      removal: input?.stage === "production" ? "retain" : "remove",
+      removal: input?.stage === "prod" ? "retain" : "remove",
       home: "cloudflare",
       providers: {
         supabase: "0.0.3",

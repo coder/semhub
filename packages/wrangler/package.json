@@ -1,0 +1,30 @@
+{
+  "name": "@semhub/wrangler",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc",
+    "build": "tsc --build",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "dev": "bun scripts/worker.ts dev",
+    "deploy": "bun scripts/worker.ts deploy",
+    "deploy:prod": "bun scripts/worker.ts deploy --prod",
+    "delete": "bun scripts/worker.ts delete",
+    "delete:prod": "bun scripts/worker.ts delete --prod",
+    "deploy:workflows": "bun run deploy workflows/sync-repo/embedding && bun run deploy workflows/sync-repo/init && bun run deploy workflows/sync-repo/cron",
+    "deploy:workflows:prod": "bun run deploy:prod workflows/sync-repo/embedding && bun run deploy:prod workflows/sync-repo/init && bun run deploy:prod workflows/sync-repo/cron",
+    "deploy:all": "bun run deploy rate-limiter && bun run deploy workflows/sync-repo/embedding && bun run deploy workflows/sync-repo/cron && bun run deploy workflows/sync-repo/init",
+    "deploy:all:prod": "bun run deploy:prod rate-limiter && bun run deploy:prod workflows/sync-repo/embedding && bun run deploy:prod workflows/sync-repo/cron && bun run deploy:prod workflows/sync-repo/init"
+  },
+  "dependencies": {
+    "@semhub/core": "workspace:*",
+    "p-map": "^7.0.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241022.0",
+    "wrangler": "^3.91.0",
+    "vitest": "^2.1.6"
+  }
+}
