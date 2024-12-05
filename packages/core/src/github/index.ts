@@ -387,11 +387,13 @@ export namespace Github {
     repoName,
     octokit,
     since,
+    numIssuesPerQuery,
   }: {
     repoOwner: string;
     repoName: string;
     octokit: GraphqlOctokit;
     since: Date | null;
+    numIssuesPerQuery: number;
   }) {
     const query = graphql(`
       query getIssueNumbers(
@@ -399,10 +401,11 @@ export namespace Github {
         $organization: String!
         $repo: String!
         $since: DateTime
+        $first: Int!
       ) {
         repository(owner: $organization, name: $repo) {
           issues(
-            first: 100
+            first: $first
             after: $cursor
             orderBy: { field: UPDATED_AT, direction: ASC }
             filterBy: { since: $since }
@@ -419,11 +422,13 @@ export namespace Github {
         }
       }
     `);
+    // actually, collecting the issue numbers is unnecessary
     const allIssueNumbers: Array<{ number: number; updatedAt: Date }> = [];
     const iterator = octokit.graphql.paginate.iterator(print(query), {
       organization: repoOwner,
       repo: repoName,
       since: since?.toISOString() ?? null,
+      first: numIssuesPerQuery,
     });
     for await (const response of iterator) {
       const { success, data, error } =

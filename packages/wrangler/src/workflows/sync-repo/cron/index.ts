@@ -42,6 +42,7 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env> {
           embeddingWorkflow: this.env.SYNC_REPO_EMBEDDING_WORKFLOW,
         }),
       {
+        // TODO: extract constants
         concurrency: NUM_REPOS_TO_SYNC_CONCURRENTLY,
       },
     );

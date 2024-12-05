@@ -58,6 +58,7 @@ async function processEmbeddingBatches({
 
       await waitForWorkflowCompletion(step, workflowId, embeddingWorkflow);
     },
+    // TODO: extract constants
     { concurrency: 2 },
   );
 }
@@ -75,6 +76,7 @@ export async function processRepoEmbeddings({
   repoId: string;
   name: string;
 }) {
+  // TODO: extract constants
   const BATCH_SIZE = 10000;
   let processedCount = 0;
 
@@ -91,6 +93,7 @@ export async function processRepoEmbeddings({
 
     if (outdatedIssueIds.length === 0) break;
 
+    // TODO: extract constants
     const CHUNK_SIZE = 200;
     const chunkedIssueIds = chunkArray(
       outdatedIssueIds.map((i) => i.id),
@@ -105,6 +108,7 @@ export async function processRepoEmbeddings({
           delay: 10000,
           backoff: "linear",
         },
+        // TODO: extract constants
         // arbitrary number, to tune later
         timeout: "90 minutes",
       },
@@ -141,6 +145,7 @@ export async function processCronEmbeddings({
 
   const chunkedIssueIds = chunkArray(
     outdatedIssueIds.map((i) => i.id),
+    // TODO: extract constants
     200,
   );
 

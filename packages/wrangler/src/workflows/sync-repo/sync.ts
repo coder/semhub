@@ -65,15 +65,23 @@ export const syncRepo = async ({
           repoName,
           octokit: graphqlOctokit,
           since: repo.issuesLastUpdatedAt,
+          // TODO: extract constants
+          numIssuesPerQuery: 100,
         });
       },
     );
     if (issuesToChunk.length === 0) {
-      await finalizeSuccessfulSync({ repoId, completedAt: new Date(), db, step });
+      await finalizeSuccessfulSync({
+        repoId,
+        completedAt: new Date(),
+        db,
+        step,
+      });
       return;
     }
     const chunkedIssues = await step.do("chunk issues", async () => {
       // return value max size of 1MiB, chunk issues to extract into batches of 100
+      // TODO: extract constants
       const CHUNK_SIZE = 100;
       return chunkArray(issuesToChunk, CHUNK_SIZE);
     });
@@ -114,6 +122,7 @@ export const syncRepo = async ({
           async (issueNumbers, idx) => {
             return await processChunkedIssues(issueNumbers, idx);
           },
+          // TODO: extract constants
           { concurrency: 2 },
         );
       },
@@ -126,10 +135,6 @@ export const syncRepo = async ({
           .reduce((a, b) => (a > b ? a : b));
       },
     );
-    if (mode === "cron") {
-      // can set this once issues have been inserted; no need to wait for embeddings
-      // search may be slightly outdated, but it's fine
-    }
     switch (mode) {
       case "cron": {
         // in cron, once issues are upserted, we will finalize sync and update issuesLastUpdatedAt
@@ -147,7 +152,12 @@ export const syncRepo = async ({
               .where(eq(repos.id, repoId));
           },
         );
-        await finalizeSuccessfulSync({ repoId, completedAt: new Date(), db, step });
+        await finalizeSuccessfulSync({
+          repoId,
+          completedAt: new Date(),
+          db,
+          step,
+        });
         return;
       }
       case "init": {
@@ -158,7 +168,12 @@ export const syncRepo = async ({
           db,
           embeddingWorkflow,
         });
-        await finalizeSuccessfulSync({ repoId, completedAt: new Date(), db, step });
+        await finalizeSuccessfulSync({
+          repoId,
+          completedAt: new Date(),
+          db,
+          step,
+        });
         return;
       }
     }
