@@ -16,10 +16,14 @@ const ArgsSchema = z.object({
 });
 
 try {
+  const args = process.argv.slice(2); // remove bun and script path
+  const isProd = args.includes("--prod");
+  const workerIndex = isProd ? args.indexOf("--prod") + 1 : 1;
+
   const { action, worker, prod } = ArgsSchema.parse({
-    action: process.argv[2],
-    worker: process.argv[3],
-    prod: process.argv[4] === "--prod",
+    action: args[0],
+    worker: args[workerIndex] || undefined,
+    prod: isProd,
   });
 
   const stageFlag = prod ? "--stage prod " : "";
