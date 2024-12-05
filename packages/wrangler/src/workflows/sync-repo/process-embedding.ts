@@ -26,6 +26,7 @@ async function waitForWorkflowCompletion(
       default: {
         await step.sleep(
           "wait for workflow to complete or error out",
+          // TODO: extract constant
           "30 seconds",
         );
       }
