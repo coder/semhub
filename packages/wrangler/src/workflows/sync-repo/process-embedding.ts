@@ -66,9 +66,6 @@ async function processEmbeddingBatches({
 
 export async function processRepoEmbeddings({
   step,
-  db,
-  embeddingWorkflow,
-  repoId,
   name,
 }: {
   step: WorkflowStep;
@@ -78,31 +75,26 @@ export async function processRepoEmbeddings({
   name: string;
 }) {
   // TODO: extract constants
-  const BATCH_SIZE = 10000;
+  // const BATCH_SIZE = 10000;
   let processedCount = 0;
 
   while (true) {
-    const outdatedIssueIds = await step.do(
+    await step.do(
       `get issues with outdated embeddings for repo ${name} (offset: ${processedCount})`,
-      async () => {
-        return await Embedding.getRepoOutdatedIssues(db, repoId, {
-          limit: BATCH_SIZE,
-          offset: processedCount,
-        });
-      },
+      async () => {},
     );
 
-    if (outdatedIssueIds.length === 0) break;
+    // if (outdatedIssueIds.length === 0) break;
 
     // TODO: extract constants
-    const CHUNK_SIZE = 200;
-    const chunkedIssueIds = chunkArray(
-      outdatedIssueIds.map((i) => i.id),
-      CHUNK_SIZE,
-    );
+    // const CHUNK_SIZE = 200;
+    // const chunkedIssueIds = chunkArray(
+    //   outdatedIssueIds.map((i) => i.id),
+    //   CHUNK_SIZE,
+    // );
 
     await step.do(
-      `process embeddings for repo ${name} (batch ${processedCount}-${processedCount + outdatedIssueIds.length})`,
+      `process embeddings for repo ${name}`,
       {
         retries: {
           limit: 1,
@@ -114,16 +106,17 @@ export async function processRepoEmbeddings({
         timeout: "90 minutes",
       },
       async () => {
-        await processEmbeddingBatches({
-          step,
-          chunkedIssueIds,
-          embeddingWorkflow,
-          name,
-        });
+        // processEmbeddingBatches
+        // await processEmbeddingBatches({
+        //   step,
+        //   chunkedIssueIds,
+        //   embeddingWorkflow,
+        //   name,
+        // });
       },
     );
 
-    processedCount += outdatedIssueIds.length;
+    // processedCount += outdatedIssueIds.length;
   }
 }
 
@@ -139,7 +132,7 @@ export async function processCronEmbeddings({
   const outdatedIssueIds = await step.do(
     "get all outdated embeddings across repos",
     async () => {
-      return await Embedding.getAllOutdatedIssuesFromNonSyncingRepos(db);
+      return await Embedding.getIssuesToUpdate(db);
     },
   );
   if (outdatedIssueIds.length === 0) return;

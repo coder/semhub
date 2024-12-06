@@ -81,7 +81,6 @@ export namespace SemanticSearch {
         repoName: repos.name,
         repoUrl: repos.htmlUrl,
         repoOwnerName: repos.owner,
-        repoLastUpdatedAt: repos.issuesLastUpdatedAt,
         commentCount: count(comments.id).as("comment_count"),
       })
       .from(issueTable)
@@ -93,7 +92,6 @@ export namespace SemanticSearch {
         repos.htmlUrl,
         repos.name,
         repos.owner,
-        repos.issuesLastUpdatedAt,
       )
       .orderBy(desc(similarity))
       .where(

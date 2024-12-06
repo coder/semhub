@@ -8,7 +8,6 @@ import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 
 import type { EmbeddingParams } from "../embedding";
-import { syncRepo } from "../sync";
 import type { WorkflowRPC } from "../util";
 
 interface Env extends WranglerSecrets {
@@ -29,7 +28,7 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, InitSyncParams> {
     const { repo } = event.payload;
     const { DATABASE_URL, GITHUB_PERSONAL_ACCESS_TOKEN, OPENAI_API_KEY } =
       this.env;
-    const { db, graphqlOctokit, restOctokit } = getDeps({
+    const { db, restOctokit } = getDeps({
       databaseUrl: DATABASE_URL,
       githubPersonalAccessToken: GITHUB_PERSONAL_ACCESS_TOKEN,
       openaiApiKey: OPENAI_API_KEY,
@@ -43,18 +42,18 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, InitSyncParams> {
     if (!createdRepo) {
       throw new NonRetryableError("Failed to create repo");
     }
-    if (createdRepo.issuesLastUpdatedAt) {
+    if (createdRepo.initStatus === "completed") {
       // should not initialize repo that has already been initialized
       throw new NonRetryableError("Repo has been initialized");
     }
-    await syncRepo({
-      repo: createdRepo,
-      step,
-      db,
-      graphqlOctokit,
-      mode: "init",
-      embeddingWorkflow: this.env.SYNC_REPO_EMBEDDING_WORKFLOW,
-    });
+    // await syncRepo({
+    //   repo: createdRepo,
+    //   step,
+    //   db,
+    //   graphqlOctokit,
+    //   mode: "init",
+    //   embeddingWorkflow: this.env.SYNC_REPO_EMBEDDING_WORKFLOW,
+    // });
   }
 }
 

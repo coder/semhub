@@ -20,7 +20,7 @@ export const syncRepo = async ({
   mode,
   embeddingWorkflow,
 }: {
-  repo: Awaited<ReturnType<typeof Repo.getReposForCron>>[number];
+  repo: Awaited<ReturnType<typeof Repo.getReposForIssueSync>>[number];
   step: WorkflowStep;
   db: DbClient;
   graphqlOctokit: GraphqlOctokit;
@@ -36,17 +36,17 @@ export const syncRepo = async ({
       return await db.transaction(async (tx) => {
         // First select with lock
         const [currentRepo] = await tx
-          .select({ isSyncing: repos.isSyncing })
+          .select({ syncStatus: repos.syncStatus })
           .from(repos)
           .where(eq(repos.id, repoId))
           .for("update");
-        if (!currentRepo || currentRepo.isSyncing) {
+        if (!currentRepo || currentRepo.syncStatus !== "ready") {
           return false;
         }
         // Then update while still in transaction
         await tx
           .update(repos)
-          .set({ isSyncing: true })
+          .set({ syncStatus: "in_progress" })
           .where(eq(repos.id, repoId));
 
         return true;
@@ -64,7 +64,7 @@ export const syncRepo = async ({
           repoOwner,
           repoName,
           octokit: graphqlOctokit,
-          since: repo.issuesLastUpdatedAt,
+          since: repo.repoIssuesLastUpdatedAt,
           // TODO: extract constants
           numIssuesPerQuery: 100,
         });
@@ -153,12 +153,7 @@ export const syncRepo = async ({
     await step.do(
       `update repo.issuesLastUpdatedAt for repo ${name}`,
       async () => {
-        await db
-          .update(repos)
-          .set({
-            issuesLastUpdatedAt: lastIssueUpdatedAt,
-          })
-          .where(eq(repos.id, repoId));
+        console.log("lastIssueUpdatedAt", lastIssueUpdatedAt);
       },
     );
     await finalizeSuccessfulSync({
@@ -168,23 +163,15 @@ export const syncRepo = async ({
       step,
     });
   } catch (e) {
-    await step.do("sync unsuccessful, mark repo as not syncing", async () => {
-      await Repo.markIsSyncingFalse(
-        {
-          repoId,
-          successfulSynced: false,
-        },
-        db,
-      );
-    });
+    await step.do(
+      "sync unsuccessful, mark repo as not syncing",
+      async () => {},
+    );
     throw e;
   }
 };
 
 async function finalizeSuccessfulSync({
-  repoId,
-  completedAt,
-  db,
   step,
 }: {
   repoId: string;
@@ -192,14 +179,5 @@ async function finalizeSuccessfulSync({
   db: DbClient;
   step: WorkflowStep;
 }) {
-  await step.do("sync successful, mark repo as not syncing", async () => {
-    await Repo.markIsSyncingFalse(
-      {
-        repoId,
-        successfulSynced: true,
-        syncedAt: completedAt,
-      },
-      db,
-    );
-  });
+  await step.do("sync successful, mark repo as not syncing", async () => {});
 }

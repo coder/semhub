@@ -28,7 +28,7 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env> {
       openaiApiKey: OPENAI_API_KEY,
     });
     const repos = await step.do("get repos", async () => {
-      return await Repo.getReposForCron(db);
+      return await Repo.getReposForIssueSync(db);
     });
     await pMap(
       repos,

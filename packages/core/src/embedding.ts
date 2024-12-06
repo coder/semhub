@@ -10,7 +10,6 @@ import type { SelectIssueForEmbedding } from "./db/schema/entities/issue.schema"
 import { issueTable } from "./db/schema/entities/issue.sql";
 import type { SelectLabelForEmbedding } from "./db/schema/entities/label.schema";
 import { labels as labelTable } from "./db/schema/entities/label.sql";
-import { repos } from "./db/schema/entities/repo.sql";
 import { jsonAggBuildObjectFromJoin } from "./db/utils/json";
 import type { OpenAIClient } from "./openai";
 import { isReducePromptError } from "./openai/errors";
@@ -44,40 +43,12 @@ export namespace Embedding {
     const result = embeddingsCreateSchema.parse(res);
     return result.data[0]!.embedding;
   }
-  export async function getRepoOutdatedIssues(
-    db: DbClient,
-    repoId: string,
-    pagination?: { limit: number; offset: number },
-  ) {
-    const query = db
-      .select({ id: issueTable.id })
-      .from(issueTable)
-      .innerJoin(repos, eq(issueTable.repoId, repos.id))
-      .where(
-        and(
-          or(
-            isNull(issueTable.embedding),
-            lt(issueTable.embeddingCreatedAt, issueTable.issueUpdatedAt),
-          ),
-          eq(repos.id, repoId),
-        ),
-      );
-
-    if (pagination) {
-      query.limit(pagination.limit).offset(pagination.offset);
-    }
-
-    return await query;
-  }
-  export async function getAllOutdatedIssuesFromNonSyncingRepos(db: DbClient) {
+  export async function getIssuesToUpdate(db: DbClient) {
     return await db
       .select({ id: issueTable.id })
       .from(issueTable)
-      .innerJoin(repos, eq(issueTable.repoId, repos.id))
       .where(
         and(
-          // this prevents embedding issues from initializing repos
-          eq(repos.isSyncing, false),
           or(
             isNull(issueTable.embedding),
             lt(issueTable.embeddingCreatedAt, issueTable.issueUpdatedAt),

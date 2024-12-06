@@ -1,5 +1,5 @@
 import type { DbClient } from "@/db";
-import { and, eq, isNotNull, sql } from "@/db";
+import { and, asc, count, desc, eq, isNotNull, isNull, sql } from "@/db";
 import { comments } from "@/db/schema/entities/comment.sql";
 import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
@@ -9,41 +9,9 @@ import { conflictUpdateAllExcept } from "@/db/utils/conflict";
 import { sanitizeForPg } from "@/db/utils/string";
 import type { Github } from "@/github";
 
-export namespace Repo {
-  export async function getReposForCron(db: DbClient) {
-    return await db
-      .select({
-        repoId: repos.id,
-        repoName: repos.name,
-        repoOwner: repos.owner,
-        issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
-      })
-      .from(repos)
-      .where(
-        // basically, get all repos that have been initialized
-        // isSyncing protects against concurrent sync attempts
-        and(isNotNull(repos.issuesLastUpdatedAt), eq(repos.isSyncing, false)),
-      );
-  }
-  export async function markIsSyncingFalse(
-    args:
-      | {
-          repoId: string;
-          successfulSynced: true;
-          syncedAt: Date;
-        }
-      | { repoId: string; successfulSynced: false },
-    db: DbClient,
-  ) {
-    await db
-      .update(repos)
-      .set({
-        isSyncing: false,
-        lastSyncedAt: args.successfulSynced ? args.syncedAt : undefined,
-      })
-      .where(eq(repos.id, args.repoId));
-  }
+import { repoIssuesLastUpdatedSql } from "./repo.util";
 
+export namespace Repo {
   export async function createRepo(
     data: Awaited<ReturnType<typeof Github.getRepo>>,
     db: DbClient,
@@ -70,11 +38,25 @@ export namespace Repo {
       })
       .returning({
         repoId: repos.id,
-        issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
+        initStatus: repos.initStatus,
         repoName: repos.name,
         repoOwner: repos.owner,
       });
     return result;
+  }
+  export async function getReposForIssueSync(db: DbClient) {
+    return await db
+      .select({
+        repoId: repos.id,
+        repoName: repos.name,
+        repoOwner: repos.owner,
+        // TODO: verify this is working
+        repoIssuesLastUpdatedAt: repoIssuesLastUpdatedSql,
+      })
+      .from(repos)
+      .where(
+        and(eq(repos.initStatus, "completed"), eq(repos.syncStatus, "ready")),
+      );
   }
   export async function upsertIssuesCommentsLabels(
     {
@@ -186,5 +168,81 @@ export namespace Repo {
           });
       }
     });
+  }
+  export async function repoIssueLastUpdatedAt(repoId: string, db: DbClient) {
+    // see repoIssuesLastUpdatedSql; the two should be the same
+    const [result] = await db
+      .select({
+        issuesLastUpdatedAt: issueTable.issueUpdatedAt,
+      })
+      .from(issueTable)
+      .where(
+        // must include embedding to be considered "updated"
+        and(eq(issueTable.repoId, repoId), isNotNull(issueTable.embedding)),
+      )
+      .orderBy(desc(issueTable.issueUpdatedAt))
+      .limit(1);
+    if (!result) {
+      return null;
+    }
+    const { issuesLastUpdatedAt } = result;
+    return issuesLastUpdatedAt;
+  }
+  export async function hasIssues(repoId: string, db: DbClient) {
+    const [result] = await db
+      .select({
+        count: count(),
+      })
+      .from(issueTable)
+      .where(eq(issueTable.repoId, repoId));
+    if (!result) return false;
+    return result.count > 0;
+  }
+  export async function allIssuesHaveEmbeddings(repoId: string, db: DbClient) {
+    const [result] = await db
+      .select({
+        count: count(),
+      })
+      .from(issueTable)
+      .where(and(eq(issueTable.repoId, repoId), isNull(issueTable.embedding)));
+    if (!result) {
+      return false;
+    }
+    return result.count === 0;
+  }
+
+  export async function initNextRepo(db: DbClient) {
+    // only init one repo at a time, so if there are other repos with initStatus in progress, return null
+    await db.transaction(
+      async (tx) => {
+        const [countRes] = await tx
+          .select({
+            count: count(),
+          })
+          .from(repos);
+
+        if (countRes && countRes.count > 0) {
+          return null;
+        }
+        const [result] = await tx
+          .select({
+            repoId: repos.id,
+          })
+          .from(repos)
+          .where(eq(repos.initStatus, "queued"))
+          .orderBy(asc(repos.createdAt))
+          .limit(1);
+        if (!result) return null;
+        const { repoId } = result;
+        await tx
+          .update(repos)
+          .set({ initStatus: "in_progress" })
+          .where(eq(repos.id, repoId));
+        return repoId;
+      },
+      {
+        isolationLevel: "serializable",
+      },
+    );
   }
 }

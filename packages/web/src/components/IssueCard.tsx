@@ -94,7 +94,7 @@ function IssueStateIndicator({
 }
 
 function RepoTag({ issue }: { issue: Issue }) {
-  const repoName = (
+  return (
     <a
       href={issue.repoUrl ?? ""}
       target="_blank"
@@ -103,17 +103,6 @@ function RepoTag({ issue }: { issue: Issue }) {
     >
       {issue.repoOwnerName}/{issue.repoName}
     </a>
-  );
-
-  if (!issue.repoLastUpdatedAt) return repoName;
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{repoName}</TooltipTrigger>
-      <TooltipContent>
-        Last updated {getTimeAgo(new Date(issue.repoLastUpdatedAt))}
-      </TooltipContent>
-    </Tooltip>
   );
 }
 

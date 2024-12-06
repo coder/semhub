@@ -144,8 +144,8 @@ export namespace Github {
       repoId,
       repoName,
       repoOwner,
-      issuesLastUpdatedAt,
-    }: Awaited<ReturnType<typeof Repo.getReposForCron>>[number],
+      repoIssuesLastUpdatedAt,
+    }: Awaited<ReturnType<typeof Repo.getReposForIssueSync>>[number],
     octokit: GraphqlOctokit,
     numIssues: number,
   ) {
@@ -155,7 +155,7 @@ export namespace Github {
         organization: repoOwner,
         repo: repoName,
         cursor: null,
-        since: issuesLastUpdatedAt?.toISOString() ?? null,
+        since: repoIssuesLastUpdatedAt?.toISOString() ?? null,
         first: numIssues,
       },
     );
