@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getBaseColumns, timestamptz } from "../base.sql";
 
 export const initStatusEnum = pgEnum("init_status", [
-  "queued",
+  "ready",
   "in_progress",
   "completed",
   "error",
@@ -27,9 +27,9 @@ export const repos = pgTable(
     nodeId: text("node_id").notNull().unique(),
     htmlUrl: text("html_url").notNull(),
     isPrivate: boolean("is_private").notNull(),
-    syncStatus: syncStatusEnum("sync_status").notNull().default("queued"),
+    syncStatus: syncStatusEnum("sync_status").notNull().default("ready"),
     lastSyncedAt: timestamptz("last_synced_at"),
-    initStatus: initStatusEnum("init_status").notNull().default("queued"),
+    initStatus: initStatusEnum("init_status").notNull().default("ready"),
     initializedAt: timestamptz("initialized_at"),
   },
   (table) => ({

@@ -60,7 +60,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
             async () => {
               // TODO: move this out into steps and increase concurrency. pMap 5?
               // TODO: move all chunk size, concurrency limit etc. into a file
-              return await Embedding.createEmbeddingsBatch({
+              return await Embedding.createEmbeddings({
                 issues: selectedIssues,
                 rateLimiter: this.env.RATE_LIMITER,
                 openai,

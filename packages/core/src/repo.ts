@@ -1,5 +1,5 @@
 import type { DbClient } from "@/db";
-import { and, asc, count, desc, eq, isNotNull, isNull, sql } from "@/db";
+import { and, desc, eq, isNotNull, sql } from "@/db";
 import { comments } from "@/db/schema/entities/comment.sql";
 import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
@@ -42,6 +42,9 @@ export namespace Repo {
         repoName: repos.name,
         repoOwner: repos.owner,
       });
+    if (!result) {
+      throw new Error("Failed to create repo");
+    }
     return result;
   }
   export async function getReposForIssueSync(db: DbClient) {
@@ -58,6 +61,7 @@ export namespace Repo {
         and(eq(repos.initStatus, "completed"), eq(repos.syncStatus, "ready")),
       );
   }
+  // return issueIds to be used for embeddings update
   export async function upsertIssuesCommentsLabels(
     {
       issuesToInsert,
@@ -74,6 +78,9 @@ export namespace Repo {
       title: sanitizeForPg(issue.title),
       body: sanitizeForPg(issue.body),
     }));
+    if (sanitizedIssuesToInsert.length === 0) {
+      throw new Error("No issues to upsert");
+    }
     const sanitizedCommentsToInsert = commentsToInsert.map((comment) => ({
       ...comment,
       body: sanitizeForPg(comment.body),
@@ -83,8 +90,8 @@ export namespace Repo {
       description: label.description ? sanitizeForPg(label.description) : null,
     }));
 
-    await db.transaction(async (tx) => {
-      await tx
+    return await db.transaction(async (tx) => {
+      const insertedIssueIds = await tx
         .insert(issueTable)
         .values(sanitizedIssuesToInsert)
         .onConflictDoUpdate({
@@ -94,9 +101,11 @@ export namespace Repo {
             "id",
             "createdAt",
           ]),
+        })
+        .returning({
+          id: issueTable.id,
         });
       if (labelsToInsert.length > 0) {
-        console.log("inserting labels");
         await tx
           .insert(labelTable)
           .values(sanitizedLabelsToInsert)
@@ -123,7 +132,6 @@ export namespace Repo {
           issueId: sql<string>`((SELECT id FROM issue_ids WHERE node_id = ${issueNodeId}))`,
         }));
       if (sanitizedCommentsToInsertWithIssueId.length > 0) {
-        console.log("inserting comments");
         await tx
           .with(issueIds)
           .insert(comments)
@@ -153,7 +161,6 @@ export namespace Repo {
           }),
         );
       if (issueToLabelRelationsToInsert.length > 0) {
-        console.log("inserting issue to label relations");
         await tx
           .with(labelIds, issueIds)
           .insert(issuesToLabels)
@@ -167,9 +174,13 @@ export namespace Repo {
             ]),
           });
       }
+      return insertedIssueIds.map(({ id }) => id);
     });
   }
-  export async function repoIssueLastUpdatedAt(repoId: string, db: DbClient) {
+  export async function getRepoIssueLastUpdatedAt(
+    repoId: string,
+    db: DbClient,
+  ) {
     // see repoIssuesLastUpdatedSql; the two should be the same
     const [result] = await db
       .select({
@@ -178,6 +189,7 @@ export namespace Repo {
       .from(issueTable)
       .where(
         // must include embedding to be considered "updated"
+        // but OK if embedding is out-of-date -> this should be handled by embedding sync
         and(eq(issueTable.repoId, repoId), isNotNull(issueTable.embedding)),
       )
       .orderBy(desc(issueTable.issueUpdatedAt))
@@ -188,61 +200,26 @@ export namespace Repo {
     const { issuesLastUpdatedAt } = result;
     return issuesLastUpdatedAt;
   }
-  export async function hasIssues(repoId: string, db: DbClient) {
-    const [result] = await db
-      .select({
-        count: count(),
-      })
-      .from(issueTable)
-      .where(eq(issueTable.repoId, repoId));
-    if (!result) return false;
-    return result.count > 0;
-  }
-  export async function allIssuesHaveEmbeddings(repoId: string, db: DbClient) {
-    const [result] = await db
-      .select({
-        count: count(),
-      })
-      .from(issueTable)
-      .where(and(eq(issueTable.repoId, repoId), isNull(issueTable.embedding)));
-    if (!result) {
-      return false;
-    }
-    return result.count === 0;
-  }
-
-  export async function initNextRepo(db: DbClient) {
-    // only init one repo at a time, so if there are other repos with initStatus in progress, return null
-    await db.transaction(
-      async (tx) => {
-        const [countRes] = await tx
-          .select({
-            count: count(),
-          })
-          .from(repos);
-
-        if (countRes && countRes.count > 0) {
-          return null;
-        }
-        const [result] = await tx
-          .select({
-            repoId: repos.id,
-          })
-          .from(repos)
-          .where(eq(repos.initStatus, "queued"))
-          .orderBy(asc(repos.createdAt))
-          .limit(1);
-        if (!result) return null;
-        const { repoId } = result;
-        await tx
-          .update(repos)
-          .set({ initStatus: "in_progress" })
-          .where(eq(repos.id, repoId));
-        return repoId;
-      },
-      {
-        isolationLevel: "serializable",
-      },
-    );
-  }
+  // export async function hasIssues(repoId: string, db: DbClient) {
+  //   const [result] = await db
+  //     .select({
+  //       count: count(),
+  //     })
+  //     .from(issueTable)
+  //     .where(eq(issueTable.repoId, repoId));
+  //   if (!result) return false;
+  //   return result.count > 0;
+  // }
+  // export async function allIssuesHaveEmbeddings(repoId: string, db: DbClient) {
+  //   const [result] = await db
+  //     .select({
+  //       count: count(),
+  //     })
+  //     .from(issueTable)
+  //     .where(and(eq(issueTable.repoId, repoId), isNull(issueTable.embedding)));
+  //   if (!result) {
+  //     return false;
+  //   }
+  //   return result.count === 0;
+  // }
 }

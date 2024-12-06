@@ -56,7 +56,7 @@ export namespace Embedding {
         ),
       );
   }
-  export async function createEmbeddingsBatch({
+  export async function createEmbeddings({
     issues,
     rateLimiter,
     openai,
@@ -149,7 +149,7 @@ export namespace Embedding {
       );
   }
   export async function bulkUpdateIssueEmbeddings(
-    embeddings: Awaited<ReturnType<typeof Embedding.createEmbeddingsBatch>>,
+    embeddings: Awaited<ReturnType<typeof Embedding.createEmbeddings>>,
     db: DbClient,
   ) {
     if (embeddings.length === 0) return;

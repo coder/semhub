@@ -10,7 +10,7 @@ When initializing a repo, we need to:
 - Call OpenAI API to create embeddings for all issues, before making the repo searchable to users
 - Complete this in a reasonable time (for big repos, a few hours should be OK). Back of envelop calculation: let's say 1500 rpm (half of overall 3000 rpm limit) made to embedding API, then 200k issues / 1500 rpm = 133 minutes, which is slightly more than two hours or so.
 - When multiple big repos are initialized, I think it's a better user experience for FIFO, i.e. process them one by one and let users know we're working on it. (Stretch goal: give a time estimate for the users to see in the future...)
-- While it is important to have repos initialize in a reasonable time, it would be bad if initialization hogs up all the available API rate limits. Therefore, applying a rate limit to initialization makes sense.
+- While it is important to have repos initialize quickly, it would be bad if initialization hogs up all the available API rate limits. Specifically, we need to use the embedding API to support actual searches by users.
 
 When running a cron job to bring a repo up to date, we need to:
 
@@ -65,15 +65,14 @@ Some patterns to consider:
 
 ### Repo initialization
 
-The server will create the repo and invoke the cron to initialize repo. The cron will pick up the repo and call the workflow to initialize it. This ensures that, if there are no repos to be initialized, the workflow will start immediately. If there are repos being initialized, the cron will return early and the repo will be queued when its turn comes. The cron activates, say, every 5 minutes (so there will be at most a 5 minutes delay before the next cron job starts).
+A repo starts its life with `initStatus` as `ready` and will always be initialized by a long-running workflow, which can be triggered in two ways. First, the server can create the repo and invoke the workflow to initialize it. Second, there will be a every-5-min cron job that tuns to see if there are any repos to be initialized, which ensures that there will at most be 5 mins before the next repo is initialized. Collectively, this ensures that there is at most one repo being initialized at any one time. To be exact the server/cron will:
 
-To be exact the cron will:
-
-- if there is already a repo being initialized or if there are no repos to be initialized, the cron will return early. otherwise, the same function will set the `initStatus` to `in_progress`
-- the cron will then invoke the workflow with the repoId. the cron itself will terminate
+- if there is already a repo being initialized or if there are no repos to be initialized, the cron will return early.
+- otherwise, in the same transaction, it will invoke the workflow and set the `initStatus` to `in_progress`
 
 It is important to write the workflow in a way that it can be self-invoked recursively until all the relevant work is complete. Specifically:
 
+- This workflow will check if this repo needs to be initialized. The conditions for this are: (1) the repo's `initStatus` is `in_progress` (set previously by server/cron), else return early; (2) when we call GitHub API with repo's `issueLastUpdatedAt` (which could be null), it returns no more issues, else return early.
 - This workflow's termination condition is: (1) the repo has issues; (2) all these issues have embeddings; (3) when the GitHub API is called with the repo's issueLastUpdatedAt, it returns no more issues.
 - When workflow terminates, it will set the `initStatus` to `completed` and update `initializedAt`.
 - If termination condition is not met, it will do one unit of work and then self-invoke.
@@ -97,8 +96,8 @@ For the first property, because we have no way to know if they are in sync, we w
 To avoid race conditions:
 
 - At the beginning, we will mark `syncStatus` to `queued` for all repos caught by the cron (which should exclude repos that have not been initialized or are still being synced by the previous cron job).
-- We will work on one repo at a time and that repo will be the only one with `syncStatus` set to `in_progress`. This is because the bottleneck is really the GitHub API and there is no point in parallelizing that.
-- When the workflow terminates, it will set the `syncStatus` to `completed` and update `syncedAt`.
+- We will work on one repo at a time and that repo will be the only one with `syncStatus` set to `in_progress`. This is because the bottleneck is really the GitHub API and there is no point in parallelizing that. When that particular repo is done syncing, it will set the `syncStatus` to `completed` and update `syncedAt`.
+- If the workflow runs into an error, it will set that particular repo to `error` and restores the status of the other unprocessed repos (to be picked up in the subsequent cron).
 
 If the cron takes longer than the interval to run, at the very least, jobs that are `queued` and `in_progress` will be skipped and that new cron will take a shorter time to complete.
 
@@ -115,7 +114,7 @@ For the second property, we will sync them at the issues level. Specifically, th
 There will be three cron jobs and three workflows:
 
 1. 5-minute interval: `semhub-init-cron` to ensure that there will be at most 5-minute delay before the next repo is initialized and `semhub-init-workflow` to actually initialize the repo recursively. Repos are initialized one-at-a-time.
-2. 10-minute interval: `semhub-repo-sync-cron` to keep the repos of issues in sync by invoking `semhub-repo-sync-workflow`, which loops through all valid repos one-at-a-time.
+2. 10-minute interval: `semhub-repo-sync-cron` to keep the repos of issues in sync by invoking `semhub-repo-sync-workflow`, which loops through all repos one-at-a-time.
 3. 15-minute interval: `semhub-issue-sync-cron` to keep the embeddings of issues in sync by invoking `semhub-issue-sync-workflow`, which recursively processes out-of-ysnc issues until they are all in sync.
 
 Finally, we will use a rate limiter to allocate bandwidth for the embedding API. Specifically, there are three buckets:

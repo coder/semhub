@@ -39,9 +39,6 @@ export class SyncWorkflow extends WorkflowEntrypoint<Env, InitSyncParams> {
     const createdRepo = await step.do("create repo", async () => {
       return await Repo.createRepo(data, db);
     });
-    if (!createdRepo) {
-      throw new NonRetryableError("Failed to create repo");
-    }
     if (createdRepo.initStatus === "completed") {
       // should not initialize repo that has already been initialized
       throw new NonRetryableError("Repo has been initialized");

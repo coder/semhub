@@ -31,6 +31,102 @@ export namespace Github {
     }
     return data;
   }
+  export async function getLatestRepoIssues({
+    repoId,
+    repoName,
+    repoOwner,
+    octokit,
+    since,
+    numIssues = 100, // max 100
+  }: {
+    repoId: string;
+    repoName: string;
+    repoOwner: string;
+    octokit: GraphqlOctokit;
+    since: Date | null;
+    numIssues?: number;
+  }) {
+    const response = await octokit.graphql(getIssuesWithMetadataForUpsert(), {
+      organization: repoOwner,
+      repo: repoName,
+      cursor: null,
+      since: since?.toISOString() ?? null,
+      first: numIssues,
+    });
+    const { success, data, error } =
+      loadIssuesWithCommentsResSchema.safeParse(response);
+    if (!success) {
+      throw new Error("error parsing issues with issues", error);
+    }
+    const issues = data.repository.issues.nodes;
+    if (issues.length === 0) {
+      return {
+        hasIssues: false,
+        issuesAndCommentsLabels: {
+          issuesToInsert: [],
+          commentsToInsert: [],
+          labelsToInsert: [],
+          issueToLabelRelationsToInsertNodeIds: [],
+        },
+      };
+    }
+    const issueLabelsToInsert = issues.map((issue) =>
+      mapIssuesLabels(issue, repoId),
+    );
+    const rawIssues = issueLabelsToInsert.map((entity) => entity.issue);
+    const rawComments = issues.flatMap((issue) =>
+      issue.comments.nodes.map((comment) =>
+        mapCreateComment(comment, issue.id),
+      ),
+    );
+    const rawLabels = issueLabelsToInsert.flatMap((entity) => entity.labels);
+    const rawIssueToLabelRelations = issueLabelsToInsert.flatMap(
+      (entity) => entity.issToLblRelationsNodeIds,
+    );
+    // Dedupe labels across all issues
+    const nodeIdToLabelMap = new Map<string, CreateLabel>();
+    rawLabels.forEach((label) => {
+      nodeIdToLabelMap.set(label.nodeId, label);
+    });
+    const allLabels = Array.from(nodeIdToLabelMap.values());
+
+    // Dedupe issue to label relations across all issues
+    const uniqueIssueLabelPairs = new Set<string>();
+    rawIssueToLabelRelations.forEach(({ issueNodeId, labelNodeIds }) => {
+      labelNodeIds.forEach((labelNodeId) => {
+        uniqueIssueLabelPairs.add(`${issueNodeId}:${labelNodeId}`);
+      });
+    });
+    const allIssueToLabelRelations = Array.from(uniqueIssueLabelPairs).map(
+      (issueLabelPair) => {
+        const [issueNodeId, labelNodeId] = issueLabelPair.split(":") as [
+          string,
+          string,
+        ];
+        return { issueNodeId, labelNodeId };
+      },
+    );
+
+    const allIssues = [
+      ...new Map(rawIssues.map((issue) => [issue.nodeId, issue])).values(),
+    ];
+    const allComments = [
+      ...new Map(
+        rawComments.map((comment) => [comment.nodeId, comment]),
+      ).values(),
+    ];
+
+    return {
+      hasIssues: true,
+      issuesAndCommentsLabels: {
+        issuesToInsert: allIssues,
+        commentsToInsert: allComments,
+        labelsToInsert: allLabels,
+        issueToLabelRelationsToInsertNodeIds: allIssueToLabelRelations,
+      },
+    };
+  }
+  // TODO: delete?
   export async function getIssuesCommentsLabels({
     issueNumbers,
     repoId,

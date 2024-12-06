@@ -96,6 +96,7 @@ export namespace SemanticSearch {
       .orderBy(desc(similarity))
       .where(
         and(
+          eq(repos.initStatus, 'completed'),
           gt(similarity, SIMILARITY_THRESHOLD),
           // general substring queries match either title or body
           ...substringQueries.map((subQuery) =>
