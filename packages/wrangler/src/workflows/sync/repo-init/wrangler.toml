@@ -12,6 +12,10 @@ name = "semhub-sync-repo-init-workflow-dev"
 binding = "REPO_INIT_WORKFLOW"
 class_name = "RepoInitWorkflow"
 
+[[services]]
+binding = "SYNC_REPO_EMBEDDING_WORKFLOW"
+service = "semhub-sync-repo-embedding-dev"
+
 # Production environment
 [env.prod]
 name = "semhub-sync-repo-init-prod"
@@ -20,3 +24,7 @@ name = "semhub-sync-repo-init-prod"
 name = "semhub-sync-repo-init-workflow-prod"
 binding = "REPO_INIT_WORKFLOW"
 class_name = "RepoInitWorkflow"
+
+[[env.prod.services]]
+binding = "SYNC_REPO_EMBEDDING_WORKFLOW"
+service = "semhub-sync-repo-embedding-prod"

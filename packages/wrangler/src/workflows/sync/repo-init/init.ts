@@ -62,15 +62,16 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           return Repo.getRepoLastIssueWithEmbedding(repoId, db);
         },
       );
-      const { dataArray, hasMoreIssues } = await step.do(
-        `get 5 API calls worth of data for ${name}`,
+      const { issueIdsArray, hasMoreIssues } = await step.do(
+        `get 10 API calls worth of data for ${name}`,
         async () => {
-          const dataArray = [];
+          const issueIdsArray = [];
           let currentSince = issueLastUpdated;
           let hasMoreIssues = true;
 
-          // Try up to 5 API calls
-          for (let i = 0; i < 5 && hasMoreIssues; i++) {
+          // Try up to 10 API calls
+          // TODO: extract const
+          for (let i = 0; i < 10 && hasMoreIssues; i++) {
             const { hasIssues, issuesAndCommentsLabels, lastIssueUpdatedAt } =
               await step.do(
                 `get latest issues of ${name} from GitHub (batch ${i + 1})`,
@@ -85,7 +86,6 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                   });
                 },
               );
-
             // Break if no more issues
             if (!hasIssues) {
               hasMoreIssues = false;
@@ -94,32 +94,31 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             if (!lastIssueUpdatedAt) {
               throw new NonRetryableError("lastIssueUpdatedAt is undefined");
             }
-
-            dataArray.push(issuesAndCommentsLabels);
+            const insertedIssueIds = await step.do(
+              "upsert issues, comments, and labels",
+              async () => {
+                return await Repo.upsertIssuesCommentsLabels(
+                  issuesAndCommentsLabels,
+                  db,
+                );
+              },
+            );
+            issueIdsArray.push(insertedIssueIds);
             currentSince = lastIssueUpdatedAt;
           }
 
-          return { dataArray, hasMoreIssues };
+          return { issueIdsArray, hasMoreIssues };
         },
       );
       await Promise.all(
-        dataArray.map(async (issuesAndCommentsLabels) => {
-          const insertedIssueIds = await step.do(
-            "upsert issues, comments, and labels",
-            async () => {
-              return await Repo.upsertIssuesCommentsLabels(
-                issuesAndCommentsLabels,
-                db,
-              );
-            },
-          );
+        issueIdsArray.map(async (issueIds) => {
           const embeddingWorkflowId = await step.do(
             "call worker to create and insert embeddings",
             async () => {
               return await this.env.SYNC_REPO_EMBEDDING_WORKFLOW.create({
                 params: {
                   mode: "init",
-                  issueIds: insertedIssueIds,
+                  issueIds,
                   repoName,
                   repoId,
                 },
