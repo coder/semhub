@@ -1,5 +1,5 @@
 import type { DbClient } from "@/db";
-import { and, desc, eq, isNotNull, sql } from "@/db";
+import { and, desc, eq, inArray, isNotNull, isNull, lt, or, sql } from "@/db";
 import { comments } from "@/db/schema/entities/comment.sql";
 import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
@@ -53,19 +53,40 @@ export namespace Repo {
     }
     return result;
   }
-  export async function getReposForIssueSync(db: DbClient) {
-    return await db
-      .select({
-        repoId: repos.id,
-        repoName: repos.name,
-        repoOwner: repos.owner,
-        // TODO: verify this is working
-        repoIssuesLastUpdatedAt: repoIssuesLastUpdatedSql(repos),
-      })
-      .from(repos)
-      .where(
-        and(eq(repos.initStatus, "completed"), eq(repos.syncStatus, "ready")),
-      );
+  export async function selectReposForIssueSync(db: DbClient) {
+    return await db.transaction(async (tx) => {
+      const selectedRepos = await tx
+        .select({
+          repoId: repos.id,
+          repoName: repos.name,
+          repoOwner: repos.owner,
+          // TODO: verify this is working
+          repoIssuesLastUpdatedAt: repoIssuesLastUpdatedSql(repos),
+        })
+        .from(repos)
+        .where(
+          and(
+            eq(repos.initStatus, "completed"),
+            eq(repos.syncStatus, "ready"),
+            or(
+              isNull(repos.lastSyncedAt),
+              lt(repos.lastSyncedAt, sql`NOW() - INTERVAL '10 minutes'`),
+            ),
+          ),
+        );
+      await tx
+        .update(repos)
+        .set({
+          syncStatus: "in_progress",
+        })
+        .where(
+          inArray(
+            repos.id,
+            selectedRepos.map(({ repoId }) => repoId),
+          ),
+        );
+      return selectedRepos;
+    });
   }
   // return issueIds to be used for embeddings update
   export async function upsertIssuesCommentsLabels(
@@ -213,26 +234,4 @@ export namespace Repo {
     const { issuesLastUpdatedAt } = result;
     return issuesLastUpdatedAt;
   }
-  // export async function hasIssues(repoId: string, db: DbClient) {
-  //   const [result] = await db
-  //     .select({
-  //       count: count(),
-  //     })
-  //     .from(issueTable)
-  //     .where(eq(issueTable.repoId, repoId));
-  //   if (!result) return false;
-  //   return result.count > 0;
-  // }
-  // export async function allIssuesHaveEmbeddings(repoId: string, db: DbClient) {
-  //   const [result] = await db
-  //     .select({
-  //       count: count(),
-  //     })
-  //     .from(issueTable)
-  //     .where(and(eq(issueTable.repoId, repoId), isNull(issueTable.embedding)));
-  //   if (!result) {
-  //     return false;
-  //   }
-  //   return result.count === 0;
-  // }
 }

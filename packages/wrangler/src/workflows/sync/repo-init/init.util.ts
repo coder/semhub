@@ -1,8 +1,8 @@
 import type { DbClient } from "@/core/db";
 import { asc, count, eq } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
-import type { WorkflowRPC } from "@/workflows/sync-repo/util";
 import type { RepoInitParams } from "@/workflows/sync/repo-init/init";
+import type { WorkflowRPC } from "@/workflows/sync/util";
 
 export async function initNextRepo(
   db: DbClient,

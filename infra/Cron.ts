@@ -12,10 +12,10 @@ new sst.cloudflare.Cron("Sync", {
             name: "REPO_INIT_WORKFLOW",
             service: `semhub-sync-repo-init-${$app.stage === "prod" ? "prod" : "dev"}`,
           },
-          // {
-          //   name: "SYNC_REPO_CRON_WORKFLOW",
-          //   service: `semhub-sync-repo-cron-${$app.stage === "prod" ? "prod" : "dev"}`,
-          // },
+          {
+            name: "SYNC_REPO_EMBEDDING_WORKFLOW",
+            service: `semhub-sync-repo-embedding-${$app.stage === "prod" ? "prod" : "dev"}`,
+          },
         ],
       },
     },

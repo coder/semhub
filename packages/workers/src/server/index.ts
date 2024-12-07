@@ -1,3 +1,4 @@
+import type { WorkflowRPC } from "@semhub/wrangler/workflows/sync/util";
 import { Hono } from "hono";
 import type { Env } from "hono";
 import { cors } from "hono/cors";
@@ -8,7 +9,6 @@ import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
-import type { WorkflowRPC } from "@/wrangler/workflows/sync-repo/util";
 import type { RepoInitParams } from "@/wrangler/workflows/sync/repo-init/init";
 import { initNextRepo } from "@/wrangler/workflows/sync/repo-init/init.util";
 

@@ -3,7 +3,6 @@ import { print } from "graphql";
 import type { CreateComment } from "@/db/schema/entities/comment.sql";
 import type { CreateIssue } from "@/db/schema/entities/issue.schema";
 import type { CreateLabel } from "@/db/schema/entities/label.schema";
-import type { Repo } from "@/repo";
 
 import { graphql } from "./graphql";
 import {
@@ -235,7 +234,6 @@ export namespace Github {
       lastIssueUpdatedAt,
     };
   }
-  // currently unused in cron job, could be useful to invoke in a long running process
   // should have the same return type as getIssuesCommentsLabels
   export async function getIssuesViaIterator(
     {
@@ -243,7 +241,12 @@ export namespace Github {
       repoName,
       repoOwner,
       repoIssuesLastUpdatedAt,
-    }: Awaited<ReturnType<typeof Repo.getReposForIssueSync>>[number],
+    }: {
+      repoId: string;
+      repoName: string;
+      repoOwner: string;
+      repoIssuesLastUpdatedAt: Date | null;
+    },
     octokit: GraphqlOctokit,
     numIssues: number,
   ) {

@@ -8,7 +8,7 @@ import { repos } from "@/core/db/schema/entities/repo.sql";
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
-import { type WorkflowRPC } from "@/workflows/sync-repo/util";
+import { type WorkflowRPC } from "@/workflows/sync/util";
 
 import type { EmbeddingParams } from "../embedding/update";
 
@@ -70,7 +70,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           let hasMoreIssues = true;
 
           // TODO: extract const
-          for (let i = 0; i < 5 && hasMoreIssues; i++) {
+          for (let i = 0; i < 3 && hasMoreIssues; i++) {
             const { hasIssues, issuesAndCommentsLabels, lastIssueUpdatedAt } =
               await step.do(
                 `get latest issues of ${name} from GitHub (batch ${i + 1})`,

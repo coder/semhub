@@ -115,7 +115,7 @@ There will be three cron jobs and three workflows:
 
 1. 5-minute interval: `semhub-init-cron` to ensure that there will be at most 5-minute delay before the next repo is initialized and `semhub-init-workflow` to actually initialize the repo recursively. Repos are initialized one-at-a-time.
 2. 10-minute interval: `semhub-repo-sync-cron` to keep the repos of issues in sync by invoking `semhub-repo-sync-workflow`, which loops through all repos one-at-a-time.
-3. 15-minute interval: `semhub-issue-sync-cron` to keep the embeddings of issues in sync by invoking `semhub-issue-sync-workflow`, which recursively processes out-of-ysnc issues until they are all in sync.
+3. 15-minute interval: `semhub-repo-embedding-cron` to keep the embeddings of issues in sync by invoking `semhub-repo-embedding-workflow`, which recursively processes out-of-sync issues until they are all in sync.
 
 Finally, we will use a rate limiter to allocate bandwidth for the embedding API. Specifically, there are three buckets:
 

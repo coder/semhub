@@ -8,7 +8,7 @@ import { issueTable } from "@/core/db/schema/entities/issue.sql";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { Embedding } from "@/core/embedding";
 import { getDeps } from "@/deps";
-import { chunkArray, type WorkflowRPC } from "@/workflows/sync-repo/util";
+import { chunkArray, type WorkflowRPC } from "@/workflows/sync/util";
 
 /* two modes
 1. as part of repo init. takes an array of issueIds (100 at a time), calls DB, creates embeddings, update DB
