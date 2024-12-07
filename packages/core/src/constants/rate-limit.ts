@@ -16,8 +16,6 @@ export function getRateLimits(rateLimiterName: RateLimiterName) {
   switch (rateLimiterName) {
     case EMBEDDING_MODEL:
       return { rpm: 3000, tpm: 1000000 };
-    default:
-      rateLimiterName satisfies never;
-      throw new Error(`Unknown rate limiter name: ${rateLimiterName}`);
   }
+  rateLimiterName satisfies never;
 }

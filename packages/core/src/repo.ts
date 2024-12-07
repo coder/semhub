@@ -5,7 +5,7 @@ import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
 import { labels as labelTable } from "@/db/schema/entities/label.sql";
 import { repos } from "@/db/schema/entities/repo.sql";
-import { conflictUpdateAllExcept } from "@/db/utils/conflict";
+import { conflictUpdateOnly } from "@/db/utils/conflict";
 import { sanitizeForPg } from "@/db/utils/string";
 import type { Github } from "@/github";
 
@@ -34,7 +34,13 @@ export namespace Repo {
       })
       .onConflictDoUpdate({
         target: [repos.nodeId],
-        set: conflictUpdateAllExcept(repos, ["nodeId", "id", "createdAt"]),
+        set: conflictUpdateOnly(repos, [
+          "owner",
+          "name",
+          "htmlUrl",
+          "isPrivate",
+          "updatedAt",
+        ]),
       })
       .returning({
         repoId: repos.id,
@@ -96,10 +102,18 @@ export namespace Repo {
         .values(sanitizedIssuesToInsert)
         .onConflictDoUpdate({
           target: [issueTable.nodeId],
-          set: conflictUpdateAllExcept(issueTable, [
-            "nodeId",
-            "id",
-            "createdAt",
+          set: conflictUpdateOnly(issueTable, [
+            "author",
+            "number",
+            "issueState",
+            "htmlUrl",
+            "issueStateReason",
+            "title",
+            "body",
+            "issueCreatedAt",
+            "issueUpdatedAt",
+            "issueClosedAt",
+            "updatedAt",
           ]),
         })
         .returning({
@@ -111,10 +125,11 @@ export namespace Repo {
           .values(sanitizedLabelsToInsert)
           .onConflictDoUpdate({
             target: [labelTable.nodeId],
-            set: conflictUpdateAllExcept(labelTable, [
-              "nodeId",
-              "id",
-              "createdAt",
+            set: conflictUpdateOnly(labelTable, [
+              "name",
+              "color",
+              "description",
+              "updatedAt",
             ]),
           });
       }
@@ -138,10 +153,12 @@ export namespace Repo {
           .values(sanitizedCommentsToInsertWithIssueId)
           .onConflictDoUpdate({
             target: [comments.nodeId],
-            set: conflictUpdateAllExcept(comments, [
-              "nodeId",
-              "id",
-              "createdAt",
+            set: conflictUpdateOnly(comments, [
+              "body",
+              "author",
+              "commentCreatedAt",
+              "commentUpdatedAt",
+              "updatedAt",
             ]),
           });
       }
@@ -167,11 +184,7 @@ export namespace Repo {
           .values(issueToLabelRelationsToInsert)
           .onConflictDoUpdate({
             target: [issuesToLabels.issueId, issuesToLabels.labelId],
-            set: conflictUpdateAllExcept(issuesToLabels, [
-              "issueId",
-              "labelId",
-              "createdAt",
-            ]),
+            set: conflictUpdateOnly(issuesToLabels, ["updatedAt"]),
           });
       }
       return insertedIssueIds.map(({ id }) => id);

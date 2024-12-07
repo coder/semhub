@@ -2,16 +2,19 @@
 // this is a script to deploy cloudflare resources
 // not meant to be referenced by other parts of the codebase
 import { execSync } from "child_process";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { Resource } from "sst";
 
-// import { Resource } from "sst";
-
-// import type { WranglerSecrets } from "@/core/constants/wrangler";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { WranglerSecrets } from "@/core/constants/wrangler";
 
 async function deploy() {
   const wranglerArgs = process.argv.slice(2).join(" ");
   const isProd = wranglerArgs.includes("prod");
   const env = isProd ? "prod" : "dev";
-  const _envFlag = isProd ? "--env prod" : "";
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const envFlag = isProd ? "--env prod" : "";
   const cloudflareEnvVars = `CF_ACCOUNT_ID=${process.env.CLOUDFLARE_ACCOUNT_ID} CF_API_TOKEN=${process.env.CLOUDFLARE_API_TOKEN}`;
 
   console.log(`Running wrangler ${wranglerArgs} for ${env} environment`);

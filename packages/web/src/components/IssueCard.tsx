@@ -72,10 +72,8 @@ function getIssueStateIcon(
         default:
           return { icon: CircleCheckIcon, color: "text-purple-600" };
       }
-    default:
-      state satisfies never;
-      throw new Error(`Unknown issue state: ${state} with reason: ${reason}`);
   }
+  state satisfies never;
 }
 
 function IssueStateIndicator({
