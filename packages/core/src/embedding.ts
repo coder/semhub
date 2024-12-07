@@ -65,14 +65,12 @@ export namespace Embedding {
     issues: Awaited<ReturnType<typeof Embedding.selectIssuesForEmbedding>>;
     rateLimiter: RateLimiter | null;
     openai: OpenAIClient;
-    concurrencyLimit: number;
+    concurrencyLimit?: number;
   }) {
     const TRUNCATION_MAX_ATTEMPTS = 8;
-
     const processIssue = async (issue: (typeof issues)[number]) => {
       let attempt = 1;
       const labels = issue.labels;
-
       while (attempt <= TRUNCATION_MAX_ATTEMPTS) {
         try {
           const embedding = await createEmbedding(

@@ -1,6 +1,7 @@
 import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import { WorkflowEntrypoint } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
+import pMap from "p-map";
 
 import type { WranglerSecrets } from "@/core/constants/wrangler";
 import { eq } from "@/core/db";
@@ -9,12 +10,10 @@ import { Embedding } from "@/core/embedding";
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
-import type RateLimiterWorker from "@/rate-limiter";
-import type { WorkflowRPC } from "@/workflows/sync-repo/util";
+import { chunkArray, type WorkflowRPC } from "@/workflows/sync-repo/util";
 
 interface Env extends WranglerSecrets {
-  RATE_LIMITER: Service<RateLimiterWorker>;
-  SYNC_REPO_INIT_WORKFLOW: Workflow;
+  REPO_INIT_WORKFLOW: Workflow;
 }
 
 // User-defined params passed to your workflow
@@ -70,6 +69,9 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           repoOwner,
           octokit: graphqlOctokit,
           since: issueLastUpdated,
+          // the 1MiB limit to serialized RPC argument/return values in Cloudflare Workers
+          // 1000 subrequest limits
+          numIssues: 100,
         });
       },
     );
@@ -93,35 +95,47 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           );
         },
       );
-      const selectedIssues = await step.do(
-        `selecting issues from db for embedding for ${repoName}`,
+      const BATCH_SIZE = 20;
+      const chunkedIssueIds = chunkArray(insertedIssueIds, BATCH_SIZE);
+      const batchEmbedIssues = async (
+        issueIds: string[],
+        idx: number,
+      ): Promise<void> => {
+        const selectedIssues = await step.do(
+          `selecting issues from db for embedding (batch ${idx + 1}) for ${repoName}`,
+          async () => {
+            return await Embedding.selectIssuesForEmbedding(issueIds, db);
+          },
+        );
+        const embeddings = await step.do(
+          `create embeddings for selected issues from API for ${repoName}`,
+          async () => {
+            return await Embedding.createEmbeddings({
+              issues: selectedIssues,
+              rateLimiter: null,
+              openai,
+            });
+          },
+        );
+        await step.do(
+          `update issue embeddings in db for ${repoName}`,
+          async () => {
+            await Embedding.bulkUpdateIssueEmbeddings(embeddings, db);
+          },
+        );
+      };
+      await pMap(chunkedIssueIds, async (issueIds, idx) => {
+        return await batchEmbedIssues(issueIds, idx);
+      });
+      // successfully performed one unit of work, calls itself recursively before ending
+      await step.do(
+        "successfully performed one unit of work, call itself recursively",
         async () => {
-          return await Embedding.selectIssuesForEmbedding(insertedIssueIds, db);
-        },
-      );
-      const embeddings = await step.do(
-        `create embeddings for selected issues from API for ${repoName}`,
-        async () => {
-          return await Embedding.createEmbeddings({
-            issues: selectedIssues,
-            rateLimiter: this.env.RATE_LIMITER,
-            openai,
-            // TODO: extract constants
-            concurrencyLimit: 20,
+          this.env.REPO_INIT_WORKFLOW.create({
+            params: { repoId },
           });
         },
       );
-      await step.do(
-        `update issue embeddings in db for ${repoName}`,
-        async () => {
-          await Embedding.bulkUpdateIssueEmbeddings(embeddings, db);
-        },
-      );
-      // successfully performed one unit of work, calls itself recursively before ending
-      // TODO: verify this works
-      this.env.SYNC_REPO_INIT_WORKFLOW.create({
-        params: { repoId },
-      });
     } catch (e) {
       await step.do(
         "sync unsuccessful, mark repo init status to error",
@@ -148,15 +162,15 @@ export default {
     );
   },
   async create(options, env: Env) {
-    const workflow = await env.SYNC_REPO_INIT_WORKFLOW.create(options);
+    const workflow = await env.REPO_INIT_WORKFLOW.create(options);
     return workflow.id;
   },
   async terminate(id: string, env: Env) {
-    const instance = await env.SYNC_REPO_INIT_WORKFLOW.get(id);
+    const instance = await env.REPO_INIT_WORKFLOW.get(id);
     await instance.terminate();
   },
   async getInstanceStatus(id: string, env: Env) {
-    const instance = await env.SYNC_REPO_INIT_WORKFLOW.get(id);
+    const instance = await env.REPO_INIT_WORKFLOW.get(id);
     const status = await instance.status();
     return status;
   },
