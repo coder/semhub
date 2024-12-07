@@ -8,6 +8,7 @@ import { repos } from "@/core/db/schema/entities/repo.sql";
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
+import { isWorkersSizeLimitError } from "@/errors";
 import { type WorkflowRPC } from "@/workflows/sync/util";
 
 import type { EmbeddingParams } from "../embedding/update";
@@ -70,19 +71,40 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           let hasMoreIssues = true;
 
           // TODO: extract const
-          for (let i = 0; i < 3 && hasMoreIssues; i++) {
+          const REDUCE_ISSUES_MAX_ATTEMPTS = 4;
+          for (let i = 0; i < 5 && hasMoreIssues; i++) {
             const { hasIssues, issuesAndCommentsLabels, lastIssueUpdatedAt } =
               await step.do(
                 `get latest issues of ${name} from GitHub (batch ${i + 1})`,
                 async () => {
-                  return await Github.getLatestRepoIssues({
-                    repoId,
-                    repoName,
-                    repoOwner,
-                    octokit: graphqlOctokit,
-                    since: currentSince,
-                    numIssues: 100,
-                  });
+                  let attempt = 1;
+                  while (attempt <= REDUCE_ISSUES_MAX_ATTEMPTS) {
+                    try {
+                      return await Github.getLatestRepoIssues({
+                        repoId,
+                        repoName,
+                        repoOwner,
+                        octokit: graphqlOctokit,
+                        since: currentSince,
+                        numIssues: 100 - attempt * 20,
+                      });
+                    } catch (e) {
+                      if (
+                        isWorkersSizeLimitError(e) &&
+                        attempt < REDUCE_ISSUES_MAX_ATTEMPTS
+                      ) {
+                        console.log(
+                          `Retrying issues for ${name} with reduced numIssues: ${100 - attempt * 20}`,
+                        );
+                        attempt++;
+                      } else {
+                        throw e;
+                      }
+                    }
+                  }
+                  throw new NonRetryableError(
+                    `Failed to get issues for ${name} after ${REDUCE_ISSUES_MAX_ATTEMPTS} attempts`,
+                  );
                 },
               );
             // Break if no more issues
