@@ -104,10 +104,10 @@ If the cron takes longer than the interval to run, at the very least, jobs that 
 For the second property, we will sync them at the issues level. Specifically, the cron will trigger a workflow that can self-invoke recursively until all the relevant issues are in sync. This cron job will run every 15 minutes so as to be staggered from the first cron job.
 
 - When the workflow starts, it queries for out-of-sync issues that are not being synced, sort ascending by `issueUpdatedAt`. If there are no such issues, the workflow will terminate.
-- For the issues selected (bounded by a fixed `limit`), it will set `isEmbeddingSyncing` to `true` and call the OpenAI API to create embeddings.
-- After the embeddings are created, it will update the embeddings and set `isEmbeddingSyncing` to `false`.
+- For the issues selected (bounded by a fixed `limit`), it will set `embeddingSyncStatus` to `in_progress` and call the OpenAI API to create embeddings.
+- After the embeddings are created, it will update the embeddings and set `embeddingSyncStatus` to `completed`.
 - The workflow will then self-invoke with the remaining issues.
-- It is good if the workflow (collectively) terminates before the next cron job is run, but the hope is (1) with the `isEmbeddingSyncing` flag, the next cron job will not do duplicate work; (2) with two cron jobs running at the same time, all the issues will be processed quickly.
+- It is good if the workflow (collectively) terminates before the next cron job is run, but the hope is (1) with the `embeddingSyncStatus` flag, the next cron job will not do duplicate work; (2) with two cron jobs running at the same time, all the issues will be processed quickly.
 
 ## Summary
 

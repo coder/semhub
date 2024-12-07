@@ -47,6 +47,9 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
           : await Embedding.selectIssuesForEmbeddingCron(db);
       },
     );
+    if (issuesToEmbed.length === 0) {
+      return;
+    }
     try {
       const BATCH_SIZE = 50;
       const chunkedIssues = chunkArray(issuesToEmbed, BATCH_SIZE);
@@ -97,6 +100,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
           .where(
             inArray(
               issueTable.id,
+              // a little excessive...
               issuesToEmbed.map((i) => i.id),
             ),
           );

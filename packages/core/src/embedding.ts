@@ -185,7 +185,7 @@ export namespace Embedding {
         )
         .orderBy(asc(issueTable.issueUpdatedAt))
         .limit(100);
-
+      if (issues.length === 0) return [];
       await tx
         .update(issueTable)
         .set({
@@ -222,6 +222,7 @@ export namespace Embedding {
         embedding: embeddingSql,
         embeddingModel: EMBEDDING_MODEL,
         embeddingCreatedAt: new Date(),
+        embeddingSyncStatus: "ready",
       })
       .where(inArray(issueTable.id, issueIdArray));
   }
