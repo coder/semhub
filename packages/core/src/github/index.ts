@@ -248,7 +248,7 @@ export namespace Github {
       repoIssuesLastUpdatedAt: Date | null;
     },
     octokit: GraphqlOctokit,
-    numIssues: number,
+    numIssues = 100,
   ) {
     const iterator = octokit.graphql.paginate.iterator(
       getIssuesWithMetadataForUpsert(),

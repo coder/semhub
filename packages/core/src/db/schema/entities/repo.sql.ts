@@ -37,6 +37,11 @@ export const repos = pgTable(
     ownerNameIdx: index("owner_name_idx").on(table.owner, table.name),
     ownerIdx: index("owner_idx").on(table.owner),
     createdAtIdx: index("created_at_idx").on(table.createdAt),
+    repoSyncIdx: index("repo_sync_idx").on(
+      table.initStatus,
+      table.syncStatus,
+      table.lastSyncedAt.nullsFirst(),
+    ),
   }),
 );
 

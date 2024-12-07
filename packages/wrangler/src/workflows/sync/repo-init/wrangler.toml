@@ -1,5 +1,5 @@
 name = "semhub-sync-repo-init-dev"
-main = "./init.ts"
+main = "./init.workflow.ts"
 compatibility_date = "2024-10-22"       # keep in sync with @cloudflare/workers-types
 compatibility_flags = ["nodejs_compat"]
 

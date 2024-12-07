@@ -6,12 +6,12 @@ import type { WranglerSecrets } from "@/core/constants/wrangler";
 import { eq } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { Github } from "@/core/github";
-import { Repo } from "@/core/repo";
+import { Repo, repoIssuesLastUpdatedSql } from "@/core/repo";
 import { getDeps } from "@/deps";
 import { isWorkersSizeLimitError } from "@/errors";
 import { type WorkflowRPC } from "@/workflows/sync/util";
 
-import type { EmbeddingParams } from "../embedding/update";
+import type { EmbeddingParams } from "../embedding/update.workflow";
 
 interface Env extends WranglerSecrets {
   REPO_INIT_WORKFLOW: Workflow;
@@ -28,19 +28,14 @@ export type RepoInitParams = {
 export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
   async run(event: WorkflowEvent<RepoInitParams>, step: WorkflowStep) {
     const { repoId } = event.payload;
-    const { DATABASE_URL, GITHUB_PERSONAL_ACCESS_TOKEN, OPENAI_API_KEY } =
-      this.env;
-    const { db, graphqlOctokit } = getDeps({
-      databaseUrl: DATABASE_URL,
-      githubPersonalAccessToken: GITHUB_PERSONAL_ACCESS_TOKEN,
-      openaiApiKey: OPENAI_API_KEY,
-    });
+    const { db, graphqlOctokit } = getDeps(this.env);
     const result = await step.do("get repo info from db", async () => {
       const [result] = await db
         .select({
           initStatus: repos.initStatus,
           repoName: repos.name,
           repoOwner: repos.owner,
+          issueLastUpdatedAt: repoIssuesLastUpdatedSql(repos),
         })
         .from(repos)
         .where(eq(repos.id, repoId))
@@ -53,21 +48,14 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
       }
       return result;
     });
-    const { repoName, repoOwner } = result;
+    const { repoName, repoOwner, issueLastUpdatedAt } = result;
     const name = `${repoOwner}/${repoName}`;
     try {
-      const issueLastUpdated = await step.do(
-        `get issue last updated at for ${name}`,
-        async () => {
-          // issues must have embeddings to be considered "updated"
-          return Repo.getRepoLastIssueWithEmbedding(repoId, db);
-        },
-      );
       const { issueIdsArray, hasMoreIssues } = await step.do(
         `get 5 API calls worth of data for ${name}`,
         async () => {
           const issueIdsArray = [];
-          let currentSince = issueLastUpdated;
+          let currentSince = issueLastUpdatedAt;
           let hasMoreIssues = true;
 
           // TODO: extract const
@@ -166,7 +154,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         await step.do(
           "performed one unit of work, call itself recursively",
           async () => {
-            this.env.REPO_INIT_WORKFLOW.create({
+            await this.env.REPO_INIT_WORKFLOW.create({
               params: { repoId },
             });
           },

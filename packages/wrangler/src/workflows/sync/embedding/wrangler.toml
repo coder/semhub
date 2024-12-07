@@ -1,5 +1,5 @@
 name = "semhub-sync-repo-embedding-dev"
-main = "./update.ts"
+main = "./update.workflow.ts"
 compatibility_date = "2024-10-22"       # keep in sync with @cloudflare/workers-types
 compatibility_flags = ["nodejs_compat"]
 

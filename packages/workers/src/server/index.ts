@@ -9,8 +9,8 @@ import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
-import type { RepoInitParams } from "@/wrangler/workflows/sync/repo-init/init";
-import { initNextRepo } from "@/wrangler/workflows/sync/repo-init/init.util";
+import type { RepoInitParams } from "@/wrangler/workflows/sync/repo-init/init.workflow";
+import { initNextRepo } from "@/wrangler/workflows/sync/repo-init/init.workflow.util";
 
 import type { ErrorResponse } from "./response";
 import { searchRouter } from "./router/searchRouter";

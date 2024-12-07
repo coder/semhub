@@ -34,14 +34,8 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
   EmbeddingParams
 > {
   async run(event: WorkflowEvent<EmbeddingParams>, step: WorkflowStep) {
-    const { DATABASE_URL, GITHUB_PERSONAL_ACCESS_TOKEN, OPENAI_API_KEY } =
-      this.env;
     const { mode } = event.payload;
-    const { db, openai } = getDeps({
-      databaseUrl: DATABASE_URL,
-      githubPersonalAccessToken: GITHUB_PERSONAL_ACCESS_TOKEN,
-      openaiApiKey: OPENAI_API_KEY,
-    });
+    const { db, openai } = getDeps(this.env);
     const issuesToEmbed = await step.do(
       "get issues to embed form db",
       async () => {

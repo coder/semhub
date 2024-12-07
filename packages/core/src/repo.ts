@@ -1,5 +1,5 @@
 import type { DbClient } from "@/db";
-import { and, desc, eq, inArray, isNotNull, isNull, lt, or, sql } from "@/db";
+import { and, eq, isNull, lt, or, sql } from "@/db";
 import { comments } from "@/db/schema/entities/comment.sql";
 import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
@@ -8,8 +8,6 @@ import { repos } from "@/db/schema/entities/repo.sql";
 import { conflictUpdateOnly } from "@/db/utils/conflict";
 import { sanitizeForPg } from "@/db/utils/string";
 import type { Github } from "@/github";
-
-import { repoIssuesLastUpdatedSql } from "./repo.util";
 
 export namespace Repo {
   export async function createRepo(
@@ -54,39 +52,24 @@ export namespace Repo {
     return result;
   }
   export async function selectReposForIssueSync(db: DbClient) {
-    return await db.transaction(async (tx) => {
-      const selectedRepos = await tx
-        .select({
-          repoId: repos.id,
-          repoName: repos.name,
-          repoOwner: repos.owner,
-          // TODO: verify this is working
-          repoIssuesLastUpdatedAt: repoIssuesLastUpdatedSql(repos),
-        })
-        .from(repos)
-        .where(
-          and(
-            eq(repos.initStatus, "completed"),
-            eq(repos.syncStatus, "ready"),
-            or(
-              isNull(repos.lastSyncedAt),
-              lt(repos.lastSyncedAt, sql`NOW() - INTERVAL '10 minutes'`),
-            ),
+    return await db
+      .update(repos)
+      .set({
+        syncStatus: "in_progress",
+      })
+      .where(
+        and(
+          eq(repos.initStatus, "completed"),
+          eq(repos.syncStatus, "ready"),
+          or(
+            isNull(repos.lastSyncedAt),
+            lt(repos.lastSyncedAt, sql`NOW() - INTERVAL '10 minutes'`),
           ),
-        );
-      await tx
-        .update(repos)
-        .set({
-          syncStatus: "in_progress",
-        })
-        .where(
-          inArray(
-            repos.id,
-            selectedRepos.map(({ repoId }) => repoId),
-          ),
-        );
-      return selectedRepos;
-    });
+        ),
+      )
+      .returning({
+        repoId: repos.id,
+      });
   }
   // return issueIds to be used for embeddings update
   export async function upsertIssuesCommentsLabels(
@@ -211,27 +194,37 @@ export namespace Repo {
       return insertedIssueIds.map(({ id }) => id);
     });
   }
-  export async function getRepoLastIssueWithEmbedding(
-    repoId: string,
-    db: DbClient,
-  ) {
-    // see repoIssuesLastUpdatedSql; the two should be the same
-    const [result] = await db
-      .select({
-        issuesLastUpdatedAt: issueTable.issueUpdatedAt,
-      })
-      .from(issueTable)
-      .where(
-        // must include embedding to be considered "updated"
-        // but OK if embedding is out-of-date -> this should be handled by embedding sync
-        and(eq(issueTable.repoId, repoId), isNotNull(issueTable.embedding)),
-      )
-      .orderBy(desc(issueTable.issueUpdatedAt))
-      .limit(1);
-    if (!result) {
-      return null;
-    }
-    const { issuesLastUpdatedAt } = result;
-    return issuesLastUpdatedAt;
-  }
+  //   export async function getRepoLastIssueWithEmbedding(
+  //     repoId: string,
+  //     db: DbClient,
+  //   ) {
+  //     // see repoIssuesLastUpdatedSql; the two should be the same
+  //     const [result] = await db
+  //       .select({
+  //         issuesLastUpdatedAt: issueTable.issueUpdatedAt,
+  //       })
+  //       .from(issueTable)
+  //       .where(
+  //         // must include embedding to be considered "updated"
+  //         // but OK if embedding is out-of-date -> this should be handled by embedding sync
+  //         and(eq(issueTable.repoId, repoId), isNotNull(issueTable.embedding)),
+  //       )
+  //       .orderBy(desc(issueTable.issueUpdatedAt))
+  //       .limit(1);
+  //     if (!result) {
+  //       return null;
+  //     }
+  //     const { issuesLastUpdatedAt } = result;
+  //     return issuesLastUpdatedAt;
+  //   }
 }
+
+export const repoIssuesLastUpdatedSql = (
+  repoTable: typeof repos,
+) => sql<Date | null>`(
+  SELECT ${issueTable.issueUpdatedAt}
+  FROM ${issueTable}
+  WHERE ${issueTable.repoId} = ${repoTable}.id AND ${issueTable.embedding} IS NOT NULL
+  ORDER BY ${issueTable.issueUpdatedAt} DESC
+  LIMIT 1
+)`;
