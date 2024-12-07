@@ -1,19 +1,20 @@
 import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import { WorkflowEntrypoint } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
-import pMap from "p-map";
 
 import type { WranglerSecrets } from "@/core/constants/wrangler";
 import { eq } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
-import { Embedding } from "@/core/embedding";
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
-import { chunkArray, type WorkflowRPC } from "@/workflows/sync-repo/util";
+import { type WorkflowRPC } from "@/workflows/sync-repo/util";
+
+import type { EmbeddingParams } from "../embedding/update";
 
 interface Env extends WranglerSecrets {
   REPO_INIT_WORKFLOW: Workflow;
+  SYNC_REPO_EMBEDDING_WORKFLOW: WorkflowRPC<EmbeddingParams>;
 }
 
 // User-defined params passed to your workflow
@@ -28,7 +29,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
     const { repoId } = event.payload;
     const { DATABASE_URL, GITHUB_PERSONAL_ACCESS_TOKEN, OPENAI_API_KEY } =
       this.env;
-    const { db, graphqlOctokit, openai } = getDeps({
+    const { db, graphqlOctokit } = getDeps({
       databaseUrl: DATABASE_URL,
       githubPersonalAccessToken: GITHUB_PERSONAL_ACCESS_TOKEN,
       openaiApiKey: OPENAI_API_KEY,
@@ -103,19 +104,53 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
       );
       await Promise.all(
         dataArray.map(async (issuesAndCommentsLabels) => {
-          const insertedIssueIds = await Repo.upsertIssuesCommentsLabels(
-            issuesAndCommentsLabels,
-            db,
+          const insertedIssueIds = await step.do(
+            "upsert issues, comments, and labels",
+            async () => {
+              return await Repo.upsertIssuesCommentsLabels(
+                issuesAndCommentsLabels,
+                db,
+              );
+            },
           );
-          // call worker to create and insert embeddings
-          // TODO:
+          const embeddingWorkflowId = await step.do(
+            "call worker to create and insert embeddings",
+            async () => {
+              return await this.env.SYNC_REPO_EMBEDDING_WORKFLOW.create({
+                params: {
+                  mode: "init",
+                  issueIds: insertedIssueIds,
+                  repoName,
+                  repoId,
+                },
+              });
+            },
+          );
+          while (true) {
+            await step.sleep("wait for worker to finish", "30 seconds");
+            const { status } =
+              await this.env.SYNC_REPO_EMBEDDING_WORKFLOW.getInstanceStatus(
+                embeddingWorkflowId,
+              );
+            if (status === "complete") {
+              return;
+            }
+            if (status === "errored" || status === "terminated") {
+              throw new NonRetryableError("Embedding worker failed");
+            }
+          }
         }),
       );
       // call itself recursively
       if (hasMoreIssues) {
-        this.env.REPO_INIT_WORKFLOW.create({
-          params: { repoId },
-        });
+        await step.do(
+          "performed one unit of work, call itself recursively",
+          async () => {
+            this.env.REPO_INIT_WORKFLOW.create({
+              params: { repoId },
+            });
+          },
+        );
       } else {
         // no more work to be done, set initStatus to completed and return
         await step.do(`init for repo ${name} completed`, async () => {
@@ -125,58 +160,6 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             .where(eq(repos.id, repoId));
         });
       }
-      // TODO: remove everything else below this
-      const insertedIssueIds = await step.do(
-        "upsert issues, comments, and labels",
-        async () => {
-          return await Repo.upsertIssuesCommentsLabels(
-            issuesAndCommentsLabels,
-            db,
-          );
-        },
-      );
-      const BATCH_SIZE = 50;
-      const chunkedIssueIds = chunkArray(insertedIssueIds, BATCH_SIZE);
-      const batchEmbedIssues = async (
-        issueIds: string[],
-        idx: number,
-      ): Promise<void> => {
-        const selectedIssues = await step.do(
-          `selecting issues from db for embedding (batch ${idx + 1}) for ${repoName}`,
-          async () => {
-            return await Embedding.selectIssuesForEmbedding(issueIds, db);
-          },
-        );
-        const embeddings = await step.do(
-          `create embeddings for selected issues from API for ${repoName}`,
-          async () => {
-            return await Embedding.createEmbeddings({
-              issues: selectedIssues,
-              rateLimiter: null,
-              openai,
-            });
-          },
-        );
-        await step.do(
-          `update issue embeddings in db for ${repoName}`,
-          async () => {
-            await Embedding.bulkUpdateIssueEmbeddings(embeddings, db);
-          },
-        );
-      };
-      await pMap(chunkedIssueIds, async (issueIds, idx) => {
-        return await batchEmbedIssues(issueIds, idx);
-      });
-      // successfully performed one unit of work, calls itself recursively before ending
-      await step.do(
-        "successfully performed one unit of work, call itself recursively",
-        async () => {
-          this.env.REPO_INIT_WORKFLOW.create({
-            params: { repoId },
-          });
-        },
-      );
-      // TODO: remove everything above this
     } catch (e) {
       await step.do(
         "sync unsuccessful, mark repo init status to error",
