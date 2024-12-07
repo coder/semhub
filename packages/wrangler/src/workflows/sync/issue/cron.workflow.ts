@@ -24,11 +24,16 @@ export class IssueCronWorkflow extends WorkflowEntrypoint<Env> {
       // all repos have been synced, return early
       return;
     }
-    const { repoId, repoName, repoOwner, repoIssuesLastUpdatedAt } = res;
+    const {
+      repoId,
+      repoName,
+      repoOwner,
+      repoIssuesLastUpdatedAt: stringifiedLastUpdatedAt,
+    } = res;
     const name = `${repoOwner}/${repoName}`;
     try {
       // mark repo as syncing
-      await step.do(`mark ${name} as syncing`, async () => {
+      await step.do(`mark ${name} as syncing in progress`, async () => {
         await db
           .update(repos)
           .set({ syncStatus: "in_progress" })
@@ -39,7 +44,14 @@ export class IssueCronWorkflow extends WorkflowEntrypoint<Env> {
         `get latest issues of ${name} from GitHub`,
         async () => {
           return await Github.getIssuesViaIterator(
-            { repoId, repoName, repoOwner, repoIssuesLastUpdatedAt },
+            {
+              repoId,
+              repoName,
+              repoOwner,
+              repoIssuesLastUpdatedAt: stringifiedLastUpdatedAt
+                ? new Date(stringifiedLastUpdatedAt)
+                : null,
+            },
             graphqlOctokit,
           );
         },
@@ -107,7 +119,7 @@ async function getNextRepoForIssueSync(db: DbClient) {
     })
     .from(repos)
     .where(
-      and(eq(repos.initStatus, "completed"), eq(repos.syncStatus, "ready")),
+      and(eq(repos.initStatus, "completed"), eq(repos.syncStatus, "queued")),
     )
     .orderBy(asc(repos.lastSyncedAt))
     .limit(1);

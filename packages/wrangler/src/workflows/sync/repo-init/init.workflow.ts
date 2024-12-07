@@ -55,7 +55,9 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         `get 5 API calls worth of data for ${name}`,
         async () => {
           const issueIdsArray = [];
-          let currentSince = issueLastUpdatedAt;
+          let currentSince = issueLastUpdatedAt
+            ? new Date(issueLastUpdatedAt)
+            : null;
           let hasMoreIssues = true;
 
           // TODO: extract const

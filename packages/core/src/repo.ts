@@ -55,7 +55,7 @@ export namespace Repo {
     return await db
       .update(repos)
       .set({
-        syncStatus: "in_progress",
+        syncStatus: "queued",
       })
       .where(
         and(
@@ -219,9 +219,9 @@ export namespace Repo {
   //   }
 }
 
-export const repoIssuesLastUpdatedSql = (
-  repoTable: typeof repos,
-) => sql<Date | null>`(
+export const repoIssuesLastUpdatedSql = (repoTable: typeof repos) => sql<
+  string | null
+>`(
   SELECT ${issueTable.issueUpdatedAt}
   FROM ${issueTable}
   WHERE ${issueTable.repoId} = ${repoTable}.id AND ${issueTable.embedding} IS NOT NULL
