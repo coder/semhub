@@ -58,9 +58,10 @@ export namespace Github {
       throw new Error("error parsing issues with issues", error);
     }
     const issues = data.repository.issues.nodes;
+    const hasNextPage = data.repository.issues.pageInfo.hasNextPage;
     if (issues.length === 0) {
       return {
-        hasIssues: false,
+        hasNextPage,
         issuesAndCommentsLabels: {
           issuesToInsert: [],
           commentsToInsert: [],
@@ -117,7 +118,7 @@ export namespace Github {
 
     const lastIssueUpdatedAt = new Date(issues[issues.length - 1]!.updatedAt);
     return {
-      hasIssues: true,
+      hasNextPage,
       issuesAndCommentsLabels: {
         issuesToInsert: allIssues,
         commentsToInsert: allComments,
