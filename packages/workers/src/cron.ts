@@ -21,9 +21,16 @@ export default {
         break;
       }
       case "*/10 * * * *": {
-        await Repo.selectReposForIssueSync(db);
-        // this syncs issues
-        await env.SYNC_ISSUE_CRON_WORKFLOW.create();
+        await db.transaction(
+          async (tx) => {
+            await Repo.selectReposForIssueSync(tx);
+            // this syncs issues
+            await env.SYNC_ISSUE_CRON_WORKFLOW.create();
+          },
+          {
+            isolationLevel: "serializable",
+          },
+        );
         break;
       }
       case "*/15 * * * *": {

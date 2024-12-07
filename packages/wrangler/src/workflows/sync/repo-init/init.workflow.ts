@@ -62,7 +62,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
 
           // TODO: extract const
           const REDUCE_ISSUES_MAX_ATTEMPTS = 4;
-          for (let i = 0; i < 5 && hasMoreIssues; i++) {
+          for (let i = 0; i < 7 && hasMoreIssues; i++) {
             const { hasIssues, issuesAndCommentsLabels, lastIssueUpdatedAt } =
               await step.do(
                 `get latest issues of ${name} from GitHub (batch ${i + 1})`,
@@ -76,7 +76,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                         repoOwner,
                         octokit: graphqlOctokit,
                         since: currentSince,
-                        numIssues: 100 - attempt * 20,
+                        numIssues: 50 - attempt * 10,
                       });
                     } catch (e) {
                       if (
