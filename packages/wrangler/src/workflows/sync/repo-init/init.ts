@@ -63,15 +63,14 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         },
       );
       const { issueIdsArray, hasMoreIssues } = await step.do(
-        `get 10 API calls worth of data for ${name}`,
+        `get 5 API calls worth of data for ${name}`,
         async () => {
           const issueIdsArray = [];
           let currentSince = issueLastUpdated;
           let hasMoreIssues = true;
 
-          // Try up to 10 API calls
           // TODO: extract const
-          for (let i = 0; i < 10 && hasMoreIssues; i++) {
+          for (let i = 0; i < 5 && hasMoreIssues; i++) {
             const { hasIssues, issuesAndCommentsLabels, lastIssueUpdatedAt } =
               await step.do(
                 `get latest issues of ${name} from GitHub (batch ${i + 1})`,
