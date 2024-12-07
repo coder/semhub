@@ -82,7 +82,7 @@ export class IssueCronWorkflow extends WorkflowEntrypoint<Env> {
     // even if there is an error with one repo, we still want to sync the rest
     // call itself recursively to sync next repo
     await step.do(`call itself recursively to sync next repo`, async () => {
-      await this.env.SYNC_ISSUE_CRON_WORKFLOW.create();
+      await this.env.SYNC_ISSUE_CRON_WORKFLOW.create({});
     });
   }
 }

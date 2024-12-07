@@ -25,7 +25,7 @@ export default {
           async (tx) => {
             await Repo.selectReposForIssueSync(tx);
             // this syncs issues
-            await env.SYNC_ISSUE_CRON_WORKFLOW.create();
+            await env.SYNC_ISSUE_CRON_WORKFLOW.create({});
           },
           {
             isolationLevel: "serializable",
