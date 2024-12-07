@@ -85,7 +85,7 @@ export namespace Repo {
       body: sanitizeForPg(issue.body),
     }));
     if (sanitizedIssuesToInsert.length === 0) {
-      throw new Error("No issues to upsert");
+      return [];
     }
     const sanitizedCommentsToInsert = commentsToInsert.map((comment) => ({
       ...comment,
@@ -190,7 +190,7 @@ export namespace Repo {
       return insertedIssueIds.map(({ id }) => id);
     });
   }
-  export async function getRepoIssueLastUpdatedAt(
+  export async function getRepoLastIssueWithEmbedding(
     repoId: string,
     db: DbClient,
   ) {

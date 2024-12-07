@@ -53,39 +53,79 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
     });
     const { repoName, repoOwner } = result;
     const name = `${repoOwner}/${repoName}`;
-    const issueLastUpdated = await step.do(
-      "get issue last updated at",
-      async () => {
-        // issues must have embeddings to be considered "updated"
-        return Repo.getRepoIssueLastUpdatedAt(repoId, db);
-      },
-    );
-    const { hasIssues, issuesAndCommentsLabels } = await step.do(
-      "get latest issues from GitHub",
-      async () => {
-        return await Github.getLatestRepoIssues({
-          repoId,
-          repoName,
-          repoOwner,
-          octokit: graphqlOctokit,
-          since: issueLastUpdated,
-          // the 1MiB limit to serialized RPC argument/return values in Cloudflare Workers
-          // 1000 subrequest limits
-          numIssues: 100,
-        });
-      },
-    );
-    if (!hasIssues) {
-      // no more work to be done, set initStatus to completed and return
-      await step.do(`init for repo ${name} completed`, async () => {
-        await db
-          .update(repos)
-          .set({ initStatus: "completed", initializedAt: new Date() })
-          .where(eq(repos.id, repoId));
-      });
-      return;
-    }
     try {
+      const issueLastUpdated = await step.do(
+        `get issue last updated at for ${name}`,
+        async () => {
+          // issues must have embeddings to be considered "updated"
+          return Repo.getRepoLastIssueWithEmbedding(repoId, db);
+        },
+      );
+      const { dataArray, hasMoreIssues } = await step.do(
+        `get 5 API calls worth of data for ${name}`,
+        async () => {
+          const dataArray = [];
+          let currentSince = issueLastUpdated;
+          let hasMoreIssues = true;
+
+          // Try up to 5 API calls
+          for (let i = 0; i < 5 && hasMoreIssues; i++) {
+            const { hasIssues, issuesAndCommentsLabels, lastIssueUpdatedAt } =
+              await step.do(
+                `get latest issues of ${name} from GitHub (batch ${i + 1})`,
+                async () => {
+                  return await Github.getLatestRepoIssues({
+                    repoId,
+                    repoName,
+                    repoOwner,
+                    octokit: graphqlOctokit,
+                    since: currentSince,
+                    numIssues: 100,
+                  });
+                },
+              );
+
+            // Break if no more issues
+            if (!hasIssues) {
+              hasMoreIssues = false;
+              break;
+            }
+            if (!lastIssueUpdatedAt) {
+              throw new NonRetryableError("lastIssueUpdatedAt is undefined");
+            }
+
+            dataArray.push(issuesAndCommentsLabels);
+            currentSince = lastIssueUpdatedAt;
+          }
+
+          return { dataArray, hasMoreIssues };
+        },
+      );
+      await Promise.all(
+        dataArray.map(async (issuesAndCommentsLabels) => {
+          const insertedIssueIds = await Repo.upsertIssuesCommentsLabels(
+            issuesAndCommentsLabels,
+            db,
+          );
+          // call worker to create and insert embeddings
+          // TODO:
+        }),
+      );
+      // call itself recursively
+      if (hasMoreIssues) {
+        this.env.REPO_INIT_WORKFLOW.create({
+          params: { repoId },
+        });
+      } else {
+        // no more work to be done, set initStatus to completed and return
+        await step.do(`init for repo ${name} completed`, async () => {
+          await db
+            .update(repos)
+            .set({ initStatus: "completed", initializedAt: new Date() })
+            .where(eq(repos.id, repoId));
+        });
+      }
+      // TODO: remove everything else below this
       const insertedIssueIds = await step.do(
         "upsert issues, comments, and labels",
         async () => {
@@ -95,7 +135,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           );
         },
       );
-      const BATCH_SIZE = 20;
+      const BATCH_SIZE = 50;
       const chunkedIssueIds = chunkArray(insertedIssueIds, BATCH_SIZE);
       const batchEmbedIssues = async (
         issueIds: string[],
@@ -136,6 +176,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           });
         },
       );
+      // TODO: remove everything above this
     } catch (e) {
       await step.do(
         "sync unsuccessful, mark repo init status to error",

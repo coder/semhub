@@ -116,6 +116,7 @@ export namespace Github {
       ).values(),
     ];
 
+    const lastIssueUpdatedAt = new Date(issues[issues.length - 1]!.updatedAt);
     return {
       hasIssues: true,
       issuesAndCommentsLabels: {
@@ -124,6 +125,7 @@ export namespace Github {
         labelsToInsert: allLabels,
         issueToLabelRelationsToInsertNodeIds: allIssueToLabelRelations,
       },
+      lastIssueUpdatedAt,
     };
   }
   // TODO: delete?
