@@ -60,7 +60,7 @@ export namespace Repo {
         repoName: repos.name,
         repoOwner: repos.owner,
         // TODO: verify this is working
-        repoIssuesLastUpdatedAt: repoIssuesLastUpdatedSql,
+        repoIssuesLastUpdatedAt: repoIssuesLastUpdatedSql(repos),
       })
       .from(repos)
       .where(
