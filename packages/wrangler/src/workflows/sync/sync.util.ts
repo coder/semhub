@@ -13,7 +13,7 @@ export function getCurrentWindowTimestamp(windowSizeInMs: number): number {
  */
 export function generateSyncWorkflowId(
   prefix: string,
-  windowSizeInSeconds: number,
+  windowSizeInMs = 1,
 ): string {
-  return `${prefix}-${getCurrentWindowTimestamp(windowSizeInSeconds * 1000)}`;
+  return `${prefix}-${getCurrentWindowTimestamp(windowSizeInMs)}`;
 }

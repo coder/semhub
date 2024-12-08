@@ -8,7 +8,6 @@ import { repos } from "@/core/db/schema/entities/repo.sql";
 import { Github } from "@/core/github";
 import { Repo, repoIssuesLastUpdatedSql } from "@/core/repo";
 import { getDeps } from "@/deps";
-import { isWorkersSizeLimitError } from "@/errors";
 import {
   DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL,
   NUM_EMBEDDING_WORKERS,
@@ -16,7 +15,10 @@ import {
   PARENT_WORKER_SLEEP_DURATION,
   REDUCE_ISSUES_MAX_ATTEMPTS,
 } from "@/workflows/sync/sync.param";
-import { type WorkflowRPC } from "@/workflows/workflow.util";
+import {
+  getApproximateSizeInBytes,
+  type WorkflowRPC,
+} from "@/workflows/workflow.util";
 
 import type { EmbeddingParams } from "../embedding/embedding.workflow";
 import { generateSyncWorkflowId } from "../sync.util";
@@ -73,35 +75,41 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
               await step.do(
                 `get latest issues of ${name} from GitHub (batch ${i + 1})`,
                 async () => {
-                  let attempt = 0;
-                  while (attempt <= REDUCE_ISSUES_MAX_ATTEMPTS) {
+                  for (
+                    let attempt = 0;
+                    attempt <= REDUCE_ISSUES_MAX_ATTEMPTS;
+                    attempt++
+                  ) {
                     const numIssues =
                       DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL -
                       attempt * NUM_ISSUES_TO_REDUCE_PER_ATTEMPT;
-                    try {
-                      const result = await Github.getLatestRepoIssues({
-                        repoId,
-                        repoName,
-                        repoOwner,
-                        octokit: graphqlOctokit,
-                        since: currentSince,
-                        numIssues,
-                      });
+                    const result = await Github.getLatestRepoIssues({
+                      repoId,
+                      repoName,
+                      repoOwner,
+                      octokit: graphqlOctokit,
+                      since: currentSince,
+                      numIssues,
+                    });
+
+                    const responseSize = getApproximateSizeInBytes(result);
+                    // Response size is acceptable, return result immediately
+                    if (responseSize <= 750000) {
                       return result;
-                    } catch (e) {
-                      if (
-                        isWorkersSizeLimitError(e) &&
-                        attempt < REDUCE_ISSUES_MAX_ATTEMPTS
-                      ) {
-                        console.log(
-                          `Retrying issues for ${name} with reduced numIssues: ${numIssues}`,
-                        );
-                        attempt++;
-                        continue;
-                      }
-                      throw e;
                     }
+                    // Response too large but we can try again with fewer issues
+                    if (attempt < REDUCE_ISSUES_MAX_ATTEMPTS) {
+                      console.log(
+                        `Response too large (${Math.round(responseSize / 1024)}KB) for ${name}, reducing numIssues from ${numIssues}`,
+                      );
+                      continue;
+                    }
+                    // No more attempts left and response still too large
+                    throw new NonRetryableError(
+                      `Response size (${Math.round(responseSize / 1024)}KB) too large even with minimum issues`,
+                    );
                   }
+                  // should never reach here
                   throw new NonRetryableError(
                     `Failed to get issues for ${name} after ${REDUCE_ISSUES_MAX_ATTEMPTS} attempts`,
                   );
@@ -139,7 +147,6 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
               return await this.env.SYNC_EMBEDDING_WORKFLOW.create({
                 id: generateSyncWorkflowId(
                   `embedding-${repoOwner}-${repoName}`,
-                  10,
                 ),
                 params: {
                   mode: "init",
@@ -174,7 +181,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           "performed one unit of work, call itself recursively",
           async () => {
             await this.env.REPO_INIT_WORKFLOW.create({
-              id: `init-${repoOwner}/${repoName}`,
+              id: generateSyncWorkflowId(`init-${repoOwner}-${repoName}`),
               params: { repoId },
             });
           },

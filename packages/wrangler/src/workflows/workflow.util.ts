@@ -16,3 +16,7 @@ export function chunkArray<T>(array: T[], size: number): T[][] {
     array.slice(index * size, (index + 1) * size),
   );
 }
+
+export function getApproximateSizeInBytes(obj: unknown) {
+  return new TextEncoder().encode(JSON.stringify(obj)).length;
+}

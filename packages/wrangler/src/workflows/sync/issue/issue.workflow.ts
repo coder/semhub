@@ -79,7 +79,7 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
     // call itself recursively to sync next repo
     await step.do(`call itself recursively to sync next repo`, async () => {
       await this.env.SYNC_ISSUE_WORKFLOW.create({
-        id: generateSyncWorkflowId("sync-issue", 10),
+        id: generateSyncWorkflowId("sync-issue"),
       });
     });
   }

@@ -30,7 +30,7 @@ export async function initNextRepos(
       await Promise.all(
         repos.map(({ repoId, repoName, repoOwner }) =>
           workflow.create({
-            id: generateSyncWorkflowId(`init-${repoOwner}-${repoName}`, 10),
+            id: generateSyncWorkflowId(`init-${repoOwner}-${repoName}`),
             params: { repoId },
           }),
         ),

@@ -31,7 +31,7 @@ export default {
             await Repo.enqueueReposForIssueSync(tx);
             for (let i = 0; i < NUM_CONCURRENT_ISSUE_CRONS; i++) {
               await env.SYNC_ISSUE_WORKFLOW.create({
-                id: generateSyncWorkflowId("sync-issue", 10),
+                id: generateSyncWorkflowId("sync-issue"),
               });
             }
           },
@@ -44,7 +44,7 @@ export default {
       case CRON_PATTERNS.SYNC_EMBEDDING: {
         for (let i = 0; i < NUM_CONCURRENT_EMBEDDING_CRONS; i++) {
           await env.SYNC_EMBEDDING_WORKFLOW.create({
-            id: generateSyncWorkflowId("sync-embedding", 10),
+            id: generateSyncWorkflowId("sync-embedding"),
             params: { mode: "cron" },
           });
         }
