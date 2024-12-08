@@ -74,10 +74,10 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                 `get latest issues of ${name} from GitHub (batch ${i + 1})`,
                 async () => {
                   let attempt = 0;
-                  const numIssues =
-                    DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL -
-                    attempt * NUM_ISSUES_TO_REDUCE_PER_ATTEMPT;
                   while (attempt <= REDUCE_ISSUES_MAX_ATTEMPTS) {
+                    const numIssues =
+                      DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL -
+                      attempt * NUM_ISSUES_TO_REDUCE_PER_ATTEMPT;
                     try {
                       const result = await Github.getLatestRepoIssues({
                         repoId,
@@ -138,7 +138,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             async () => {
               return await this.env.SYNC_EMBEDDING_WORKFLOW.create({
                 id: generateSyncWorkflowId(
-                  `embedding-${repoOwner}/${repoName}`,
+                  `embedding-${repoOwner}-${repoName}`,
                   10,
                 ),
                 params: {
