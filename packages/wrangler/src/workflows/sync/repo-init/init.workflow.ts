@@ -70,7 +70,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                   let attempt = 1;
                   while (attempt <= REDUCE_ISSUES_MAX_ATTEMPTS) {
                     try {
-                      return await Github.getLatestRepoIssues({
+                      const result = await Github.getLatestRepoIssues({
                         repoId,
                         repoName,
                         repoOwner,
@@ -78,18 +78,19 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                         since: currentSince,
                         numIssues: 50 - attempt * 10,
                       });
+                      return result;
                     } catch (e) {
                       if (
                         isWorkersSizeLimitError(e) &&
                         attempt < REDUCE_ISSUES_MAX_ATTEMPTS
                       ) {
                         console.log(
-                          `Retrying issues for ${name} with reduced numIssues: ${100 - attempt * 20}`,
+                          `Retrying issues for ${name} with reduced numIssues: ${50 - (attempt + 1) * 10}`,
                         );
                         attempt++;
-                      } else {
-                        throw e;
+                        continue;
                       }
+                      throw e;
                     }
                   }
                   throw new NonRetryableError(
