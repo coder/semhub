@@ -1,3 +1,5 @@
+import { CRON_PATTERNS } from "@semhub/core/constants/cron.constant";
+
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import type { EmbeddingParams } from "@/wrangler/workflows/sync/embedding/embedding.workflow";
@@ -15,16 +17,14 @@ export default {
   async scheduled(controller: ScheduledController, env: Env) {
     const { db } = getDeps();
     switch (controller.cron) {
-      case "*/5 * * * *": {
-        // only repo being initialized at a time; this gets the next one
+      case CRON_PATTERNS.INIT: {
         await initNextRepo(db, env.REPO_INIT_WORKFLOW);
         break;
       }
-      case "*/10 * * * *": {
+      case CRON_PATTERNS.SYNC_ISSUE: {
         await db.transaction(
           async (tx) => {
             await Repo.selectReposForIssueSync(tx);
-            // this syncs issues
             await env.SYNC_ISSUE_WORKFLOW.create({});
           },
           {
@@ -33,7 +33,7 @@ export default {
         );
         break;
       }
-      case "*/15 * * * *": {
+      case CRON_PATTERNS.SYNC_EMBEDDING: {
         await env.SYNC_EMBEDDING_WORKFLOW.create({
           params: { mode: "cron" },
         });

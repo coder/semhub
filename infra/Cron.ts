@@ -1,5 +1,12 @@
 import { allSecrets } from "./Secret";
 import { database } from "./Supabase";
+import type { CronPatterns } from "./types";
+
+const CRON_PATTERNS = {
+  INIT: "*/5 * * * *",
+  SYNC_ISSUE: "*/10 * * * *",
+  SYNC_EMBEDDING: "*/15 * * * *",
+} as const satisfies CronPatterns;
 
 const createCronJob = (name: string, schedule: string) => {
   return new sst.cloudflare.Cron(name, {
@@ -30,6 +37,6 @@ const createCronJob = (name: string, schedule: string) => {
 };
 
 // Create the three cron jobs with their specific schedules
-createCronJob("SyncIssue", "*/10 * * * *");
-createCronJob("InitCron", "*/5 * * * *");
-createCronJob("SyncEmbedding", "*/15 * * * *");
+createCronJob("SyncIssue", CRON_PATTERNS.SYNC_ISSUE);
+createCronJob("InitCron", CRON_PATTERNS.INIT);
+createCronJob("SyncEmbedding", CRON_PATTERNS.SYNC_EMBEDDING);
