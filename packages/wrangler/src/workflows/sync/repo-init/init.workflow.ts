@@ -76,6 +76,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                         repoOwner,
                         octokit: graphqlOctokit,
                         since: currentSince,
+                        // TODO: extract const
                         numIssues: 50 - attempt * 10,
                       });
                       return result;

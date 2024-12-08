@@ -51,6 +51,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
       return;
     }
     try {
+      // TODO: extract const
       const BATCH_SIZE = 50;
       const chunkedIssues = chunkArray(issuesToEmbed, BATCH_SIZE);
       const batchEmbedIssues = async (

@@ -171,6 +171,7 @@ export namespace Embedding {
           ),
         )
         .orderBy(asc(issueTable.issueUpdatedAt))
+        // TODO: extract const
         .limit(100);
       if (issues.length === 0) return [];
       await tx
