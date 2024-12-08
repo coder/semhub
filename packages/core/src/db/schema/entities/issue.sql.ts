@@ -98,6 +98,11 @@ export const issueTable = pgTable(
     embeddingNullIdx: index("embedding_null_idx")
       .on(table.repoId)
       .where(sql`${table.embedding} IS NULL`),
+    // to check if embedding needs to be updated
+    embeddingUpdateCheckIdx: index("embedding_update_check_idx").on(
+      table.embeddingCreatedAt,
+      table.issueUpdatedAt,
+    ),
   }),
 );
 

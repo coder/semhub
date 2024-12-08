@@ -81,6 +81,7 @@ export namespace SemanticSearch {
         repoName: repos.name,
         repoUrl: repos.htmlUrl,
         repoOwnerName: repos.owner,
+        repoLastSyncedAt: repos.lastSyncedAt,
         commentCount: count(comments.id).as("comment_count"),
       })
       .from(issueTable)
@@ -92,11 +93,12 @@ export namespace SemanticSearch {
         repos.htmlUrl,
         repos.name,
         repos.owner,
+        repos.lastSyncedAt,
       )
       .orderBy(desc(similarity))
       .where(
         and(
-          eq(repos.initStatus, 'completed'),
+          eq(repos.initStatus, "completed"),
           gt(similarity, SIMILARITY_THRESHOLD),
           // general substring queries match either title or body
           ...substringQueries.map((subQuery) =>

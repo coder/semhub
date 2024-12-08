@@ -1,5 +1,5 @@
 import type { DbClient } from "@/db";
-import { and, eq, isNull, lt, or, sql } from "@/db";
+import { and, asc, count, eq, isNull, lt, or, sql } from "@/db";
 import { comments } from "@/db/schema/entities/comment.sql";
 import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
@@ -51,6 +51,25 @@ export namespace Repo {
     }
     return result;
   }
+  export async function getNextRepoForIssueSync(db: DbClient) {
+    const [repo] = await db
+      .select({
+        repoId: repos.id,
+        repoName: repos.name,
+        repoOwner: repos.owner,
+        repoIssuesLastUpdatedAt: repoIssuesLastUpdatedSql(repos),
+      })
+      .from(repos)
+      .where(
+        and(eq(repos.initStatus, "completed"), eq(repos.syncStatus, "queued")),
+      )
+      .orderBy(asc(repos.lastSyncedAt))
+      .limit(1);
+    if (!repo) {
+      return null;
+    }
+    return repo;
+  }
   export async function selectReposForIssueSync(db: DbClient) {
     return await db
       .update(repos)
@@ -63,6 +82,7 @@ export namespace Repo {
           eq(repos.syncStatus, "ready"),
           or(
             isNull(repos.lastSyncedAt),
+            // index ensures nulls first
             lt(repos.lastSyncedAt, sql`NOW() - INTERVAL '10 minutes'`),
           ),
         ),
@@ -79,7 +99,7 @@ export namespace Repo {
       labelsToInsert,
       issueToLabelRelationsToInsertNodeIds,
     }: Awaited<
-      ReturnType<typeof Github.getIssuesCommentsLabels>
+      ReturnType<typeof Github.getIssuesViaIterator>
     >["issuesAndCommentsLabels"],
     db: DbClient,
   ) {
@@ -194,29 +214,38 @@ export namespace Repo {
       return insertedIssueIds.map(({ id }) => id);
     });
   }
-  //   export async function getRepoLastIssueWithEmbedding(
-  //     repoId: string,
-  //     db: DbClient,
-  //   ) {
-  //     // see repoIssuesLastUpdatedSql; the two should be the same
-  //     const [result] = await db
-  //       .select({
-  //         issuesLastUpdatedAt: issueTable.issueUpdatedAt,
-  //       })
-  //       .from(issueTable)
-  //       .where(
-  //         // must include embedding to be considered "updated"
-  //         // but OK if embedding is out-of-date -> this should be handled by embedding sync
-  //         and(eq(issueTable.repoId, repoId), isNotNull(issueTable.embedding)),
-  //       )
-  //       .orderBy(desc(issueTable.issueUpdatedAt))
-  //       .limit(1);
-  //     if (!result) {
-  //       return null;
-  //     }
-  //     const { issuesLastUpdatedAt } = result;
-  //     return issuesLastUpdatedAt;
-  //   }
+
+  export async function getInitInProgressCount(db: DbClient) {
+    const [countRes] = await db
+      .select({
+        count: count(),
+      })
+      .from(repos)
+      .where(eq(repos.initStatus, "in_progress"));
+
+    return countRes?.count ?? 0;
+  }
+
+  export async function getInitReadyRepo(db: DbClient) {
+    const [result] = await db
+      .select({
+        repoId: repos.id,
+      })
+      .from(repos)
+      .where(eq(repos.initStatus, "ready"))
+      // always initialize earliest created repo first
+      .orderBy(asc(repos.createdAt))
+      .limit(1);
+
+    return result?.repoId ?? null;
+  }
+
+  export async function markInitInProgress(db: DbClient, repoId: string) {
+    await db
+      .update(repos)
+      .set({ initStatus: "in_progress" })
+      .where(eq(repos.id, repoId));
+  }
 }
 
 export const repoIssuesLastUpdatedSql = (repoTable: typeof repos) => sql<

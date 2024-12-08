@@ -92,7 +92,7 @@ function IssueStateIndicator({
 }
 
 function RepoTag({ issue }: { issue: Issue }) {
-  return (
+  const repoName = (
     <a
       href={issue.repoUrl ?? ""}
       target="_blank"
@@ -101,6 +101,16 @@ function RepoTag({ issue }: { issue: Issue }) {
     >
       {issue.repoOwnerName}/{issue.repoName}
     </a>
+  );
+  if (!issue.repoLastSyncedAt) return repoName;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{repoName}</TooltipTrigger>
+      <TooltipContent>
+        Last synced {getTimeAgo(new Date(issue.repoLastSyncedAt))}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 

@@ -40,7 +40,11 @@ export const repos = pgTable(
     repoSyncIdx: index("repo_sync_idx").on(
       table.initStatus,
       table.syncStatus,
-      table.lastSyncedAt.nullsFirst(),
+      table.lastSyncedAt.asc().nullsFirst(),
+    ),
+    repoInitIdx: index("repo_init_idx").on(
+      table.initStatus,
+      table.createdAt.asc(),
     ),
   }),
 );

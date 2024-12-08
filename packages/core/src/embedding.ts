@@ -43,19 +43,6 @@ export namespace Embedding {
     const result = embeddingsCreateSchema.parse(res);
     return result.data[0]!.embedding;
   }
-  export async function getIssuesToUpdate(db: DbClient) {
-    return await db
-      .select({ id: issueTable.id })
-      .from(issueTable)
-      .where(
-        and(
-          or(
-            isNull(issueTable.embedding),
-            lt(issueTable.embeddingCreatedAt, issueTable.issueUpdatedAt),
-          ),
-        ),
-      );
-  }
   export async function createEmbeddings({
     issues,
     rateLimiter,

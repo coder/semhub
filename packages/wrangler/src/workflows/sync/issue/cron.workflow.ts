@@ -2,11 +2,10 @@ import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import { WorkflowEntrypoint } from "cloudflare:workers";
 
 import type { WranglerSecrets } from "@/core/constants/wrangler";
-import { and, asc, eq } from "@/core/db";
-import type { DbClient } from "@/core/db";
+import { eq } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { Github } from "@/core/github";
-import { Repo, repoIssuesLastUpdatedSql } from "@/core/repo";
+import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import { type WorkflowRPC } from "@/workflows/sync/util";
 
@@ -18,7 +17,7 @@ export class IssueCronWorkflow extends WorkflowEntrypoint<Env> {
   async run(_: WorkflowEvent<{}>, step: WorkflowStep) {
     const { db, graphqlOctokit } = getDeps(this.env);
     const res = await step.do("get next repo for issue sync", async () => {
-      return await getNextRepoForIssueSync(db);
+      return await Repo.getNextRepoForIssueSync(db);
     });
     if (!res) {
       // all repos have been synced, return early
@@ -108,23 +107,3 @@ export default {
     return await instance.status();
   },
 } satisfies WorkflowRPC;
-
-async function getNextRepoForIssueSync(db: DbClient) {
-  const [repo] = await db
-    .select({
-      repoId: repos.id,
-      repoName: repos.name,
-      repoOwner: repos.owner,
-      repoIssuesLastUpdatedAt: repoIssuesLastUpdatedSql(repos),
-    })
-    .from(repos)
-    .where(
-      and(eq(repos.initStatus, "completed"), eq(repos.syncStatus, "queued")),
-    )
-    .orderBy(asc(repos.lastSyncedAt))
-    .limit(1);
-  if (!repo) {
-    return null;
-  }
-  return repo;
-}
