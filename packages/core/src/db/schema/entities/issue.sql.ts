@@ -9,7 +9,7 @@ import {
   vector,
 } from "drizzle-orm/pg-core";
 
-import type { StateSubmenuValue } from "@/constants/search";
+import type { StateSubmenuValue } from "@/constants/search.constant";
 
 import { getBaseColumns, timestamptz } from "../base.sql";
 import { type Author } from "../shared";

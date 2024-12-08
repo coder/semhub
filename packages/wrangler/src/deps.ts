@@ -1,4 +1,4 @@
-import type { WranglerSecrets } from "@/core/constants/wrangler";
+import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
 import { createDb } from "@/core/db";
 import { getGraphqlOctokit, getRestOctokit } from "@/core/github/shared";
 import { createOpenAIClient } from "@/core/openai";

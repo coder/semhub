@@ -1,4 +1,3 @@
-import type { WorkflowRPC } from "@semhub/wrangler/workflows/sync/util";
 import { Hono } from "hono";
 import type { Env } from "hono";
 import { cors } from "hono/cors";
@@ -11,9 +10,10 @@ import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
 import type { RepoInitParams } from "@/wrangler/workflows/sync/repo-init/init.workflow";
 import { initNextRepo } from "@/wrangler/workflows/sync/repo-init/init.workflow.util";
+import type { WorkflowRPC } from "@/wrangler/workflows/workflow.util";
 
 import type { ErrorResponse } from "./response";
-import { searchRouter } from "./router/searchRouter";
+import { searchRouter } from "./router/search.router";
 
 export interface Context extends Env {
   Bindings: {

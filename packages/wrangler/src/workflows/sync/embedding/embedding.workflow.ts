@@ -2,20 +2,20 @@ import { WorkflowEntrypoint } from "cloudflare:workers";
 import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import pMap from "p-map";
 
-import type { WranglerSecrets } from "@/core/constants/wrangler";
+import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
 import { eq, inArray } from "@/core/db";
 import { issueTable } from "@/core/db/schema/entities/issue.sql";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { Embedding } from "@/core/embedding";
 import { getDeps } from "@/deps";
-import { chunkArray, type WorkflowRPC } from "@/workflows/sync/util";
+import { chunkArray, type WorkflowRPC } from "@/workflows/workflow.util";
 
 /* two modes
 1. as part of repo init. takes an array of issueIds (100 at a time), calls DB, creates embeddings, update DB
 2. as part of cron sync. no parameter. just query all out-of-sync issueIds 100 at a time, create embeddings, update DB, calls itself recursively until no more such issues are found
 */
 interface Env extends WranglerSecrets {
-  SYNC_REPO_EMBEDDING_WORKFLOW: Workflow;
+  SYNC_EMBEDDING_WORKFLOW: Workflow;
 }
 
 export type EmbeddingParams =
@@ -120,15 +120,15 @@ export default {
     );
   },
   async create(options, env: Env) {
-    const { id } = await env.SYNC_REPO_EMBEDDING_WORKFLOW.create(options);
+    const { id } = await env.SYNC_EMBEDDING_WORKFLOW.create(options);
     return id;
   },
   async terminate(id: string, env: Env) {
-    const instance = await env.SYNC_REPO_EMBEDDING_WORKFLOW.get(id);
+    const instance = await env.SYNC_EMBEDDING_WORKFLOW.get(id);
     await instance.terminate();
   },
   async getInstanceStatus(id: string, env: Env) {
-    const instance = await env.SYNC_REPO_EMBEDDING_WORKFLOW.get(id);
+    const instance = await env.SYNC_EMBEDDING_WORKFLOW.get(id);
     return await instance.status();
   },
 } satisfies WorkflowRPC<EmbeddingParams>;

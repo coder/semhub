@@ -1,19 +1,19 @@
 import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import { WorkflowEntrypoint } from "cloudflare:workers";
 
-import type { WranglerSecrets } from "@/core/constants/wrangler";
+import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
 import { eq } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
-import { type WorkflowRPC } from "@/workflows/sync/util";
+import { type WorkflowRPC } from "@/workflows/workflow.util";
 
 interface Env extends WranglerSecrets {
-  SYNC_ISSUE_CRON_WORKFLOW: Workflow;
+  SYNC_ISSUE_WORKFLOW: Workflow;
 }
 
-export class IssueCronWorkflow extends WorkflowEntrypoint<Env> {
+export class IssueWorkflow extends WorkflowEntrypoint<Env> {
   async run(_: WorkflowEvent<{}>, step: WorkflowStep) {
     const { db, graphqlOctokit } = getDeps(this.env);
     const res = await step.do("get next repo for issue sync", async () => {
@@ -81,7 +81,7 @@ export class IssueCronWorkflow extends WorkflowEntrypoint<Env> {
     // even if there is an error with one repo, we still want to sync the rest
     // call itself recursively to sync next repo
     await step.do(`call itself recursively to sync next repo`, async () => {
-      await this.env.SYNC_ISSUE_CRON_WORKFLOW.create({});
+      await this.env.SYNC_ISSUE_WORKFLOW.create({});
     });
   }
 }
@@ -95,15 +95,15 @@ export default {
     );
   },
   async create(options, env: Env) {
-    const { id } = await env.SYNC_ISSUE_CRON_WORKFLOW.create(options);
+    const { id } = await env.SYNC_ISSUE_WORKFLOW.create(options);
     return id;
   },
   async terminate(id: string, env: Env) {
-    const instance = await env.SYNC_ISSUE_CRON_WORKFLOW.get(id);
+    const instance = await env.SYNC_ISSUE_WORKFLOW.get(id);
     await instance.terminate();
   },
   async getInstanceStatus(id: string, env: Env) {
-    const instance = await env.SYNC_ISSUE_CRON_WORKFLOW.get(id);
+    const instance = await env.SYNC_ISSUE_WORKFLOW.get(id);
     return await instance.status();
   },
 } satisfies WorkflowRPC;

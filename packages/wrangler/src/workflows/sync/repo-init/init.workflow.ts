@@ -2,20 +2,20 @@ import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import { WorkflowEntrypoint } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
 
-import type { WranglerSecrets } from "@/core/constants/wrangler";
+import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
 import { eq } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { Github } from "@/core/github";
 import { Repo, repoIssuesLastUpdatedSql } from "@/core/repo";
 import { getDeps } from "@/deps";
 import { isWorkersSizeLimitError } from "@/errors";
-import { type WorkflowRPC } from "@/workflows/sync/util";
+import { type WorkflowRPC } from "@/workflows/workflow.util";
 
-import type { EmbeddingParams } from "../embedding/update.workflow";
+import type { EmbeddingParams } from "../embedding/embedding.workflow";
 
 interface Env extends WranglerSecrets {
   REPO_INIT_WORKFLOW: Workflow;
-  SYNC_REPO_EMBEDDING_WORKFLOW: WorkflowRPC<EmbeddingParams>;
+  SYNC_EMBEDDING_WORKFLOW: WorkflowRPC<EmbeddingParams>;
 }
 
 // User-defined params passed to your workflow
@@ -128,7 +128,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           const embeddingWorkflowId = await step.do(
             "call worker to create and insert embeddings",
             async () => {
-              return await this.env.SYNC_REPO_EMBEDDING_WORKFLOW.create({
+              return await this.env.SYNC_EMBEDDING_WORKFLOW.create({
                 params: {
                   mode: "init",
                   issueIds,
@@ -141,7 +141,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           while (true) {
             await step.sleep("wait for worker to finish", "30 seconds");
             const { status } =
-              await this.env.SYNC_REPO_EMBEDDING_WORKFLOW.getInstanceStatus(
+              await this.env.SYNC_EMBEDDING_WORKFLOW.getInstanceStatus(
                 embeddingWorkflowId,
               );
             if (status === "complete") {

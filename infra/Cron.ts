@@ -14,12 +14,12 @@ const createCronJob = (name: string, schedule: string) => {
               service: `semhub-sync-repo-init-${$app.stage === "prod" ? "prod" : "dev"}`,
             },
             {
-              name: "SYNC_REPO_EMBEDDING_WORKFLOW",
-              service: `semhub-sync-repo-embedding-${$app.stage === "prod" ? "prod" : "dev"}`,
+              name: "SYNC_EMBEDDING_WORKFLOW",
+              service: `semhub-sync-embedding-${$app.stage === "prod" ? "prod" : "dev"}`,
             },
             {
-              name: "SYNC_ISSUE_CRON_WORKFLOW",
-              service: `semhub-sync-issue-cron-${$app.stage === "prod" ? "prod" : "dev"}`,
+              name: "SYNC_ISSUE_WORKFLOW",
+              service: `semhub-sync-issue-${$app.stage === "prod" ? "prod" : "dev"}`,
             },
           ],
         },

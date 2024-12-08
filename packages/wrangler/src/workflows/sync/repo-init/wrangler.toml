@@ -13,8 +13,8 @@ binding = "REPO_INIT_WORKFLOW"
 class_name = "RepoInitWorkflow"
 
 [[services]]
-binding = "SYNC_REPO_EMBEDDING_WORKFLOW"
-service = "semhub-sync-repo-embedding-dev"
+binding = "SYNC_EMBEDDING_WORKFLOW"
+service = "semhub-sync-embedding-dev"
 
 # Production environment
 [env.prod]
@@ -26,5 +26,5 @@ binding = "REPO_INIT_WORKFLOW"
 class_name = "RepoInitWorkflow"
 
 [[env.prod.services]]
-binding = "SYNC_REPO_EMBEDDING_WORKFLOW"
-service = "semhub-sync-repo-embedding-prod"
+binding = "SYNC_EMBEDDING_WORKFLOW"
+service = "semhub-sync-embedding-prod"

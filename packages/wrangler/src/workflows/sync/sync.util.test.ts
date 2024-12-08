@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getCurrentWindowTimestamp } from "./util";
+import { getCurrentWindowTimestamp } from "./sync.util";
 
 describe("getCurrentWindowTimestamp", () => {
   let originalDateNow: () => number;

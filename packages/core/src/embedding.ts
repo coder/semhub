@@ -2,7 +2,10 @@ import dedent from "dedent";
 import type { SQL } from "drizzle-orm";
 import pMap from "p-map";
 
-import { EMBEDDING_MODEL, type RateLimiter } from "./constants/rate-limit";
+import {
+  EMBEDDING_MODEL,
+  type RateLimiter,
+} from "./constants/rate-limit.constant";
 import type { DbClient } from "./db";
 import { and, asc, eq, inArray, isNull, lt, or, sql } from "./db";
 import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";

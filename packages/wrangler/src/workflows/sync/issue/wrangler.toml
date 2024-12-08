@@ -1,5 +1,5 @@
-name = "semhub-sync-issue-cron-dev"
-main = "./cron.workflow.ts"
+name = "semhub-sync-issue-dev"
+main = "./issue.workflow.ts"
 compatibility_date = "2024-10-22"       # keep in sync with @cloudflare/workers-types
 compatibility_flags = ["nodejs_compat"]
 
@@ -8,15 +8,15 @@ enabled = true
 head_sampling_rate = 1
 
 [[workflows]]
-name = "semhub-sync-issue-cron-workflow-dev"
-binding = "SYNC_ISSUE_CRON_WORKFLOW"
-class_name = "IssueCronWorkflow"
+name = "semhub-sync-issue-dev"
+binding = "SYNC_ISSUE_WORKFLOW"
+class_name = "IssueWorkflow"
 
 # Production environment
 [env.prod]
-name = "semhub-sync-issue-cron-prod"
+name = "semhub-sync-issue-prod"
 
 [[env.prod.workflows]]
-name = "semhub-sync-issue-cron-workflow-prod"
-binding = "SYNC_ISSUE_CRON_WORKFLOW"
-class_name = "IssueCronWorkflow"
+name = "semhub-sync-issue-prod"
+binding = "SYNC_ISSUE_WORKFLOW"
+class_name = "IssueWorkflow"

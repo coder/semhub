@@ -1,4 +1,4 @@
-import type { RateLimiter } from "./constants/rate-limit";
+import type { RateLimiter } from "./constants/rate-limit.constant";
 import type { DbClient } from "./db";
 import { and, cosineDistance, desc, eq, gt, ilike, or, sql } from "./db";
 import { comments } from "./db/schema/entities/comment.sql";

@@ -1,7 +1,7 @@
 import type { DbClient } from "@/core/db";
 import { Repo } from "@/core/repo";
 import type { RepoInitParams } from "@/workflows/sync/repo-init/init.workflow";
-import type { WorkflowRPC } from "@/workflows/sync/util";
+import type { WorkflowRPC } from "@/workflows/workflow.util";
 
 export async function initNextRepo(
   db: DbClient,
@@ -10,6 +10,7 @@ export async function initNextRepo(
   return await db.transaction(
     async (tx) => {
       const inProgressCount = await Repo.getInitInProgressCount(tx);
+      // TODO: extract constants
       // only init one repo at a time, so if another is in progress, return false
       if (inProgressCount > 0) {
         return {

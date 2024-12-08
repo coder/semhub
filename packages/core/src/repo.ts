@@ -64,6 +64,7 @@ export namespace Repo {
         and(eq(repos.initStatus, "completed"), eq(repos.syncStatus, "queued")),
       )
       .orderBy(asc(repos.lastSyncedAt))
+      // TODO: extract constants
       .limit(1);
     if (!repo) {
       return null;
@@ -83,6 +84,7 @@ export namespace Repo {
           or(
             isNull(repos.lastSyncedAt),
             // index ensures nulls first
+            // TODO: extract constants?
             lt(repos.lastSyncedAt, sql`NOW() - INTERVAL '10 minutes'`),
           ),
         ),
