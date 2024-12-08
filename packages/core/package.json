@@ -6,16 +6,12 @@
   "scripts": {
     "test": "sst shell vitest",
     "test:watch": "sst shell -- vitest watch",
-    "test:types": "rm -rf ./dist && bun tsd",
     "typecheck": "tsc",
     "db": "sst shell -- drizzle-kit",
     "db:generate": "sst shell -- drizzle-kit generate",
     "db:migrate": "sst shell -- drizzle-kit migrate",
     "db:migrate:prod": "sst shell --stage prod -- drizzle-kit migrate",
     "db:push": "sst shell -- drizzle-kit push"
-  },
-  "tsd": {
-    "directory": "."
   },
   "exports": {
     "./*": [

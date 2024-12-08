@@ -18,11 +18,8 @@
       "@/*": ["./src/*"],
       "@/infra/*": ["../../infra/*"]
     },
-    "rootDir": "../../",
+    "rootDir": "../../"
   },
-  "include": [
-    "./src/**/*",
-    "../../infra/types.ts"
-  ],
+  "include": ["./src/**/*", "../../infra/types.ts"],
   "exclude": ["dist", "node_modules"]
 }
