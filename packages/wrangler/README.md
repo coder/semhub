@@ -115,4 +115,3 @@ There will be three cron jobs and three workflows:
 ## For future extensions
 
 - Rate limiting
-- Multiple ongoing init and cron at the same time

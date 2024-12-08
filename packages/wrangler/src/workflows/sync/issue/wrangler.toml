@@ -8,7 +8,7 @@ enabled = true
 head_sampling_rate = 1
 
 [[workflows]]
-name = "semhub-sync-issue-dev"
+name = "semhub-sync-issue-workflow-dev"
 binding = "SYNC_ISSUE_WORKFLOW"
 class_name = "IssueWorkflow"
 
@@ -17,6 +17,6 @@ class_name = "IssueWorkflow"
 name = "semhub-sync-issue-prod"
 
 [[env.prod.workflows]]
-name = "semhub-sync-issue-prod"
+name = "semhub-sync-issue-workflow-prod"
 binding = "SYNC_ISSUE_WORKFLOW"
 class_name = "IssueWorkflow"
