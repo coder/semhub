@@ -241,6 +241,8 @@ export namespace Repo {
     const result = await db
       .select({
         repoId: repos.id,
+        repoName: repos.name,
+        repoOwner: repos.owner,
       })
       .from(repos)
       .where(eq(repos.initStatus, "ready"))

@@ -8,6 +8,7 @@ import {
   NUM_CONCURRENT_EMBEDDING_CRONS,
   NUM_CONCURRENT_ISSUE_CRONS,
 } from "@/wrangler/workflows/sync/sync.param";
+import { generateSyncWorkflowId } from "@/wrangler/workflows/sync/sync.util";
 import type { WorkflowRPC } from "@/wrangler/workflows/workflow.util";
 
 type Env = {
@@ -29,7 +30,9 @@ export default {
           async (tx) => {
             await Repo.enqueueReposForIssueSync(tx);
             for (let i = 0; i < NUM_CONCURRENT_ISSUE_CRONS; i++) {
-              await env.SYNC_ISSUE_WORKFLOW.create({});
+              await env.SYNC_ISSUE_WORKFLOW.create({
+                id: generateSyncWorkflowId("sync-issue", 10),
+              });
             }
           },
           {
@@ -41,6 +44,7 @@ export default {
       case CRON_PATTERNS.SYNC_EMBEDDING: {
         for (let i = 0; i < NUM_CONCURRENT_EMBEDDING_CRONS; i++) {
           await env.SYNC_EMBEDDING_WORKFLOW.create({
+            id: generateSyncWorkflowId("sync-embedding", 10),
             params: { mode: "cron" },
           });
         }

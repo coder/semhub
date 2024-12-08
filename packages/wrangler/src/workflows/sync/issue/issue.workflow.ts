@@ -9,6 +9,8 @@ import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import { type WorkflowRPC } from "@/workflows/workflow.util";
 
+import { generateSyncWorkflowId } from "../sync.util";
+
 interface Env extends WranglerSecrets {
   SYNC_ISSUE_WORKFLOW: Workflow;
 }
@@ -76,7 +78,9 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
     // even if there is an error with one repo, we still want to sync the rest
     // call itself recursively to sync next repo
     await step.do(`call itself recursively to sync next repo`, async () => {
-      await this.env.SYNC_ISSUE_WORKFLOW.create({});
+      await this.env.SYNC_ISSUE_WORKFLOW.create({
+        id: generateSyncWorkflowId("sync-issue", 10),
+      });
     });
   }
 }

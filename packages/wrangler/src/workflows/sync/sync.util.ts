@@ -12,7 +12,9 @@ export function getCurrentWindowTimestamp(windowSizeInMs: number): number {
  * In the same 10-minute window, identical IDs will be generated
  * @returns A string ID in format "cron-sync-{timestamp}"
  */
-export function generateCronSyncWorkflowId(): string {
-  const tenMinutesInMs = 10 * 60 * 1000;
-  return `cron-sync-${getCurrentWindowTimestamp(tenMinutesInMs)}`;
+export function generateSyncWorkflowId(
+  prefix: string,
+  windowSizeInSeconds: number,
+): string {
+  return `${prefix}-${getCurrentWindowTimestamp(windowSizeInSeconds * 1000)}`;
 }

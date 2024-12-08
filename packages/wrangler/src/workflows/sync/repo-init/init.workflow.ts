@@ -19,6 +19,7 @@ import {
 import { type WorkflowRPC } from "@/workflows/workflow.util";
 
 import type { EmbeddingParams } from "../embedding/embedding.workflow";
+import { generateSyncWorkflowId } from "../sync.util";
 
 interface Env extends WranglerSecrets {
   REPO_INIT_WORKFLOW: Workflow;
@@ -136,6 +137,10 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             "call worker to create and insert embeddings",
             async () => {
               return await this.env.SYNC_EMBEDDING_WORKFLOW.create({
+                id: generateSyncWorkflowId(
+                  `embedding-${repoOwner}/${repoName}`,
+                  10,
+                ),
                 params: {
                   mode: "init",
                   issueIds,
@@ -169,6 +174,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           "performed one unit of work, call itself recursively",
           async () => {
             await this.env.REPO_INIT_WORKFLOW.create({
+              id: `init-${repoOwner}/${repoName}`,
               params: { repoId },
             });
           },

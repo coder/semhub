@@ -13,6 +13,7 @@
     "delete": "bun scripts/worker.ts delete",
     "delete:prod": "bun scripts/worker.ts delete --prod",
     "deploy:workflows": "bun run deploy workflows/sync/embedding && bun run deploy workflows/sync/issue && bun run deploy workflows/sync/repo-init",
+    "deploy:workflows:prod": "bun run deploy workflows/sync/embedding --prod && bun run deploy workflows/sync/issue --prod && bun run deploy workflows/sync/repo-init --prod",
     "deploy:all": "bun run deploy rate-limiter && bun run deploy workflows/sync/embedding && bun run deploy workflows/sync/issue && bun run deploy workflows/sync/repo-init",
     "deploy:all:prod": "bun run deploy rate-limiter --prod && bun run deploy workflows/sync/embedding --prod && bun run deploy workflows/sync/issue --prod && bun run deploy workflows/sync/repo-init --prod"
   },

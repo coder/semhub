@@ -4,6 +4,8 @@ import type { RepoInitParams } from "@/workflows/sync/repo-init/init.workflow";
 import { NUM_CONCURRENT_INITS } from "@/workflows/sync/sync.param";
 import type { WorkflowRPC } from "@/workflows/workflow.util";
 
+import { generateSyncWorkflowId } from "../sync.util";
+
 export async function initNextRepos(
   db: DbClient,
   workflow: WorkflowRPC<RepoInitParams>,
@@ -19,14 +21,19 @@ export async function initNextRepos(
       }
 
       const numReposToInit = NUM_CONCURRENT_INITS - inProgressCount;
-      const repoIds = await Repo.getInitReadyRepos(tx, numReposToInit);
-      if (repoIds.length === 0) {
+      const repos = await Repo.getInitReadyRepos(tx, numReposToInit);
+      if (repos.length === 0) {
         return { success: false, message: "no repos to initialize" } as const;
       }
 
-      const repoIdsToInit = repoIds.map(({ repoId }) => repoId);
+      const repoIdsToInit = repos.map(({ repoId }) => repoId);
       await Promise.all(
-        repoIdsToInit.map((repoId) => workflow.create({ params: { repoId } })),
+        repos.map(({ repoId, repoName, repoOwner }) =>
+          workflow.create({
+            id: generateSyncWorkflowId(`init-${repoOwner}/${repoName}`, 10),
+            params: { repoId },
+          }),
+        ),
       );
       await Repo.markInitInProgress(tx, repoIdsToInit);
       return { success: true, repoIds: repoIdsToInit } as const;
