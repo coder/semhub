@@ -108,10 +108,11 @@ For the second property, we will sync them at the issues level. Specifically, th
 
 There will be three cron jobs and three workflows:
 
-1. 5-minute interval: a cron to ensure that there will be at most 5-minute delay before the next repo is initialized and `init.workflow.ts` to actually initialize the repo recursively. Repos are initialized one-at-a-time. `init.workflow.ts` actually calls `embedding/update.workflow.ts` to create embeddings (because these are subrequests-intensive).
-2. 10-minute interval: a cron to keep the repos of issues in sync by invoking `issue/cron.workflow.ts`, which loops through all repos one-at-a-time.
-3. 15-minute interval: a cron to keep the embeddings of issues in sync by invoking `embedding/update.workflow.ts`, which recursively processes out-of-sync issues until they are all in sync.
+1. A cron to ensure that there will be at most 5-minute delay before the next repo is initialized and `init.workflow.ts` to actually initialize the repo recursively. Repos are initialized one-at-a-time. `init.workflow.ts` actually calls `embedding.workflow.ts` to create embeddings (because these are subrequests-intensive).
+2. A cron to keep the repos of issues in sync by invoking `issue.workflow.ts`, which loops through all repos one-at-a-time.
+3. A cron to keep the embeddings of issues in sync by invoking `embedding.workflow.ts`, which recursively processes out-of-sync issues until they are all in sync.
 
 ## For future extensions
 
 - Rate limiting
+- Test that increased concurrency (see `sync.param.ts`) actually works as intended
