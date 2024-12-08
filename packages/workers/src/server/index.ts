@@ -34,8 +34,8 @@ app.use("*", cors());
 // TODO: remove before merging/deploying
 app.get("/create-repo", async (c) => {
   const params = {
-    owner: "vercel",
-    name: "next.js",
+    owner: "nodejs",
+    name: "node",
   };
   const { db, restOctokit } = getDeps();
   const data = await Github.getRepo(params.name, params.owner, restOctokit);

@@ -66,7 +66,7 @@ export class IssueCronWorkflow extends WorkflowEntrypoint<Env> {
       await step.do(`mark ${name} as synced`, async () => {
         await db
           .update(repos)
-          .set({ syncStatus: "ready" })
+          .set({ syncStatus: "ready", lastSyncedAt: new Date() })
           .where(eq(repos.id, repoId));
       });
     } catch (e) {
