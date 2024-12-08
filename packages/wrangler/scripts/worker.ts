@@ -18,11 +18,11 @@ const ArgsSchema = z.object({
 try {
   const args = process.argv.slice(2); // remove bun and script path
   const isProd = args.includes("--prod");
-  const workerIndex = isProd ? args.indexOf("--prod") + 1 : 1;
+  const cleanArgs = args.filter((arg) => arg !== "--prod");
 
   const { action, worker, prod } = ArgsSchema.parse({
-    action: args[0],
-    worker: args[workerIndex] || undefined,
+    action: cleanArgs[0],
+    worker: cleanArgs[1],
     prod: isProd,
   });
 
