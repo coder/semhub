@@ -7,12 +7,13 @@ import {
   type RateLimiter,
 } from "./constants/rate-limit.constant";
 import type { DbClient } from "./db";
-import { and, asc, eq, inArray, isNull, lt, or, sql } from "./db";
+import { and, asc, eq, inArray, isNull, lt, not, or, sql } from "./db";
 import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
 import type { SelectIssueForEmbedding } from "./db/schema/entities/issue.schema";
 import { issueTable } from "./db/schema/entities/issue.sql";
 import type { SelectLabelForEmbedding } from "./db/schema/entities/label.schema";
 import { labels as labelTable } from "./db/schema/entities/label.sql";
+import { repos } from "./db/schema/entities/repo.sql";
 import { jsonAggBuildObjectFromJoin } from "./db/utils/json";
 import type { OpenAIClient } from "./openai";
 import { isReducePromptError } from "./openai/errors";
@@ -136,60 +137,71 @@ export namespace Embedding {
       )
       .orderBy(asc(issueTable.issueUpdatedAt));
   }
-  export async function selectIssuesForEmbeddingCron(db: DbClient) {
-    return await db.transaction(async (tx) => {
-      const issues = await tx
-        .select({
-          id: issueTable.id,
-          number: issueTable.number,
-          author: issueTable.author,
-          title: issueTable.title,
-          body: issueTable.body,
-          issueState: issueTable.issueState,
-          issueStateReason: issueTable.issueStateReason,
-          issueCreatedAt: issueTable.issueCreatedAt,
-          issueClosedAt: issueTable.issueClosedAt,
-          labels: jsonAggBuildObjectFromJoin(
-            {
-              name: labelTable.name,
-              description: labelTable.description,
-            },
-            {
-              from: issuesToLabels,
-              joinTable: labelTable,
-              joinCondition: eq(labelTable.id, issuesToLabels.labelId),
-              whereCondition: eq(issuesToLabels.issueId, issueTable.id),
-            },
-          ),
-        })
-        .from(issueTable)
-        .where(
-          and(
-            eq(issueTable.embeddingSyncStatus, "ready"),
-            // necessary for mode "cron"
-            or(
-              isNull(issueTable.embedding),
-              lt(issueTable.embeddingCreatedAt, issueTable.issueUpdatedAt),
+  export async function selectIssuesForEmbeddingCron(
+    db: DbClient,
+    numIssues: number,
+  ) {
+    return await db.transaction(
+      async (tx) => {
+        const issues = await tx
+          .select({
+            id: issueTable.id,
+            number: issueTable.number,
+            author: issueTable.author,
+            title: issueTable.title,
+            body: issueTable.body,
+            issueState: issueTable.issueState,
+            issueStateReason: issueTable.issueStateReason,
+            issueCreatedAt: issueTable.issueCreatedAt,
+            issueClosedAt: issueTable.issueClosedAt,
+            labels: jsonAggBuildObjectFromJoin(
+              {
+                name: labelTable.name,
+                description: labelTable.description,
+              },
+              {
+                from: issuesToLabels,
+                joinTable: labelTable,
+                joinCondition: eq(labelTable.id, issuesToLabels.labelId),
+                whereCondition: eq(issuesToLabels.issueId, issueTable.id),
+              },
             ),
-          ),
-        )
-        .orderBy(asc(issueTable.issueUpdatedAt))
-        // TODO: extract const
-        .limit(100);
-      if (issues.length === 0) return [];
-      await tx
-        .update(issueTable)
-        .set({
-          embeddingSyncStatus: "in_progress",
-        })
-        .where(
-          inArray(
-            issueTable.id,
-            issues.map((i) => i.id),
-          ),
-        );
-      return issues;
-    });
+          })
+          .from(issueTable)
+          .leftJoin(repos, eq(repos.id, issueTable.repoId))
+          .where(
+            and(
+              eq(issueTable.embeddingSyncStatus, "ready"),
+              or(
+                isNull(issueTable.embedding),
+                lt(issueTable.embeddingCreatedAt, issueTable.issueUpdatedAt),
+              ),
+              not(eq(repos.syncStatus, "in_progress")), // these repos could see their issues changing, don't create embedding
+              eq(repos.initStatus, "completed"), // embedding taken care of by init workflow
+            ),
+          )
+          .orderBy(asc(issueTable.issueUpdatedAt))
+          .limit(numIssues)
+          .for("update");
+
+        if (issues.length === 0) return [];
+        await tx
+          .update(issueTable)
+          .set({
+            embeddingSyncStatus: "in_progress",
+          })
+          .where(
+            inArray(
+              issueTable.id,
+              issues.map((i) => i.id),
+            ),
+          );
+        return issues;
+      },
+      {
+        isolationLevel: "serializable",
+      },
+    );
   }
   export async function bulkUpdateIssueEmbeddings(
     embeddings: Awaited<ReturnType<typeof Embedding.createEmbeddings>>,

@@ -16,8 +16,8 @@ interface Env extends WranglerSecrets {
 export class IssueWorkflow extends WorkflowEntrypoint<Env> {
   async run(_: WorkflowEvent<{}>, step: WorkflowStep) {
     const { db, graphqlOctokit } = getDeps(this.env);
-    const res = await step.do("get next repo for issue sync", async () => {
-      return await Repo.getNextRepoForIssueSync(db);
+    const res = await step.do("get repo data and mark as syncing", async () => {
+      return await Repo.getNextEnqueuedRepo(db);
     });
     if (!res) {
       // all repos have been synced, return early
@@ -27,18 +27,13 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
       repoId,
       repoName,
       repoOwner,
-      repoIssuesLastUpdatedAt: stringifiedLastUpdatedAt,
+      repoIssuesLastUpdatedAt: repoIssuesLastUpdatedAtRaw,
     } = res;
     const name = `${repoOwner}/${repoName}`;
     try {
-      // mark repo as syncing
-      await step.do(`mark ${name} as syncing in progress`, async () => {
-        await db
-          .update(repos)
-          .set({ syncStatus: "in_progress" })
-          .where(eq(repos.id, repoId));
-      });
-      // bet that there aren't that many issues to sync?
+      // FIXME: this will fail if there are too many issues to sync
+      // can consider using children worker? let's fix only if this is an issue
+      // unlikely to have so many new issues within cron interval
       const { issuesAndCommentsLabels } = await step.do(
         `get latest issues of ${name} from GitHub`,
         async () => {
@@ -47,8 +42,8 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
               repoId,
               repoName,
               repoOwner,
-              repoIssuesLastUpdatedAt: stringifiedLastUpdatedAt
-                ? new Date(stringifiedLastUpdatedAt)
+              repoIssuesLastUpdatedAt: repoIssuesLastUpdatedAtRaw
+                ? new Date(repoIssuesLastUpdatedAtRaw)
                 : null,
             },
             graphqlOctokit,

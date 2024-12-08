@@ -1,10 +1,13 @@
-import { CRON_PATTERNS } from "@semhub/core/constants/cron.constant";
-
+import { CRON_PATTERNS } from "@/core/constants/cron.constant";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import type { EmbeddingParams } from "@/wrangler/workflows/sync/embedding/embedding.workflow";
 import type { RepoInitParams } from "@/wrangler/workflows/sync/repo-init/init.workflow";
-import { initNextRepo } from "@/wrangler/workflows/sync/repo-init/init.workflow.util";
+import { initNextRepos } from "@/wrangler/workflows/sync/repo-init/init.workflow.util";
+import {
+  NUM_CONCURRENT_EMBEDDING_CRONS,
+  NUM_CONCURRENT_ISSUE_CRONS,
+} from "@/wrangler/workflows/sync/sync.param";
 import type { WorkflowRPC } from "@/wrangler/workflows/workflow.util";
 
 type Env = {
@@ -18,14 +21,16 @@ export default {
     const { db } = getDeps();
     switch (controller.cron) {
       case CRON_PATTERNS.INIT: {
-        await initNextRepo(db, env.REPO_INIT_WORKFLOW);
+        await initNextRepos(db, env.REPO_INIT_WORKFLOW);
         break;
       }
       case CRON_PATTERNS.SYNC_ISSUE: {
         await db.transaction(
           async (tx) => {
-            await Repo.selectReposForIssueSync(tx);
-            await env.SYNC_ISSUE_WORKFLOW.create({});
+            await Repo.enqueueReposForIssueSync(tx);
+            for (let i = 0; i < NUM_CONCURRENT_ISSUE_CRONS; i++) {
+              await env.SYNC_ISSUE_WORKFLOW.create({});
+            }
           },
           {
             isolationLevel: "serializable",
@@ -34,9 +39,11 @@ export default {
         break;
       }
       case CRON_PATTERNS.SYNC_EMBEDDING: {
-        await env.SYNC_EMBEDDING_WORKFLOW.create({
-          params: { mode: "cron" },
-        });
+        for (let i = 0; i < NUM_CONCURRENT_EMBEDDING_CRONS; i++) {
+          await env.SYNC_EMBEDDING_WORKFLOW.create({
+            params: { mode: "cron" },
+          });
+        }
         break;
       }
     }

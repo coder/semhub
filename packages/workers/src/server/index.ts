@@ -9,7 +9,7 @@ import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
 import type { RepoInitParams } from "@/wrangler/workflows/sync/repo-init/init.workflow";
-import { initNextRepo } from "@/wrangler/workflows/sync/repo-init/init.workflow.util";
+import { initNextRepos } from "@/wrangler/workflows/sync/repo-init/init.workflow.util";
 import type { WorkflowRPC } from "@/wrangler/workflows/workflow.util";
 
 import type { ErrorResponse } from "./response";
@@ -46,7 +46,7 @@ app.get("/create-repo", async (c) => {
       message: "did not trigger workflow",
     });
   }
-  const res = await initNextRepo(db, c.env.REPO_INIT_WORKFLOW);
+  const res = await initNextRepos(db, c.env.REPO_INIT_WORKFLOW);
   return c.json(res);
 });
 

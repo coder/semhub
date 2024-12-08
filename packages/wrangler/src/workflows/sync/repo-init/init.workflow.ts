@@ -9,6 +9,13 @@ import { Github } from "@/core/github";
 import { Repo, repoIssuesLastUpdatedSql } from "@/core/repo";
 import { getDeps } from "@/deps";
 import { isWorkersSizeLimitError } from "@/errors";
+import {
+  DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL,
+  NUM_EMBEDDING_WORKERS,
+  NUM_ISSUES_TO_REDUCE_PER_ATTEMPT,
+  PARENT_WORKER_SLEEP_DURATION,
+  REDUCE_ISSUES_MAX_ATTEMPTS,
+} from "@/workflows/sync/sync.param";
 import { type WorkflowRPC } from "@/workflows/workflow.util";
 
 import type { EmbeddingParams } from "../embedding/embedding.workflow";
@@ -52,7 +59,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
     const name = `${repoOwner}/${repoName}`;
     try {
       const { issueIdsArray, hasMoreIssues } = await step.do(
-        `get 5 API calls worth of data for ${name}`,
+        `get ${NUM_EMBEDDING_WORKERS} API calls worth of data for ${name}`,
         async () => {
           const issueIdsArray = [];
           let currentSince = issueLastUpdatedAt
@@ -60,14 +67,15 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             : null;
           let hasMoreIssues = true;
 
-          // TODO: extract const
-          const REDUCE_ISSUES_MAX_ATTEMPTS = 4;
-          for (let i = 0; i < 5 && hasMoreIssues; i++) {
+          for (let i = 0; i < NUM_EMBEDDING_WORKERS && hasMoreIssues; i++) {
             const { hasNextPage, issuesAndCommentsLabels, lastIssueUpdatedAt } =
               await step.do(
                 `get latest issues of ${name} from GitHub (batch ${i + 1})`,
                 async () => {
-                  let attempt = 1;
+                  let attempt = 0;
+                  const numIssues =
+                    DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL -
+                    attempt * NUM_ISSUES_TO_REDUCE_PER_ATTEMPT;
                   while (attempt <= REDUCE_ISSUES_MAX_ATTEMPTS) {
                     try {
                       const result = await Github.getLatestRepoIssues({
@@ -76,8 +84,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                         repoOwner,
                         octokit: graphqlOctokit,
                         since: currentSince,
-                        // TODO: extract const
-                        numIssues: 50 - attempt * 10,
+                        numIssues,
                       });
                       return result;
                     } catch (e) {
@@ -86,7 +93,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                         attempt < REDUCE_ISSUES_MAX_ATTEMPTS
                       ) {
                         console.log(
-                          `Retrying issues for ${name} with reduced numIssues: ${50 - (attempt + 1) * 10}`,
+                          `Retrying issues for ${name} with reduced numIssues: ${numIssues}`,
                         );
                         attempt++;
                         continue;
@@ -139,7 +146,10 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             },
           );
           while (true) {
-            await step.sleep("wait for worker to finish", "30 seconds");
+            await step.sleep(
+              "wait for worker to finish",
+              PARENT_WORKER_SLEEP_DURATION,
+            );
             const { status } =
               await this.env.SYNC_EMBEDDING_WORKFLOW.getInstanceStatus(
                 embeddingWorkflowId,

@@ -8,16 +8,20 @@ import { issueTable } from "@/core/db/schema/entities/issue.sql";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { Embedding } from "@/core/embedding";
 import { getDeps } from "@/deps";
+import {
+  BATCH_SIZE_PER_EMBEDDING_CHUNK,
+  NUM_ISSUES_TO_EMBED_PER_CRON,
+} from "@/workflows/sync/sync.param";
 import { chunkArray, type WorkflowRPC } from "@/workflows/workflow.util";
+
+interface Env extends WranglerSecrets {
+  SYNC_EMBEDDING_WORKFLOW: Workflow;
+}
 
 /* two modes
 1. as part of repo init. takes an array of issueIds (100 at a time), calls DB, creates embeddings, update DB
 2. as part of cron sync. no parameter. just query all out-of-sync issueIds 100 at a time, create embeddings, update DB, calls itself recursively until no more such issues are found
 */
-interface Env extends WranglerSecrets {
-  SYNC_EMBEDDING_WORKFLOW: Workflow;
-}
-
 export type EmbeddingParams =
   | {
       mode: "init";
@@ -44,16 +48,20 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
               event.payload.issueIds,
               db,
             )
-          : await Embedding.selectIssuesForEmbeddingCron(db);
+          : await Embedding.selectIssuesForEmbeddingCron(
+              db,
+              NUM_ISSUES_TO_EMBED_PER_CRON,
+            );
       },
     );
     if (issuesToEmbed.length === 0) {
       return;
     }
     try {
-      // TODO: extract const
-      const BATCH_SIZE = 50;
-      const chunkedIssues = chunkArray(issuesToEmbed, BATCH_SIZE);
+      const chunkedIssues = chunkArray(
+        issuesToEmbed,
+        BATCH_SIZE_PER_EMBEDDING_CHUNK,
+      );
       const batchEmbedIssues = async (
         issues: typeof issuesToEmbed,
         idx: number,
@@ -101,7 +109,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
           .where(
             inArray(
               issueTable.id,
-              // a little excessive...
+              // a little overinclusive...
               issuesToEmbed.map((i) => i.id),
             ),
           );

@@ -1,5 +1,5 @@
 import type { DbClient } from "@/db";
-import { and, asc, count, eq, isNull, lt, or, sql } from "@/db";
+import { and, asc, count, eq, inArray, isNull, lt, or, sql } from "@/db";
 import { comments } from "@/db/schema/entities/comment.sql";
 import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
@@ -51,27 +51,37 @@ export namespace Repo {
     }
     return result;
   }
-  export async function getNextRepoForIssueSync(db: DbClient) {
-    const [repo] = await db
-      .select({
-        repoId: repos.id,
-        repoName: repos.name,
-        repoOwner: repos.owner,
-        repoIssuesLastUpdatedAt: repoIssuesLastUpdatedSql(repos),
-      })
-      .from(repos)
-      .where(
-        and(eq(repos.initStatus, "completed"), eq(repos.syncStatus, "queued")),
-      )
-      .orderBy(asc(repos.lastSyncedAt))
-      // TODO: extract constants
-      .limit(1);
-    if (!repo) {
-      return null;
-    }
-    return repo;
+  export async function getNextEnqueuedRepo(db: DbClient) {
+    return await db.transaction(async (tx) => {
+      const [repo] = await tx
+        .select({
+          repoId: repos.id,
+          repoName: repos.name,
+          repoOwner: repos.owner,
+          repoIssuesLastUpdatedAt: repoIssuesLastUpdatedSql(repos),
+        })
+        .from(repos)
+        .where(
+          and(
+            eq(repos.initStatus, "completed"),
+            eq(repos.syncStatus, "queued"),
+          ),
+        )
+        // nulls first index ensure nulls are picked first
+        .orderBy(asc(repos.lastSyncedAt))
+        .limit(1)
+        .for("update", { skipLocked: true });
+      if (!repo) {
+        return null;
+      }
+      await tx
+        .update(repos)
+        .set({ syncStatus: "in_progress" })
+        .where(eq(repos.id, repo.repoId));
+      return repo;
+    });
   }
-  export async function selectReposForIssueSync(db: DbClient) {
+  export async function enqueueReposForIssueSync(db: DbClient) {
     return await db
       .update(repos)
       .set({
@@ -83,8 +93,7 @@ export namespace Repo {
           eq(repos.syncStatus, "ready"),
           or(
             isNull(repos.lastSyncedAt),
-            // index ensures nulls first
-            // TODO: extract constants?
+            // just to make sure we don't sync a repo that has just synced recently
             lt(repos.lastSyncedAt, sql`NOW() - INTERVAL '10 minutes'`),
           ),
         ),
@@ -228,8 +237,8 @@ export namespace Repo {
     return countRes?.count ?? 0;
   }
 
-  export async function getInitReadyRepo(db: DbClient) {
-    const [result] = await db
+  export async function getInitReadyRepos(db: DbClient, numRepos: number) {
+    const result = await db
       .select({
         repoId: repos.id,
       })
@@ -237,16 +246,16 @@ export namespace Repo {
       .where(eq(repos.initStatus, "ready"))
       // always initialize earliest created repo first
       .orderBy(asc(repos.createdAt))
-      .limit(1);
+      .limit(numRepos);
 
-    return result?.repoId ?? null;
+    return result;
   }
 
-  export async function markInitInProgress(db: DbClient, repoId: string) {
+  export async function markInitInProgress(db: DbClient, repoIds: string[]) {
     await db
       .update(repos)
       .set({ initStatus: "in_progress" })
-      .where(eq(repos.id, repoId));
+      .where(inArray(repos.id, repoIds));
   }
 }
 
