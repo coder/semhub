@@ -24,4 +24,8 @@ CREATE INDEX IF NOT EXISTS "issue_updated_at_idx" ON "issues" USING btree ("issu
 CREATE INDEX IF NOT EXISTS "embedding_null_idx" ON "issues" USING btree ("repo_id") WHERE "issues"."embedding" IS NULL;--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "created_at_idx" ON "repos" USING btree ("created_at");--> statement-breakpoint
 ALTER TABLE "repos" DROP COLUMN IF EXISTS "is_syncing";--> statement-breakpoint
-ALTER TABLE "repos" DROP COLUMN IF EXISTS "issues_last_updated_at";
+ALTER TABLE "repos" DROP COLUMN IF EXISTS "issues_last_updated_at";--> statement-breakpoint
+UPDATE "repos"
+SET "initialized_at" = NOW(),
+    "init_status" = 'completed'
+WHERE "initialized_at" IS NULL;
