@@ -11,7 +11,6 @@ import { getDeps } from "@/deps";
 import {
   DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL,
   NUM_EMBEDDING_WORKERS,
-  NUM_ISSUES_TO_REDUCE_PER_ATTEMPT,
   PARENT_WORKER_SLEEP_DURATION,
   REDUCE_ISSUES_MAX_ATTEMPTS,
 } from "@/workflows/sync/sync.param";
@@ -80,9 +79,13 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                     attempt <= REDUCE_ISSUES_MAX_ATTEMPTS;
                     attempt++
                   ) {
-                    const numIssues =
-                      DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL -
-                      attempt * NUM_ISSUES_TO_REDUCE_PER_ATTEMPT;
+                    const numIssues = Math.max(
+                      2,
+                      Math.floor(
+                        DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL /
+                          Math.pow(2, attempt),
+                      ),
+                    );
                     const result = await Github.getLatestRepoIssues({
                       repoId,
                       repoName,
@@ -93,29 +96,24 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                     });
 
                     const responseSize = getApproximateSizeInBytes(result);
-                    // Response size is acceptable, return result immediately
                     if (responseSize <= 750000) {
                       return result;
                     }
-                    // Response too large but we can try again with fewer issues
                     if (attempt < REDUCE_ISSUES_MAX_ATTEMPTS) {
                       console.log(
-                        `Response too large (${Math.round(responseSize / 1024)}KB) for ${name}, reducing numIssues from ${numIssues}`,
+                        `Response too large (${Math.round(responseSize / 1024)}KB) for ${name}, reducing numIssues from ${numIssues} to ${Math.max(2, Math.floor(numIssues / 2))}`,
                       );
                       continue;
                     }
-                    // No more attempts left and response still too large
                     throw new NonRetryableError(
                       `Response size (${Math.round(responseSize / 1024)}KB) too large even with minimum issues`,
                     );
                   }
-                  // should never reach here
                   throw new NonRetryableError(
                     `Failed to get issues for ${name} after ${REDUCE_ISSUES_MAX_ATTEMPTS} attempts`,
                   );
                 },
               );
-            // Break if no more issues
             if (!hasNextPage) {
               hasMoreIssues = false;
               break;
@@ -175,7 +173,6 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           }
         }),
       );
-      // call itself recursively
       if (hasMoreIssues) {
         await step.do(
           "performed one unit of work, call itself recursively",
@@ -187,7 +184,6 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           },
         );
       } else {
-        // no more work to be done, set initStatus to completed and return
         await step.do(`init for repo ${name} completed`, async () => {
           await db
             .update(repos)
@@ -199,10 +195,8 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
       await step.do(
         "sync unsuccessful, mark repo init status to error",
         async () => {
-          // ideally, also log this error/send an email to me or sth
           await db
             .update(repos)
-            // this prevents the repo from being re-init again
             .set({ initStatus: "error" })
             .where(eq(repos.id, repoId));
         },
@@ -214,7 +208,6 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
 
 export default {
   async fetch(): Promise<Response> {
-    // Return 400 for direct HTTP requests since workflows should be triggered via bindings
     return Response.json(
       { error: "Workflows must be triggered via bindings" },
       { status: 400 },

@@ -8,9 +8,7 @@ export const DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL = 100;
 export const PARENT_WORKER_SLEEP_DURATION = "30 seconds";
 
 // to avoid issues due to workers return size limit
-// however, somehow this is not working as intended
-export const REDUCE_ISSUES_MAX_ATTEMPTS = 4;
-export const NUM_ISSUES_TO_REDUCE_PER_ATTEMPT = 20;
+export const REDUCE_ISSUES_MAX_ATTEMPTS = 6;
 
 //* Parameters for issue embedding workflow *//
 export const BATCH_SIZE_PER_EMBEDDING_CHUNK = 25; // clearly linked to DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL
