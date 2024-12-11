@@ -9,10 +9,11 @@ import { Github } from "@/core/github";
 import { Repo, repoIssuesLastUpdatedSql } from "@/core/repo";
 import { getDeps } from "@/deps";
 import {
-  DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL,
+  getNumIssues,
   NUM_EMBEDDING_WORKERS,
   PARENT_WORKER_SLEEP_DURATION,
   REDUCE_ISSUES_MAX_ATTEMPTS,
+  RESPONSE_SIZE_LIMIT_IN_BYTES,
 } from "@/workflows/sync/sync.param";
 import {
   getApproximateSizeInBytes,
@@ -79,13 +80,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                     attempt <= REDUCE_ISSUES_MAX_ATTEMPTS;
                     attempt++
                   ) {
-                    const numIssues = Math.max(
-                      2,
-                      Math.floor(
-                        DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL /
-                          Math.pow(2, attempt),
-                      ),
-                    );
+                    const numIssues = getNumIssues(attempt);
                     const result = await Github.getLatestRepoIssues({
                       repoId,
                       repoName,
@@ -96,7 +91,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                     });
 
                     const responseSize = getApproximateSizeInBytes(result);
-                    if (responseSize <= 750000) {
+                    if (responseSize <= RESPONSE_SIZE_LIMIT_IN_BYTES) {
                       return result;
                     }
                     if (attempt < REDUCE_ISSUES_MAX_ATTEMPTS) {
