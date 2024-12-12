@@ -36,6 +36,7 @@ export namespace Github {
     repoOwner,
     octokit,
     since,
+    after,
     numIssues = 100, // max 100
   }: {
     repoId: string;
@@ -43,12 +44,13 @@ export namespace Github {
     repoOwner: string;
     octokit: GraphqlOctokit;
     since: Date | null;
+    after: string | null;
     numIssues?: number;
   }) {
     const response = await octokit.graphql(getIssuesWithMetadataForUpsert(), {
       organization: repoOwner,
       repo: repoName,
-      cursor: null,
+      cursor: after,
       since: since?.toISOString() ?? null,
       first: numIssues,
     });
@@ -59,9 +61,11 @@ export namespace Github {
     }
     const issues = data.repository.issues.nodes;
     const hasNextPage = data.repository.issues.pageInfo.hasNextPage;
+    const endCursor = data.repository.issues.pageInfo.endCursor;
     if (issues.length === 0) {
       return {
         hasNextPage,
+        endCursor,
         issuesAndCommentsLabels: {
           issuesToInsert: [],
           commentsToInsert: [],
@@ -119,6 +123,7 @@ export namespace Github {
     const lastIssueUpdatedAt = new Date(issues[issues.length - 1]!.updatedAt);
     return {
       hasNextPage,
+      endCursor,
       issuesAndCommentsLabels: {
         issuesToInsert: allIssues,
         commentsToInsert: allComments,

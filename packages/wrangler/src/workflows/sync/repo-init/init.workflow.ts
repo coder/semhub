@@ -69,46 +69,53 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             ? new Date(issueLastUpdatedAt)
             : null;
           let hasMoreIssues = true;
+          let after: string | null = null;
 
           for (let i = 0; i < NUM_EMBEDDING_WORKERS && hasMoreIssues; i++) {
-            const { hasNextPage, issuesAndCommentsLabels, lastIssueUpdatedAt } =
-              await step.do(
-                `get latest issues of ${name} from GitHub (batch ${i + 1})`,
-                async () => {
-                  for (
-                    let attempt = 0;
-                    attempt <= REDUCE_ISSUES_MAX_ATTEMPTS;
-                    attempt++
-                  ) {
-                    const numIssues = getNumIssues(attempt);
-                    const result = await Github.getLatestRepoIssues({
-                      repoId,
-                      repoName,
-                      repoOwner,
-                      octokit: graphqlOctokit,
-                      since: currentSince,
-                      numIssues,
-                    });
+            const {
+              hasNextPage,
+              issuesAndCommentsLabels,
+              lastIssueUpdatedAt,
+              endCursor,
+            } = await step.do(
+              `get latest issues of ${name} from GitHub (batch ${i + 1})`,
+              async () => {
+                for (
+                  let attempt = 0;
+                  attempt <= REDUCE_ISSUES_MAX_ATTEMPTS;
+                  attempt++
+                ) {
+                  const numIssues = getNumIssues(attempt);
+                  const result = await Github.getLatestRepoIssues({
+                    repoId,
+                    repoName,
+                    repoOwner,
+                    octokit: graphqlOctokit,
+                    since: currentSince,
+                    numIssues,
+                    after,
+                  });
 
-                    const responseSize = getApproximateSizeInBytes(result);
-                    if (responseSize <= RESPONSE_SIZE_LIMIT_IN_BYTES) {
-                      return result;
-                    }
-                    if (attempt < REDUCE_ISSUES_MAX_ATTEMPTS) {
-                      console.log(
-                        `Response too large (${Math.round(responseSize / 1024)}KB) for ${name}, reducing numIssues from ${numIssues} to ${Math.max(2, Math.floor(numIssues / 2))}`,
-                      );
-                      continue;
-                    }
-                    throw new NonRetryableError(
-                      `Response size (${Math.round(responseSize / 1024)}KB) too large even with minimum issues`,
+                  const responseSize = getApproximateSizeInBytes(result);
+                  if (responseSize <= RESPONSE_SIZE_LIMIT_IN_BYTES) {
+                    return result;
+                  }
+                  if (attempt < REDUCE_ISSUES_MAX_ATTEMPTS) {
+                    console.log(
+                      `Response too large (${Math.round(responseSize / 1024)}KB) for ${name}, reducing numIssues from ${numIssues} to ${Math.max(2, Math.floor(numIssues / 2))}`,
                     );
+                    continue;
                   }
                   throw new NonRetryableError(
-                    `Failed to get issues for ${name} after ${REDUCE_ISSUES_MAX_ATTEMPTS} attempts`,
+                    `Response size (${Math.round(responseSize / 1024)}KB) too large even with minimum issues`,
                   );
-                },
-              );
+                }
+                throw new NonRetryableError(
+                  `Failed to get issues for ${name} after ${REDUCE_ISSUES_MAX_ATTEMPTS} attempts`,
+                );
+              },
+            );
+            after = endCursor;
             if (!hasNextPage) {
               hasMoreIssues = false;
               break;
