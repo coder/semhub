@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { truncateCodeBlocks } from "./util";
 
+const CODE_BLOCK_PREVIEW_LINES = 10;
+
 describe("truncateCodeBlocks", () => {
   it("should not modify text without code blocks", () => {
     const text =
       "This is regular text\nwith multiple lines\nbut no code blocks";
-    expect(truncateCodeBlocks(text)).toBe(text);
+    expect(truncateCodeBlocks(text, CODE_BLOCK_PREVIEW_LINES)).toBe(text);
   });
 
   it("should not modify small code blocks", () => {
@@ -17,7 +19,7 @@ const b = 2;
 const c = 3;
 \`\`\`
 End of block`;
-    expect(truncateCodeBlocks(text)).toBe(text);
+    expect(truncateCodeBlocks(text, CODE_BLOCK_PREVIEW_LINES)).toBe(text);
   });
 
   it("should truncate large code blocks", () => {
@@ -28,7 +30,7 @@ ${lines.join("\n")}
 \`\`\`
 After`;
 
-    const result = truncateCodeBlocks(text);
+    const result = truncateCodeBlocks(text, CODE_BLOCK_PREVIEW_LINES);
 
     // Should contain first 10 lines
     expect(result).toContain("line 1");
@@ -57,7 +59,7 @@ ${lines.join("\n")}
 \`\`\`
 End`;
 
-    const result = truncateCodeBlocks(text);
+    const result = truncateCodeBlocks(text, CODE_BLOCK_PREVIEW_LINES);
 
     // Should contain two truncation markers
     expect(result.match(/\[\.\.\.truncated\.\.\.\]/g)?.length).toBe(2);
@@ -73,7 +75,7 @@ End`;
 ${lines.join("\n")}
 \`\`\``;
 
-    const result = truncateCodeBlocks(text);
+    const result = truncateCodeBlocks(text, CODE_BLOCK_PREVIEW_LINES);
     expect(result).toContain("```\n");
     expect(result).toContain("// [...truncated...]");
   });
@@ -88,7 +90,7 @@ ${lines.join("\n")}
 After text
 with multiple lines`;
 
-    const result = truncateCodeBlocks(text);
+    const result = truncateCodeBlocks(text, CODE_BLOCK_PREVIEW_LINES);
     expect(result).toContain("Before text\nwith multiple lines");
     expect(result).toContain("After text\nwith multiple lines");
   });

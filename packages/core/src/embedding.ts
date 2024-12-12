@@ -277,8 +277,9 @@ export namespace Embedding {
     // currently, it seem like issues that have huge blocks of code and logs are being tokenized very differently from this heuristic
     // we first truncate per the body schema
     const MAX_BODY_SIZE_KB = 8;
+    const CODE_BLOCK_PREVIEW_LINES = 10;
     text = truncateToByteSize(
-      truncateCodeBlocks(text),
+      truncateCodeBlocks(text, CODE_BLOCK_PREVIEW_LINES),
       MAX_BODY_SIZE_KB * 1024,
     );
     // DISCUSSION:

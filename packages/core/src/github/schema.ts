@@ -14,7 +14,11 @@ export const loadRepoIssuesQueryAuthorSchema = z
 // Create a custom string schema with code block truncation
 export const bodySchema = z.string().transform((text) => {
   const MAX_BODY_SIZE_KB = 8;
-  return truncateToByteSize(truncateCodeBlocks(text), MAX_BODY_SIZE_KB * 1024);
+  const CODE_BLOCK_PREVIEW_LINES = 10;
+  return truncateToByteSize(
+    truncateCodeBlocks(text, CODE_BLOCK_PREVIEW_LINES),
+    MAX_BODY_SIZE_KB * 1024,
+  );
 });
 
 export const loadRepoIssuesQueryCommentSchema = z.object({

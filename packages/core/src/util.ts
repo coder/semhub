@@ -30,8 +30,10 @@ export function truncateToByteSize(text: string, maxBytes: number): string {
   return text.slice(0, left) + "\n\n[Content truncated due to size limit...]";
 }
 
-export function truncateCodeBlocks(text: string): string {
-  const CODE_BLOCK_PREVIEW_LINES = 10;
+export function truncateCodeBlocks(
+  text: string,
+  numLinesAtStartAndEnd: number,
+): string {
   // Match:
   // 1. Three backticks
   // 2. Optional language identifier
@@ -41,16 +43,16 @@ export function truncateCodeBlocks(text: string): string {
   const CODE_BLOCK_REGEX = /```[a-z]*\n[\s\S]*?\n\s*```/g;
   return text.replace(CODE_BLOCK_REGEX, (match) => {
     const lines = match.split("\n");
-    if (lines.length <= CODE_BLOCK_PREVIEW_LINES * 2) return match;
+    if (lines.length <= numLinesAtStartAndEnd * 2) return match;
 
     const firstLine = lines[0]; // ```language
     const lastLine = lines[lines.length - 1]; // ```
 
     return [
       firstLine,
-      ...lines.slice(1, CODE_BLOCK_PREVIEW_LINES + 1),
+      ...lines.slice(1, numLinesAtStartAndEnd + 1),
       "\n// [...truncated...]\n",
-      ...lines.slice(-CODE_BLOCK_PREVIEW_LINES - 1, -1),
+      ...lines.slice(-numLinesAtStartAndEnd - 1, -1),
       lastLine,
     ].join("\n");
   });
