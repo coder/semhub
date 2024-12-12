@@ -99,6 +99,13 @@
       "when": 1733623213704,
       "tag": "0013_classy_rogue",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1733971570129,
+      "tag": "0014_hot_terrax",
+      "breakpoints": true
     }
   ]
 }

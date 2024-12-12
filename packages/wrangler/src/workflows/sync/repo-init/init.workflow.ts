@@ -45,6 +45,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           initStatus: repos.initStatus,
           repoName: repos.name,
           repoOwner: repos.owner,
+          initLastEndCursor: repos.initLastEndCursor,
           issueLastUpdatedAt: repoIssuesLastUpdatedSql(repos),
         })
         .from(repos)
@@ -58,10 +59,11 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
       }
       return result;
     });
-    const { repoName, repoOwner, issueLastUpdatedAt } = result;
+    const { repoName, repoOwner, issueLastUpdatedAt, initLastEndCursor } =
+      result;
     const name = `${repoOwner}/${repoName}`;
     try {
-      const { issueIdsArray, hasMoreIssues } = await step.do(
+      const { issueIdsArray, hasMoreIssues, after } = await step.do(
         `get ${NUM_EMBEDDING_WORKERS} API calls worth of data for ${name}`,
         async () => {
           const issueIdsArray = [];
@@ -69,7 +71,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             ? new Date(issueLastUpdatedAt)
             : null;
           let hasMoreIssues = true;
-          let after: string | null = null;
+          let after = initLastEndCursor ?? null;
 
           for (let i = 0; i < NUM_EMBEDDING_WORKERS && hasMoreIssues; i++) {
             const {
@@ -136,7 +138,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             currentSince = lastIssueUpdatedAt;
           }
 
-          return { issueIdsArray, hasMoreIssues };
+          return { issueIdsArray, hasMoreIssues, after };
         },
       );
       await Promise.all(
@@ -176,6 +178,12 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         }),
       );
       if (hasMoreIssues) {
+        await step.do("update repo initLastEndCursor", async () => {
+          await db
+            .update(repos)
+            .set({ initLastEndCursor: after })
+            .where(eq(repos.id, repoId));
+        });
         await step.do(
           "performed one unit of work, call itself recursively",
           async () => {

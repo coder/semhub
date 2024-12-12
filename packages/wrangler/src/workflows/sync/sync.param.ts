@@ -13,10 +13,10 @@ const DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL = 100;
 export const REDUCE_ISSUES_MAX_ATTEMPTS = 6;
 export const getNumIssues = (attempt: number) =>
   Math.max(
-    2,
+    1,
     Math.floor(DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL / Math.pow(2, attempt)),
   );
-export const RESPONSE_SIZE_LIMIT_IN_BYTES = 750000;
+export const RESPONSE_SIZE_LIMIT_IN_BYTES = 800000;
 
 //* Parameters for issue embedding workflow *//
 export const BATCH_SIZE_PER_EMBEDDING_CHUNK = 25; // clearly linked to DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL
