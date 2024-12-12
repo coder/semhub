@@ -2,6 +2,8 @@ import dedent from "dedent";
 import type { SQL } from "drizzle-orm";
 import pMap from "p-map";
 
+import { sleep, truncateCodeBlocks } from "@/util";
+
 import {
   EMBEDDING_MODEL,
   type RateLimiter,
@@ -18,7 +20,6 @@ import { jsonAggBuildObjectFromJoin } from "./db/utils/json";
 import type { OpenAIClient } from "./openai";
 import { isReducePromptError } from "./openai/errors";
 import { embeddingsCreateSchema } from "./openai/schema";
-import { sleep } from "./util";
 
 export namespace Embedding {
   export async function createEmbedding(
@@ -60,7 +61,7 @@ export namespace Embedding {
   }) {
     const TRUNCATION_MAX_ATTEMPTS = 8;
     const processIssue = async (issue: (typeof issues)[number]) => {
-      let attempt = 1;
+      let attempt = 0;
       const labels = issue.labels;
       while (attempt <= TRUNCATION_MAX_ATTEMPTS) {
         try {
@@ -239,7 +240,7 @@ export namespace Embedding {
   /* Instead of truncating the body repeatedly, we could pass the body into a LLM and obtain a summary. Then, we pass the summary into the embedding API instead. */
   function formatIssueForEmbedding({
     issue,
-    attempt = 1,
+    attempt = 0,
     labels,
   }: FormatIssueParams): string {
     const {
@@ -273,15 +274,17 @@ export namespace Embedding {
     );
   }
   function truncateText(text: string, attempt: number): string {
+    // currently, it seem like issues that have huge blocks of code and logs are being tokenized very differently from this heuristic
+    // so we first truncate the code blocks
+    text = truncateCodeBlocks(text);
     // DISCUSSION:
     // - could use a tokenizer to more accurately measure token length, e.g. https://github.com/dqbd/tiktoken
     // - alternatively, the error returned by OpenAI also tells you how many token it is and hence how much it needs to be reduced
     const TRUNCATION_FACTOR = 0.75; // after 8x retry, will be 10% of original length
     const TRUNCATION_MAX_TOKENS = 6000; // somewhat arbitrary
     // Rough approximation: 1 token ≈ 4 characters
-    // currently, it seem like issues that have huge blocks of code and logs are being tokenized very differently from this heuristic
     const maxChars = Math.floor(
-      TRUNCATION_MAX_TOKENS * 4 * Math.pow(TRUNCATION_FACTOR, attempt - 1),
+      TRUNCATION_MAX_TOKENS * 4 * Math.pow(TRUNCATION_FACTOR, attempt),
     );
     if (text.length <= maxChars) return text;
     return text.slice(0, maxChars);

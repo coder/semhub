@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { truncateCodeBlocks } from "./schema";
+
+import { truncateCodeBlocks } from "./util";
 
 describe("truncateCodeBlocks", () => {
   it("should not modify text without code blocks", () => {
-    const text = "This is regular text\nwith multiple lines\nbut no code blocks";
+    const text =
+      "This is regular text\nwith multiple lines\nbut no code blocks";
     expect(truncateCodeBlocks(text)).toBe(text);
   });
 
@@ -90,4 +92,4 @@ with multiple lines`;
     expect(result).toContain("Before text\nwith multiple lines");
     expect(result).toContain("After text\nwith multiple lines");
   });
-}); 
+});
