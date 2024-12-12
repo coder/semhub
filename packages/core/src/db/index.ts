@@ -39,6 +39,7 @@ export function createDb(config: {
   connectionString: string;
   isProd: boolean;
 }) {
+  // Disable prefetch as it is not supported for "Transaction" pool mode
   const client = postgres(config.connectionString, { prepare: false });
   return {
     db: drizzle(client, {
