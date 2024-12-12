@@ -3,6 +3,33 @@ export function sleep(ms: number) {
     setTimeout(resolve, ms);
   });
 }
+
+export function truncateToByteSize(text: string, maxBytes: number): string {
+  const encoder = new TextEncoder();
+  let encoded = encoder.encode(text);
+
+  if (encoded.length <= maxBytes) {
+    return text;
+  }
+
+  // Binary search to find the right cut-off point
+  let left = 0;
+  let right = text.length;
+
+  while (left < right) {
+    const mid = Math.floor((left + right + 1) / 2);
+    const slice = text.slice(0, mid);
+
+    if (encoder.encode(slice).length <= maxBytes) {
+      left = mid;
+    } else {
+      right = mid - 1;
+    }
+  }
+
+  return text.slice(0, left) + "\n\n[Content truncated due to size limit...]";
+}
+
 export function truncateCodeBlocks(text: string): string {
   const CODE_BLOCK_PREVIEW_LINES = 10;
   // Match:

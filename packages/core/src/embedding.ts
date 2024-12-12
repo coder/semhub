@@ -2,7 +2,7 @@ import dedent from "dedent";
 import type { SQL } from "drizzle-orm";
 import pMap from "p-map";
 
-import { sleep, truncateCodeBlocks } from "@/util";
+import { sleep, truncateCodeBlocks, truncateToByteSize } from "@/util";
 
 import {
   EMBEDDING_MODEL,
@@ -275,8 +275,12 @@ export namespace Embedding {
   }
   function truncateText(text: string, attempt: number): string {
     // currently, it seem like issues that have huge blocks of code and logs are being tokenized very differently from this heuristic
-    // so we first truncate the code blocks
-    text = truncateCodeBlocks(text);
+    // we first truncate per the body schema
+    const MAX_BODY_SIZE_KB = 8;
+    text = truncateToByteSize(
+      truncateCodeBlocks(text),
+      MAX_BODY_SIZE_KB * 1024,
+    );
     // DISCUSSION:
     // - could use a tokenizer to more accurately measure token length, e.g. https://github.com/dqbd/tiktoken
     // - alternatively, the error returned by OpenAI also tells you how many token it is and hence how much it needs to be reduced

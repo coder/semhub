@@ -109,7 +109,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                     continue;
                   }
                   throw new NonRetryableError(
-                    `Response size (${Math.round(responseSize / 1024)}KB) too large even with numIssues=${numIssues} issues. Issue: ${result.issuesAndCommentsLabels.issuesToInsert.map((issue) => issue.htmlUrl).join(", ")}`,
+                    `Response size (${Math.round(responseSize / 1024)}KB) too large even with numIssues=${numIssues}. See: ${result.issuesAndCommentsLabels.issuesToInsert.map((issue) => issue.htmlUrl).join(", ")}`,
                   );
                 }
                 throw new NonRetryableError(
