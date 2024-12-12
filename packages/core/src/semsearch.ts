@@ -1,4 +1,9 @@
 import type { RateLimiter } from "./constants/rate-limit.constant";
+import {
+  RANKING_WEIGHTS,
+  SCORE_MULTIPLIERS,
+  TIME_CONSTANTS,
+} from "./constants/search.constant";
 import type { DbClient } from "./db";
 import { and, cosineDistance, desc, eq, gt, ilike, or, sql } from "./db";
 import { comments } from "./db/schema/entities/comment.sql";
@@ -50,7 +55,49 @@ export namespace SemanticSearch {
       },
       openai,
     );
-    const similarity = sql<number>`1-(${cosineDistance(issueTable.embedding, embedding)})`;
+    const similarity = sql<number>`(1-(${cosineDistance(issueTable.embedding, embedding)}))::float`;
+
+    // Exponential decay for recency score
+    // exp(-t/τ) where:
+    // t is time elapsed in days
+    // τ (tau) is the characteristic decay time in days
+    // After 30 days (RECENCY_BASE_DAYS), score will be ~0.37 (1/e)
+    // After 60 days, score will be ~0.14 (1/e²)
+    // Score approaches but never reaches 0
+    const recencyScore = sql<number>`
+      EXP(
+        -1.0 *
+        EXTRACT(EPOCH FROM (NOW() - ${issueTable.issueUpdatedAt}))::float /
+        (86400 * ${TIME_CONSTANTS.RECENCY_BASE_DAYS})  -- Convert decay time to seconds
+      )::float
+    `;
+
+    // Logarithmic comment score normalization
+    // ln(x + 1) gives us:
+    // 0 comments = 0.0
+    // 4 comments ≈ 1.6
+    // 5 comments ≈ 1.8
+    // 10 comments ≈ 2.4
+    // 20 comments ≈ 3.0
+    // 50 comments ≈ 3.9
+    // Then normalize to 0-1 range by dividing by ln(50 + 1)
+    const commentScore = sql<number>`
+      LN(GREATEST(count(${comments.id})::float + 1, 1)) /
+      LN(51)  -- ln(50 + 1) ≈ 3.93 as normalizing factor
+    `;
+
+    // Combined ranking score
+    const rankingScore = sql<number>`
+      (${RANKING_WEIGHTS.SEMANTIC_SIMILARITY}::float * ${similarity}) +
+      (${RANKING_WEIGHTS.RECENCY}::float * ${recencyScore}) +
+      (${RANKING_WEIGHTS.COMMENT_COUNT}::float * ${commentScore}) +
+      (${RANKING_WEIGHTS.ISSUE_STATE}::float * (
+        CASE
+          WHEN ${issueTable.issueState} = 'OPEN' THEN ${SCORE_MULTIPLIERS.OPEN_ISSUE}::float
+          ELSE ${SCORE_MULTIPLIERS.CLOSED_ISSUE}::float
+        END
+      ))
+    `;
 
     const selected = db
       .select({
@@ -83,6 +130,7 @@ export namespace SemanticSearch {
         repoOwnerName: repos.owner,
         repoLastSyncedAt: repos.lastSyncedAt,
         commentCount: count(comments.id).as("comment_count"),
+        rankingScore,
       })
       .from(issueTable)
       .leftJoin(repos, eq(issueTable.repoId, repos.id))
@@ -95,10 +143,11 @@ export namespace SemanticSearch {
         repos.owner,
         repos.lastSyncedAt,
       )
-      .orderBy(desc(similarity))
+      .orderBy(desc(rankingScore))
       .where(
         and(
           eq(repos.initStatus, "completed"),
+          // probably should switch to ranking score?
           gt(similarity, SIMILARITY_THRESHOLD),
           // general substring queries match either title or body
           ...substringQueries.map((subQuery) =>
