@@ -4,17 +4,21 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { Resource } from "sst";
 
+import { Github } from "@/core/github";
+import { Repo } from "@/core/repo";
+import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
-import type { InitSyncParams } from "@/wrangler/workflows/sync-repo/init";
-import type { WorkflowRPC } from "@/wrangler/workflows/sync-repo/util";
+import type { RepoInitParams } from "@/wrangler/workflows/sync/repo-init/init.workflow";
+import { initNextRepos } from "@/wrangler/workflows/sync/repo-init/init.workflow.util";
+import type { WorkflowRPC } from "@/wrangler/workflows/workflow.util";
 
 import type { ErrorResponse } from "./response";
-import { searchRouter } from "./router/searchRouter";
+import { searchRouter } from "./router/search.router";
 
 export interface Context extends Env {
   Bindings: {
     RATE_LIMITER: Service<RateLimiterWorker>;
-    SYNC_REPO_INIT_WORKFLOW: WorkflowRPC<InitSyncParams>;
+    REPO_INIT_WORKFLOW: WorkflowRPC<RepoInitParams>;
   };
   Variables: {
     // user: User | null;
@@ -27,20 +31,23 @@ export const app = new Hono<Context>();
 // TODO: set up auth
 app.use("*", cors());
 
-app.get("/test", async (c) => {
-  const workflowId = await c.env.SYNC_REPO_INIT_WORKFLOW.create({
-    params: {
-      repo: {
-        owner: "vercel",
-        name: "next.js",
-      },
-    },
-  });
-  return c.json({
-    success: true,
-    message: "triggered workflow",
-    id: workflowId,
-  });
+// TODO: remove before merging/deploying
+app.get("/create-repo", async (c) => {
+  const params = {
+    owner: "kubernetes",
+    name: "kubernetes",
+  };
+  const { db, restOctokit } = getDeps();
+  const data = await Github.getRepo(params.name, params.owner, restOctokit);
+  const createdRepo = await Repo.createRepo(data, db);
+  if (createdRepo.initStatus !== "ready") {
+    return c.json({
+      success: true,
+      message: "did not trigger workflow",
+    });
+  }
+  const res = await initNextRepos(db, c.env.REPO_INIT_WORKFLOW);
+  return c.json(res);
 });
 
 const _routes = app.basePath("/api").route("/search", searchRouter);

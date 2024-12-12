@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { truncateCodeBlocks, truncateToByteSize } from "@/util";
+
 // shape from GitHub GraphQL API
 export const loadRepoIssuesQueryAuthorSchema = z
   .object({
@@ -9,10 +11,20 @@ export const loadRepoIssuesQueryAuthorSchema = z
   // when user is deleted, author is null
   .nullable();
 
+// Create a custom string schema with code block truncation
+export const bodySchema = z.string().transform((text) => {
+  const MAX_BODY_SIZE_KB = 8;
+  const CODE_BLOCK_PREVIEW_LINES = 10;
+  return truncateToByteSize(
+    truncateCodeBlocks(text, CODE_BLOCK_PREVIEW_LINES),
+    MAX_BODY_SIZE_KB * 1024,
+  );
+});
+
 export const loadRepoIssuesQueryCommentSchema = z.object({
   id: z.string(),
   author: loadRepoIssuesQueryAuthorSchema,
-  body: z.string(),
+  body: bodySchema,
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -23,7 +35,7 @@ export const loadRepoIssuesQueryIssueSchema = z.object({
   id: z.string(),
   number: z.number(),
   title: z.string(),
-  body: z.string(),
+  body: bodySchema,
   url: z.string().url(),
   state: z.enum(["OPEN", "CLOSED"]),
   stateReason: z

@@ -3,7 +3,6 @@ import { print } from "graphql";
 import type { CreateComment } from "@/db/schema/entities/comment.sql";
 import type { CreateIssue } from "@/db/schema/entities/issue.schema";
 import type { CreateLabel } from "@/db/schema/entities/label.schema";
-import type { Repo } from "@/repo";
 
 import { graphql } from "./graphql";
 import {
@@ -31,37 +30,29 @@ export namespace Github {
     }
     return data;
   }
-  export async function getIssuesCommentsLabels({
-    issueNumbers,
+  export async function getLatestRepoIssues({
     repoId,
     repoName,
     repoOwner,
     octokit,
+    since,
+    after,
+    numIssues = 100, // max 100
   }: {
-    issueNumbers: Awaited<ReturnType<typeof getIssuesArrayToChunk>>;
     repoId: string;
     repoName: string;
     repoOwner: string;
     octokit: GraphqlOctokit;
+    since: Date | null;
+    after: string | null;
+    numIssues?: number;
   }) {
-    if (issueNumbers.length === 0) {
-      return {
-        issuesAndCommentsLabels: {
-          issuesToInsert: [],
-          commentsToInsert: [],
-          labelsToInsert: [],
-          issueToLabelRelationsToInsertNodeIds: [],
-        },
-        lastIssueUpdatedAt: null,
-      };
-    }
-    const firstIssueUpdatedAt = new Date(issueNumbers[0]!.updatedAt);
     const response = await octokit.graphql(getIssuesWithMetadataForUpsert(), {
       organization: repoOwner,
       repo: repoName,
-      cursor: null,
-      since: firstIssueUpdatedAt.toISOString(),
-      first: issueNumbers.length,
+      cursor: after,
+      since: since?.toISOString() ?? null,
+      first: numIssues,
     });
     const { success, data, error } =
       loadIssuesWithCommentsResSchema.safeParse(response);
@@ -69,18 +60,20 @@ export namespace Github {
       throw new Error("error parsing issues with issues", error);
     }
     const issues = data.repository.issues.nodes;
+    const hasNextPage = data.repository.issues.pageInfo.hasNextPage;
+    const endCursor = data.repository.issues.pageInfo.endCursor;
     if (issues.length === 0) {
       return {
+        hasNextPage,
+        endCursor,
         issuesAndCommentsLabels: {
           issuesToInsert: [],
           commentsToInsert: [],
           labelsToInsert: [],
           issueToLabelRelationsToInsertNodeIds: [],
         },
-        lastIssueUpdatedAt: null,
       };
     }
-    const lastIssueUpdatedAt = new Date(issues[issues.length - 1]!.updatedAt);
     const issueLabelsToInsert = issues.map((issue) =>
       mapIssuesLabels(issue, repoId),
     );
@@ -127,7 +120,10 @@ export namespace Github {
       ).values(),
     ];
 
+    const lastIssueUpdatedAt = new Date(issues[issues.length - 1]!.updatedAt);
     return {
+      hasNextPage,
+      endCursor,
       issuesAndCommentsLabels: {
         issuesToInsert: allIssues,
         commentsToInsert: allComments,
@@ -137,17 +133,20 @@ export namespace Github {
       lastIssueUpdatedAt,
     };
   }
-  // currently unused in cron job, could be useful to invoke in a long running process
-  // should have the same return type as getIssuesCommentsLabels
   export async function getIssuesViaIterator(
     {
       repoId,
       repoName,
       repoOwner,
-      issuesLastUpdatedAt,
-    }: Awaited<ReturnType<typeof Repo.getReposForCron>>[number],
+      repoIssuesLastUpdatedAt,
+    }: {
+      repoId: string;
+      repoName: string;
+      repoOwner: string;
+      repoIssuesLastUpdatedAt: Date | null;
+    },
     octokit: GraphqlOctokit,
-    numIssues: number,
+    numIssues = 100,
   ) {
     const iterator = octokit.graphql.paginate.iterator(
       getIssuesWithMetadataForUpsert(),
@@ -155,7 +154,7 @@ export namespace Github {
         organization: repoOwner,
         repo: repoName,
         cursor: null,
-        since: issuesLastUpdatedAt?.toISOString() ?? null,
+        since: repoIssuesLastUpdatedAt?.toISOString() ?? null,
         first: numIssues,
       },
     );

@@ -1,4 +1,4 @@
-import type { RateLimiter } from "./constants/rate-limit";
+import type { RateLimiter } from "./constants/rate-limit.constant";
 import type { DbClient } from "./db";
 import { and, cosineDistance, desc, eq, gt, ilike, or, sql } from "./db";
 import { comments } from "./db/schema/entities/comment.sql";
@@ -81,7 +81,7 @@ export namespace SemanticSearch {
         repoName: repos.name,
         repoUrl: repos.htmlUrl,
         repoOwnerName: repos.owner,
-        repoLastUpdatedAt: repos.issuesLastUpdatedAt,
+        repoLastSyncedAt: repos.lastSyncedAt,
         commentCount: count(comments.id).as("comment_count"),
       })
       .from(issueTable)
@@ -93,11 +93,12 @@ export namespace SemanticSearch {
         repos.htmlUrl,
         repos.name,
         repos.owner,
-        repos.issuesLastUpdatedAt,
+        repos.lastSyncedAt,
       )
       .orderBy(desc(similarity))
       .where(
         and(
+          eq(repos.initStatus, "completed"),
           gt(similarity, SIMILARITY_THRESHOLD),
           // general substring queries match either title or body
           ...substringQueries.map((subQuery) =>

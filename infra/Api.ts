@@ -15,7 +15,7 @@ const hono = new sst.cloudflare.Worker("Hono", {
           service: `semhub-rate-limiter-${$app.stage === "prod" ? "prod" : "dev"}`,
         },
         {
-          name: "SYNC_REPO_INIT_WORKFLOW",
+          name: "REPO_INIT_WORKFLOW",
           service: `semhub-sync-repo-init-${$app.stage === "prod" ? "prod" : "dev"}`,
         },
       ],

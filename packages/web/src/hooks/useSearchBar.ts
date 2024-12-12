@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { SEARCH_OPERATORS } from "@/core/constants/search";
+import { SEARCH_OPERATORS } from "@/core/constants/search.constant";
 import type {
   OperatorWithIcon,
   SubmenuValue,

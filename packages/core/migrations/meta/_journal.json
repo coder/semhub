@@ -85,6 +85,27 @@
       "when": 1733201562317,
       "tag": "0011_fluffy_major_mapleleaf",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1733482542478,
+      "tag": "0012_hard_rogue",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1733623213704,
+      "tag": "0013_classy_rogue",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1733971570129,
+      "tag": "0014_hot_terrax",
+      "breakpoints": true
     }
   ]
 }

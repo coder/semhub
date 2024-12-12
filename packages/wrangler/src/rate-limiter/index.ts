@@ -4,8 +4,8 @@ import {
   getRateLimits,
   type RateLimiter as IRateLimiter,
   type RateLimiterName,
-} from "@/core/constants/rate-limit";
-import type { WranglerSecrets } from "@/core/constants/wrangler";
+} from "@/core/constants/rate-limit.constant";
+import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
 
 interface Env extends WranglerSecrets {
   RATE_LIMITER: DurableObjectNamespace<RateLimiter>;

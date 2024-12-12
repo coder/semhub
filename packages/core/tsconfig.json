@@ -15,8 +15,11 @@
     ],
     "noUncheckedIndexedAccess": true,
     "paths": {
-      "@/*": ["./src/*"]
-    }
+      "@/*": ["./src/*"],
+      "@/infra/*": ["../../infra/*"]
+    },
+    "rootDir": "../../"
   },
+  "include": ["./src/**/*", "../../infra/types.ts"],
   "exclude": ["dist", "node_modules"]
 }

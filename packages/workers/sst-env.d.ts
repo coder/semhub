@@ -34,6 +34,8 @@ import * as cloudflare from "@cloudflare/workers-types";
 declare module "sst" {
   export interface Resource {
     "Hono": cloudflare.Service
-    "SyncHandler": cloudflare.Service
+    "InitCronHandler": cloudflare.Service
+    "SyncEmbeddingHandler": cloudflare.Service
+    "SyncIssueHandler": cloudflare.Service
   }
 }

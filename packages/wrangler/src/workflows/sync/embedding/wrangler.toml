@@ -1,0 +1,22 @@
+name = "semhub-sync-embedding-dev"
+main = "./embedding.workflow.ts"
+compatibility_date = "2024-10-22"       # keep in sync with @cloudflare/workers-types
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[[workflows]]
+name = "semhub-sync-embedding-workflow-dev"
+binding = "SYNC_EMBEDDING_WORKFLOW"
+class_name = "EmbeddingWorkflow"
+
+# Production environment
+[env.prod]
+name = "semhub-sync-embedding-prod"
+
+[[env.prod.workflows]]
+name = "semhub-sync-embedding-workflow-prod"
+binding = "SYNC_EMBEDDING_WORKFLOW"
+class_name = "EmbeddingWorkflow"

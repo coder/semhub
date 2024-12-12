@@ -1,0 +1,1 @@
+ALTER TABLE "repos" ADD COLUMN "init_last_end_cursor" text;

@@ -1,5 +1,8 @@
-import type { StateSubmenuValue } from "./constants/search";
-import { SEARCH_OPERATORS, STATE_SUBMENU_VALUES } from "./constants/search";
+import type { StateSubmenuValue } from "./constants/search.constant";
+import {
+  SEARCH_OPERATORS,
+  STATE_SUBMENU_VALUES,
+} from "./constants/search.constant";
 
 export function parseSearchQuery(inputQuery: string) {
   // Create a Map with empty arrays as default values for each operator
