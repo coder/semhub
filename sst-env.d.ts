@@ -14,6 +14,9 @@ declare module "sst" {
       "type": "sst.cloudflare.Worker"
       "url": string
     }
+    "InitCronHandler": {
+      "type": "sst.cloudflare.Worker"
+    }
     "OPENAI_API_KEY": {
       "type": "sst.sst.Secret"
       "value": string
@@ -26,7 +29,10 @@ declare module "sst" {
       "region": string
       "type": "sst.sst.Linkable"
     }
-    "SyncHandler": {
+    "SyncEmbeddingHandler": {
+      "type": "sst.cloudflare.Worker"
+    }
+    "SyncIssueHandler": {
       "type": "sst.cloudflare.Worker"
     }
     "Web": {

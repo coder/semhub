@@ -1,8 +1,22 @@
-import { boolean, index, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, index, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 import { getBaseColumns, timestamptz } from "../base.sql";
+
+export const initStatusEnum = pgEnum("init_status", [
+  "ready",
+  "in_progress",
+  "completed",
+  "error",
+]);
+
+export const syncStatusEnum = pgEnum("sync_status", [
+  "ready", // only pick up repos that are ready + initStatus is completed
+  "queued",
+  "in_progress",
+  "error",
+]);
 
 export const repos = pgTable(
   "repos",
@@ -13,15 +27,26 @@ export const repos = pgTable(
     nodeId: text("node_id").notNull().unique(),
     htmlUrl: text("html_url").notNull(),
     isPrivate: boolean("is_private").notNull(),
-    // boolean to orchestrate workflows
-    isSyncing: boolean("is_syncing").notNull().default(false),
+    syncStatus: syncStatusEnum("sync_status").notNull().default("ready"),
     lastSyncedAt: timestamptz("last_synced_at"),
-    issuesLastUpdatedAt: timestamptz("issues_last_updated_at"), // null at first, then updated with last synced issue's updatedAt
+    initStatus: initStatusEnum("init_status").notNull().default("ready"),
+    initializedAt: timestamptz("initialized_at"),
+    initLastEndCursor: text("init_last_end_cursor"),
   },
   (table) => ({
     // probably could be unique index, but small chance that org / repo names can change
     ownerNameIdx: index("owner_name_idx").on(table.owner, table.name),
     ownerIdx: index("owner_idx").on(table.owner),
+    createdAtIdx: index("created_at_idx").on(table.createdAt),
+    repoSyncIdx: index("repo_sync_idx").on(
+      table.initStatus,
+      table.syncStatus,
+      table.lastSyncedAt.asc().nullsFirst(),
+    ),
+    repoInitIdx: index("repo_init_idx").on(
+      table.initStatus,
+      table.createdAt.asc(),
+    ),
   }),
 );
 

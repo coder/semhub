@@ -72,10 +72,8 @@ function getIssueStateIcon(
         default:
           return { icon: CircleCheckIcon, color: "text-purple-600" };
       }
-    default:
-      state satisfies never;
-      throw new Error(`Unknown issue state: ${state} with reason: ${reason}`);
   }
+  state satisfies never;
 }
 
 function IssueStateIndicator({
@@ -104,14 +102,13 @@ function RepoTag({ issue }: { issue: Issue }) {
       {issue.repoOwnerName}/{issue.repoName}
     </a>
   );
-
-  if (!issue.repoLastUpdatedAt) return repoName;
+  if (!issue.repoLastSyncedAt) return repoName;
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>{repoName}</TooltipTrigger>
       <TooltipContent>
-        Last updated {getTimeAgo(new Date(issue.repoLastUpdatedAt))}
+        Last synced {getTimeAgo(new Date(issue.repoLastSyncedAt))}
       </TooltipContent>
     </Tooltip>
   );

@@ -1,49 +1,15 @@
 import type { DbClient } from "@/db";
-import { and, eq, isNotNull, sql } from "@/db";
+import { and, asc, count, eq, inArray, isNull, lt, or, sql } from "@/db";
 import { comments } from "@/db/schema/entities/comment.sql";
 import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
 import { labels as labelTable } from "@/db/schema/entities/label.sql";
 import { repos } from "@/db/schema/entities/repo.sql";
-import { conflictUpdateAllExcept } from "@/db/utils/conflict";
+import { conflictUpdateOnly } from "@/db/utils/conflict";
 import { sanitizeForPg } from "@/db/utils/string";
 import type { Github } from "@/github";
 
 export namespace Repo {
-  export async function getReposForCron(db: DbClient) {
-    return await db
-      .select({
-        repoId: repos.id,
-        repoName: repos.name,
-        repoOwner: repos.owner,
-        issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
-      })
-      .from(repos)
-      .where(
-        // basically, get all repos that have been initialized
-        // isSyncing protects against concurrent sync attempts
-        and(isNotNull(repos.issuesLastUpdatedAt), eq(repos.isSyncing, false)),
-      );
-  }
-  export async function markIsSyncingFalse(
-    args:
-      | {
-          repoId: string;
-          successfulSynced: true;
-          syncedAt: Date;
-        }
-      | { repoId: string; successfulSynced: false },
-    db: DbClient,
-  ) {
-    await db
-      .update(repos)
-      .set({
-        isSyncing: false,
-        lastSyncedAt: args.successfulSynced ? args.syncedAt : undefined,
-      })
-      .where(eq(repos.id, args.repoId));
-  }
-
   export async function createRepo(
     data: Awaited<ReturnType<typeof Github.getRepo>>,
     db: DbClient,
@@ -66,16 +32,77 @@ export namespace Repo {
       })
       .onConflictDoUpdate({
         target: [repos.nodeId],
-        set: conflictUpdateAllExcept(repos, ["nodeId", "id", "createdAt"]),
+        set: conflictUpdateOnly(repos, [
+          "owner",
+          "name",
+          "htmlUrl",
+          "isPrivate",
+          "updatedAt",
+        ]),
       })
       .returning({
         repoId: repos.id,
-        issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
+        initStatus: repos.initStatus,
         repoName: repos.name,
         repoOwner: repos.owner,
       });
+    if (!result) {
+      throw new Error("Failed to create repo");
+    }
     return result;
   }
+  export async function getNextEnqueuedRepo(db: DbClient) {
+    return await db.transaction(async (tx) => {
+      const [repo] = await tx
+        .select({
+          repoId: repos.id,
+          repoName: repos.name,
+          repoOwner: repos.owner,
+          repoIssuesLastUpdatedAt: repoIssuesLastUpdatedSql(repos),
+        })
+        .from(repos)
+        .where(
+          and(
+            eq(repos.initStatus, "completed"),
+            eq(repos.syncStatus, "queued"),
+          ),
+        )
+        // nulls first index ensure nulls are picked first
+        .orderBy(asc(repos.lastSyncedAt))
+        .limit(1)
+        .for("update", { skipLocked: true });
+      if (!repo) {
+        return null;
+      }
+      await tx
+        .update(repos)
+        .set({ syncStatus: "in_progress" })
+        .where(eq(repos.id, repo.repoId));
+      return repo;
+    });
+  }
+  export async function enqueueReposForIssueSync(db: DbClient) {
+    return await db
+      .update(repos)
+      .set({
+        syncStatus: "queued",
+      })
+      .where(
+        and(
+          eq(repos.initStatus, "completed"),
+          eq(repos.syncStatus, "ready"),
+          or(
+            isNull(repos.lastSyncedAt),
+            // just to make sure we don't sync a repo that has just synced recently
+            lt(repos.lastSyncedAt, sql`NOW() - INTERVAL '10 minutes'`),
+          ),
+        ),
+      )
+      .returning({
+        repoId: repos.id,
+      });
+  }
+  // return issueIds to be used for embeddings update
   export async function upsertIssuesCommentsLabels(
     {
       issuesToInsert,
@@ -83,7 +110,7 @@ export namespace Repo {
       labelsToInsert,
       issueToLabelRelationsToInsertNodeIds,
     }: Awaited<
-      ReturnType<typeof Github.getIssuesCommentsLabels>
+      ReturnType<typeof Github.getIssuesViaIterator>
     >["issuesAndCommentsLabels"],
     db: DbClient,
   ) {
@@ -92,6 +119,9 @@ export namespace Repo {
       title: sanitizeForPg(issue.title),
       body: sanitizeForPg(issue.body),
     }));
+    if (sanitizedIssuesToInsert.length === 0) {
+      return [];
+    }
     const sanitizedCommentsToInsert = commentsToInsert.map((comment) => ({
       ...comment,
       body: sanitizeForPg(comment.body),
@@ -101,29 +131,40 @@ export namespace Repo {
       description: label.description ? sanitizeForPg(label.description) : null,
     }));
 
-    await db.transaction(async (tx) => {
-      await tx
+    return await db.transaction(async (tx) => {
+      const insertedIssueIds = await tx
         .insert(issueTable)
         .values(sanitizedIssuesToInsert)
         .onConflictDoUpdate({
           target: [issueTable.nodeId],
-          set: conflictUpdateAllExcept(issueTable, [
-            "nodeId",
-            "id",
-            "createdAt",
+          set: conflictUpdateOnly(issueTable, [
+            "author",
+            "number",
+            "issueState",
+            "htmlUrl",
+            "issueStateReason",
+            "title",
+            "body",
+            "issueCreatedAt",
+            "issueUpdatedAt",
+            "issueClosedAt",
+            "updatedAt",
           ]),
+        })
+        .returning({
+          id: issueTable.id,
         });
       if (labelsToInsert.length > 0) {
-        console.log("inserting labels");
         await tx
           .insert(labelTable)
           .values(sanitizedLabelsToInsert)
           .onConflictDoUpdate({
             target: [labelTable.nodeId],
-            set: conflictUpdateAllExcept(labelTable, [
-              "nodeId",
-              "id",
-              "createdAt",
+            set: conflictUpdateOnly(labelTable, [
+              "name",
+              "color",
+              "description",
+              "updatedAt",
             ]),
           });
       }
@@ -141,17 +182,18 @@ export namespace Repo {
           issueId: sql<string>`((SELECT id FROM issue_ids WHERE node_id = ${issueNodeId}))`,
         }));
       if (sanitizedCommentsToInsertWithIssueId.length > 0) {
-        console.log("inserting comments");
         await tx
           .with(issueIds)
           .insert(comments)
           .values(sanitizedCommentsToInsertWithIssueId)
           .onConflictDoUpdate({
             target: [comments.nodeId],
-            set: conflictUpdateAllExcept(comments, [
-              "nodeId",
-              "id",
-              "createdAt",
+            set: conflictUpdateOnly(comments, [
+              "body",
+              "author",
+              "commentCreatedAt",
+              "commentUpdatedAt",
+              "updatedAt",
             ]),
           });
       }
@@ -171,20 +213,60 @@ export namespace Repo {
           }),
         );
       if (issueToLabelRelationsToInsert.length > 0) {
-        console.log("inserting issue to label relations");
         await tx
           .with(labelIds, issueIds)
           .insert(issuesToLabels)
           .values(issueToLabelRelationsToInsert)
           .onConflictDoUpdate({
             target: [issuesToLabels.issueId, issuesToLabels.labelId],
-            set: conflictUpdateAllExcept(issuesToLabels, [
-              "issueId",
-              "labelId",
-              "createdAt",
-            ]),
+            set: conflictUpdateOnly(issuesToLabels, ["updatedAt"]),
           });
       }
+      return insertedIssueIds.map(({ id }) => id);
     });
   }
+
+  export async function getInitInProgressCount(db: DbClient) {
+    const [countRes] = await db
+      .select({
+        count: count(),
+      })
+      .from(repos)
+      .where(eq(repos.initStatus, "in_progress"));
+
+    return countRes?.count ?? 0;
+  }
+
+  export async function getInitReadyRepos(db: DbClient, numRepos: number) {
+    const result = await db
+      .select({
+        repoId: repos.id,
+        repoName: repos.name,
+        repoOwner: repos.owner,
+      })
+      .from(repos)
+      .where(eq(repos.initStatus, "ready"))
+      // always initialize earliest created repo first
+      .orderBy(asc(repos.createdAt))
+      .limit(numRepos);
+
+    return result;
+  }
+
+  export async function markInitInProgress(db: DbClient, repoIds: string[]) {
+    await db
+      .update(repos)
+      .set({ initStatus: "in_progress" })
+      .where(inArray(repos.id, repoIds));
+  }
 }
+
+export const repoIssuesLastUpdatedSql = (repoTable: typeof repos) => sql<
+  string | null
+>`(
+  SELECT ${issueTable.issueUpdatedAt}
+  FROM ${issueTable}
+  WHERE ${issueTable.repoId} = ${repoTable}.id AND ${issueTable.embedding} IS NOT NULL
+  ORDER BY ${issueTable.issueUpdatedAt} DESC
+  LIMIT 1
+)`;

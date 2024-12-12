@@ -12,10 +12,10 @@
     "deploy:prod": "bun scripts/worker.ts deploy --prod",
     "delete": "bun scripts/worker.ts delete",
     "delete:prod": "bun scripts/worker.ts delete --prod",
-    "deploy:workflows": "bun run deploy workflows/sync-repo/embedding && bun run deploy workflows/sync-repo/init && bun run deploy workflows/sync-repo/cron",
-    "deploy:workflows:prod": "bun run deploy:prod workflows/sync-repo/embedding && bun run deploy:prod workflows/sync-repo/init && bun run deploy:prod workflows/sync-repo/cron",
-    "deploy:all": "bun run deploy rate-limiter && bun run deploy workflows/sync-repo/embedding && bun run deploy workflows/sync-repo/cron && bun run deploy workflows/sync-repo/init",
-    "deploy:all:prod": "bun run deploy:prod rate-limiter && bun run deploy:prod workflows/sync-repo/embedding && bun run deploy:prod workflows/sync-repo/cron && bun run deploy:prod workflows/sync-repo/init"
+    "deploy:workflows": "bun run deploy workflows/sync/embedding && bun run deploy workflows/sync/issue && bun run deploy workflows/sync/repo-init",
+    "deploy:workflows:prod": "bun run deploy workflows/sync/embedding --prod && bun run deploy workflows/sync/issue --prod && bun run deploy workflows/sync/repo-init --prod",
+    "deploy:all": "bun run deploy rate-limiter && bun run deploy workflows/sync/embedding && bun run deploy workflows/sync/issue && bun run deploy workflows/sync/repo-init",
+    "deploy:all:prod": "bun run deploy rate-limiter --prod && bun run deploy workflows/sync/embedding --prod && bun run deploy workflows/sync/issue --prod && bun run deploy workflows/sync/repo-init --prod"
   },
   "dependencies": {
     "@semhub/core": "workspace:*",

@@ -12,7 +12,7 @@ import {
   SEARCH_OPERATORS,
   STATE_SUBMENU_VALUES,
   type SearchOperator,
-} from "@/core/constants/search";
+} from "@/core/constants/search.constant";
 import {
   Command,
   CommandGroup,

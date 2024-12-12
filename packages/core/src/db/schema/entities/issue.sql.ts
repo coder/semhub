@@ -9,7 +9,7 @@ import {
   vector,
 } from "drizzle-orm/pg-core";
 
-import type { StateSubmenuValue } from "@/constants/search";
+import type { StateSubmenuValue } from "@/constants/search.constant";
 
 import { getBaseColumns, timestamptz } from "../base.sql";
 import { type Author } from "../shared";
@@ -36,6 +36,12 @@ export const issueStateReasonEnum = pgEnum("issue_state_reason", [
   "DUPLICATE",
 ]);
 
+export const embeddingSyncStatusEnum = pgEnum("embedding_sync_status", [
+  "ready",
+  "in_progress",
+  "error",
+]);
+
 export const issueTable = pgTable(
   "issues",
   {
@@ -60,6 +66,9 @@ export const issueTable = pgTable(
     // see https://platform.openai.com/docs/api-reference/embeddings/create#embeddings-create-dimensions
     embedding: vector("embedding", { dimensions: 1536 }),
     embeddingCreatedAt: timestamptz("embedding_created_at"),
+    embeddingSyncStatus: embeddingSyncStatusEnum("embedding_sync_status")
+      .notNull()
+      .default("ready"),
   },
   (table) => ({
     repoIdIdx: index("repo_id_idx").on(table.repoId),
@@ -83,6 +92,17 @@ export const issueTable = pgTable(
       sql`lower((${table.author}->>'name'::text))`,
     ),
     issueStateIdx: index("issue_state_idx").on(table.issueState),
+    // for order desc check
+    issueUpdatedAtIdx: index("issue_updated_at_idx").on(table.issueUpdatedAt),
+    // to check if all embeddings for a repo have been created
+    embeddingNullIdx: index("embedding_null_idx")
+      .on(table.repoId)
+      .where(sql`${table.embedding} IS NULL`),
+    // to check if embedding needs to be updated
+    embeddingUpdateCheckIdx: index("embedding_update_check_idx").on(
+      table.embeddingCreatedAt,
+      table.issueUpdatedAt,
+    ),
   }),
 );
 
