@@ -16,6 +16,8 @@ function mapTableNameToPrefix(tableName: string) {
       return "cmt";
     case "labels":
       return "lbl";
+    case "issue_embeddings":
+      return "iss_emb";
     default:
       return tableName;
   }
