@@ -6,7 +6,7 @@ import { getGraphqlOctokit, getRestOctokit } from "@/core/github/shared";
 import { createOpenAIClient } from "@/core/openai";
 
 export function getDeps() {
-  const { db } = createDb({
+  const { db, closeConnection } = createDb({
     connectionString: Resource.Supabase.databaseUrl,
     isProd: Resource.App.stage === "prod",
   });
@@ -23,5 +23,12 @@ export function getDeps() {
 
   const emailClient = getEmailClient(Resource.RESEND_API_KEY.value);
 
-  return { db, emailClient, graphqlOctokit, openai, restOctokit };
+  return {
+    db,
+    closeConnection,
+    emailClient,
+    graphqlOctokit,
+    openai,
+    restOctokit,
+  };
 }
