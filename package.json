@@ -8,7 +8,6 @@
   "scripts": {
     "dev": "sst dev",
     "typecheck": "bun --filter=@semhub/core typecheck && bun --filter=@semhub/wrangler typecheck && bun --filter=@semhub/workers typecheck && bun --filter=@semhub/scripts typecheck && bun --filter=@semhub/web typecheck",
-    "typecheck:parallel": "concurrently -g --prefix \"[{name}]\" --prefix-colors \"blue.bold,green.bold,yellow.bold,red.bold,magenta.bold\" --names \"core,wrangler,workers,scripts,web\" \"bun --filter=@semhub/core typecheck\" \"bun --filter=@semhub/wrangler typecheck\" \"bun --filter=@semhub/workers typecheck\" \"bun --filter=@semhub/scripts typecheck\" \"bun --filter=@semhub/web typecheck\"",
     "format:write": "prettier . --write",
     "format:check": "prettier . --check || (echo '⚠️  Warning: Formatting issues found' && exit 0)",
     "lint": "eslint . && cd packages/web && eslint .",
