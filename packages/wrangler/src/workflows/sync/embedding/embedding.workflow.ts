@@ -6,6 +6,7 @@ import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
 import { eq, inArray } from "@/core/db";
 import { issueTable } from "@/core/db/schema/entities/issue.sql";
 import { repos } from "@/core/db/schema/entities/repo.sql";
+import { sendEmail } from "@/core/email";
 import { Embedding } from "@/core/embedding";
 import { getDeps } from "@/deps";
 import {
@@ -39,7 +40,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
 > {
   async run(event: WorkflowEvent<EmbeddingParams>, step: WorkflowStep) {
     const { mode } = event.payload;
-    const { db, openai } = getDeps(this.env);
+    const { db, openai, emailClient } = getDeps(this.env);
     const issuesToEmbed = await step.do(
       `get issues to embed from db (${mode})`,
       async () => {
@@ -89,10 +90,21 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
     } catch (e) {
       if (mode === "init") {
         const { repoId, repoName } = event.payload;
+        await step.do("send email notification", async () => {
+          const errorMessage =
+            e instanceof Error ? e.message : JSON.stringify(e);
+          await sendEmail(
+            {
+              to: "warren@coder.com",
+              subject: `${repoName} embedding failed`,
+              html: `<p>Embedding failed, error: ${errorMessage}</p>`,
+            },
+            emailClient,
+          );
+        });
         await step.do(
           `sync unsuccessful, mark repo ${repoName} init status to error`,
           async () => {
-            // TODO: ideally, also log this error/send an email to me or sth
             await db
               .update(repos)
               // this prevents the repo from being re-init again
@@ -102,17 +114,34 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         );
       }
       if (mode === "cron") {
-        // TODO: ideally, also log this error/send an email to me or sth
-        await db
-          .update(issueTable)
-          .set({ embeddingSyncStatus: "error" })
-          .where(
-            inArray(
-              issueTable.id,
-              // a little overinclusive...
-              issuesToEmbed.map((i) => i.id),
-            ),
+        await step.do("send email notification", async () => {
+          const errorMessage =
+            e instanceof Error ? e.message : JSON.stringify(e);
+          const affectedIssueIds = issuesToEmbed.map((i) => i.id).join(", ");
+          await sendEmail(
+            {
+              to: "warren@coder.com",
+              subject: `Embedding failed`,
+              html: `<p>Embedding failed, error: ${errorMessage}. Affected issue IDs: ${affectedIssueIds}</p>`,
+            },
+            emailClient,
           );
+        });
+        await step.do(
+          "update issue embedding sync status to error",
+          async () => {
+            await db
+              .update(issueTable)
+              .set({ embeddingSyncStatus: "error" })
+              .where(
+                inArray(
+                  issueTable.id,
+                  // a little overinclusive...
+                  issuesToEmbed.map((i) => i.id),
+                ),
+              );
+          },
+        );
       }
       throw e;
     }
