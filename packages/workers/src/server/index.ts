@@ -34,8 +34,8 @@ app.use("*", cors());
 // TODO: remove before merging/deploying
 app.get("/create-repo", async (c) => {
   const params = {
-    owner: "kubernetes",
-    name: "kubernetes",
+    owner: "microsoft",
+    name: "vscode",
   };
   const { db, restOctokit } = getDeps();
   const data = await Github.getRepo(params.name, params.owner, restOctokit);
