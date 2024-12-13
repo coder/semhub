@@ -3,7 +3,10 @@ node_modules
 
 # sst
 .sst
-.secrets
+
+# secrets for loading onto sst
+.secrets.dev
+.secrets.prod
 
 # tmp files
 .#*

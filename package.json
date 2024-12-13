@@ -14,8 +14,8 @@
     "lint": "eslint . && cd packages/web && eslint .",
     "lint:fix": "eslint . --fix && cd packages/web && eslint . --fix",
     "deploy:prod": "sst deploy --stage prod",
-    "secret:load": "sst secret load .secrets",
-    "secret:load:prod": "sst secret load .secrets --stage prod",
+    "secret:load": "sst secret load .secrets.dev",
+    "secret:load:prod": "sst secret load .secrets.prod --stage prod",
     "script": "cd packages/scripts && bun run shell",
     "check:all": "concurrently -g --prefix \"[{name}]\" --prefix-colors \"blue.bold,green.bold,yellow.bold,red.bold,magenta.bold\" --names \"typecheck,test,lint,format\" \"bun typecheck\" \"bun --filter=* test\" \"bun lint\" \"bun format:check\""
   },
