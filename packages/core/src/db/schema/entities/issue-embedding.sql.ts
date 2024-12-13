@@ -1,7 +1,12 @@
-import { index, pgTable, text, vector } from "drizzle-orm/pg-core";
+import { index, pgEnum, pgTable, text, vector } from "drizzle-orm/pg-core";
 
 import { getBaseColumns, timestamptz } from "../base.sql";
-import { embeddingSyncStatusEnum, issueTable } from "./issue.sql";
+import { issueTable } from "./issue.sql";
+
+export const issueEmbeddingSyncStatusEnum = pgEnum(
+  "issue_embedding_sync_status",
+  ["ready", "in_progress", "error"],
+);
 
 export const issueEmbeddingTable = pgTable(
   "issue_embeddings",
@@ -15,14 +20,18 @@ export const issueEmbeddingTable = pgTable(
     // if we use text-embedding-3-large, which has 3072 dimensions, we need to reduce dimensions
     // see https://platform.openai.com/docs/api-reference/embeddings/create#embeddings-create-dimensions
     embedding: vector("embedding", { dimensions: 1536 }),
-    embeddingCreatedAt: timestamptz("embedding_created_at"),
-    embeddingSyncStatus: embeddingSyncStatusEnum("embedding_sync_status")
+    embeddingGeneratedAt: timestamptz("embedding_generated_at"),
+    embeddingSyncStatus: issueEmbeddingSyncStatusEnum(
+      "issue_embedding_sync_status",
+    )
       .notNull()
       .default("ready"),
   },
   (table) => ({
-    issueIdIdx: index("issue_id_idx").on(table.issueId),
-    embeddingIndex: index("embeddingIndex").using(
+    issueEmbeddingsIssueIdIdx: index("issue_embeddings_issue_id_idx").on(
+      table.issueId,
+    ),
+    issueEmbeddingsEmbeddingIdx: index("issue_embeddings_embedding_idx").using(
       "hnsw",
       table.embedding.op("vector_cosine_ops"),
     ),
