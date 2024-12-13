@@ -9,6 +9,8 @@ import { conflictUpdateOnly } from "@/db/utils/conflict";
 import { sanitizeForPg } from "@/db/utils/string";
 import type { Github } from "@/github";
 
+import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
+
 export namespace Repo {
   export async function createRepo(
     data: Awaited<ReturnType<typeof Github.getRepo>>,
@@ -266,7 +268,8 @@ export const repoIssuesLastUpdatedSql = (repoTable: typeof repos) => sql<
 >`(
   SELECT ${issueTable.issueUpdatedAt}
   FROM ${issueTable}
-  WHERE ${issueTable.repoId} = ${repoTable}.id AND ${issueTable.embedding} IS NOT NULL
+  LEFT JOIN ${issueEmbeddings} ON ${issueEmbeddings.issueId} = ${issueTable.id}
+  WHERE ${issueTable.repoId} = ${repoTable}.id AND ${issueEmbeddings.embedding} IS NOT NULL
   ORDER BY ${issueTable.issueUpdatedAt} DESC
   LIMIT 1
 )`;

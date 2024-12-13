@@ -4,7 +4,7 @@ import pMap from "p-map";
 
 import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
 import { eq, inArray } from "@/core/db";
-import { issueTable } from "@/core/db/schema/entities/issue.sql";
+import { issueEmbeddings } from "@/core/db/schema/entities/issue-embedding.sql";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
 import { Embedding } from "@/core/embedding";
@@ -80,7 +80,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         await step.do(
           `update issue embeddings in db (batch ${idx + 1})`,
           async () => {
-            await Embedding.bulkUpdateIssueEmbeddings(embeddings, db);
+            await Embedding.upsertIssueEmbeddings(embeddings, db);
           },
         );
       };
@@ -131,11 +131,11 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
           "update issue embedding sync status to error",
           async () => {
             await db
-              .update(issueTable)
+              .update(issueEmbeddings)
               .set({ embeddingSyncStatus: "error" })
               .where(
                 inArray(
-                  issueTable.id,
+                  issueEmbeddings.issueId,
                   // a little overinclusive...
                   issuesToEmbed.map((i) => i.id),
                 ),

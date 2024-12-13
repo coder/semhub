@@ -7,6 +7,7 @@ import {
 import type { DbClient } from "./db";
 import { and, cosineDistance, desc, eq, gt, ilike, or, sql } from "./db";
 import { comments } from "./db/schema/entities/comment.sql";
+import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
 import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
 import {
   convertToIssueStateSql,
@@ -55,7 +56,7 @@ export namespace SemanticSearch {
       },
       openai,
     );
-    const similarity = sql<number>`(1-(${cosineDistance(issueTable.embedding, embedding)}))::float`;
+    const similarity = sql<number>`(1-(${cosineDistance(issueEmbeddings.embedding, embedding)}))::float`;
 
     // Exponential decay for recency score
     // exp(-t/τ) where:
@@ -134,6 +135,7 @@ export namespace SemanticSearch {
       })
       .from(issueTable)
       .leftJoin(repos, eq(issueTable.repoId, repos.id))
+      .leftJoin(issueEmbeddings, eq(issueEmbeddings.issueId, issueTable.id))
       .leftJoin(comments, eq(comments.issueId, issueTable.id))
       // for aggregating comment count
       .groupBy(
