@@ -1,6 +1,7 @@
 import { Resource } from "sst";
 
 import { createDb } from "@/core/db";
+import { getEmailClient } from "@/core/email";
 import { getGraphqlOctokit, getRestOctokit } from "@/core/github/shared";
 import { createOpenAIClient } from "@/core/openai";
 
@@ -20,5 +21,7 @@ export function getDeps() {
     Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value,
   );
 
-  return { db, graphqlOctokit, openai, restOctokit };
+  const emailClient = getEmailClient(Resource.RESEND_API_KEY.value);
+
+  return { db, emailClient, graphqlOctokit, openai, restOctokit };
 }

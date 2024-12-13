@@ -1,7 +1,13 @@
-// import { Repo } from "@/core/repo";
-// import { getDeps } from "@/deps";
+import { sendEmail } from "@/core/email";
+import { getDeps } from "@/deps";
 
-// const { db } = getDeps();
+const { emailClient } = getDeps();
 
-// const res = await Repo.getRepoLastIssueWithEmbedding("asd", db);
-// console.log(JSON.stringify(res, null, 2));
+await sendEmail(
+  {
+    to: "warren@coder.com",
+    subject: "Test",
+    html: "<p>Test</p>",
+  },
+  emailClient,
+);

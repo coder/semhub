@@ -5,6 +5,7 @@ import { NonRetryableError } from "cloudflare:workflows";
 import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
 import { eq } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
+import { sendEmail } from "@/core/email";
 import { Github } from "@/core/github";
 import { Repo, repoIssuesLastUpdatedSql } from "@/core/repo";
 import { getDeps } from "@/deps";
@@ -38,7 +39,7 @@ export type RepoInitParams = {
 export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
   async run(event: WorkflowEvent<RepoInitParams>, step: WorkflowStep) {
     const { repoId } = event.payload;
-    const { db, graphqlOctokit } = getDeps(this.env);
+    const { db, graphqlOctokit, emailClient } = getDeps(this.env);
     const result = await step.do("get repo info from db", async () => {
       const [result] = await db
         .select({
@@ -202,6 +203,17 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         });
       }
     } catch (e) {
+      await step.do("send email notification", async () => {
+        const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
+        await sendEmail(
+          {
+            to: "warren@coder.com",
+            subject: `${name} init failed`,
+            html: `<p>Init failed, error: ${errorMessage}</p>`,
+          },
+          emailClient,
+        );
+      });
       await step.do(
         "sync unsuccessful, mark repo init status to error",
         async () => {

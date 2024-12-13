@@ -4,6 +4,7 @@ import { WorkflowEntrypoint } from "cloudflare:workers";
 import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
 import { eq } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
+import { sendEmail } from "@/core/email";
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
@@ -17,7 +18,7 @@ interface Env extends WranglerSecrets {
 
 export class IssueWorkflow extends WorkflowEntrypoint<Env> {
   async run(_: WorkflowEvent<{}>, step: WorkflowStep) {
-    const { db, graphqlOctokit } = getDeps(this.env);
+    const { db, graphqlOctokit, emailClient } = getDeps(this.env);
     const res = await step.do("get repo data and mark as syncing", async () => {
       return await Repo.getNextEnqueuedRepo(db);
     });
@@ -66,6 +67,17 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
           .where(eq(repos.id, repoId));
       });
     } catch (e) {
+      await step.do("send email notification", async () => {
+        const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
+        await sendEmail(
+          {
+            to: "warren@coder.com",
+            subject: `${name} sync failed`,
+            html: `<p>Sync failed, error: ${errorMessage}</p>`,
+          },
+          emailClient,
+        );
+      });
       // mark repo as error
       await step.do(`mark ${name} as error`, async () => {
         await db

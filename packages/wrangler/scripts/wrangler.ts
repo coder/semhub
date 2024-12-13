@@ -33,6 +33,7 @@ async function deploy() {
     //     OPENAI_API_KEY: Resource.OPENAI_API_KEY.value,
     //     GITHUB_PERSONAL_ACCESS_TOKEN:
     //       Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value,
+    //     RESEND_API_KEY: Resource.RESEND_API_KEY.value,
     //   };
     //   for (const [key, value] of Object.entries(secrets)) {
     //     execSync(
