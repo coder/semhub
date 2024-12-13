@@ -17,7 +17,7 @@ export async function sendEmail(
   client: Resend,
 ) {
   const { data, error } = await client.emails.send({
-    from: "Notification <notifications@semhub.dev>",
+    from: "Notification <notifications@mail.semhub.dev>",
     to,
     subject,
     html,
