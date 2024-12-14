@@ -19,6 +19,14 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "Supabase": {
+      "databasePassword": string
+      "databaseUrl": string
+      "organizationId": string
+      "projectName": string
+      "region": string
+      "type": "sst.sst.Linkable"
+    }
     "Web": {
       "type": "sst.aws.StaticSite"
       "url": string

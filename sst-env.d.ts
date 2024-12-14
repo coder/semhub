@@ -25,6 +25,14 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "Supabase": {
+      "databasePassword": string
+      "databaseUrl": string
+      "organizationId": string
+      "projectName": string
+      "region": string
+      "type": "sst.sst.Linkable"
+    }
     "SyncEmbeddingHandler": {
       "type": "sst.cloudflare.Worker"
     }
