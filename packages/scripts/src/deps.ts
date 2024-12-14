@@ -5,10 +5,10 @@ import { getEmailClient } from "@/core/email";
 import { getGraphqlOctokit, getRestOctokit } from "@/core/github/shared";
 import { createOpenAIClient } from "@/core/openai";
 
-export function getDeps() {
-  const { db } = createDb({
+export function getDeps(withLogging = true) {
+  const { db, closeConnection } = createDb({
     connectionString: Resource.Supabase.databaseUrl,
-    isProd: Resource.App.stage === "prod",
+    isProd: !withLogging,
   });
 
   const openai = createOpenAIClient(Resource.OPENAI_API_KEY.value);
@@ -23,5 +23,12 @@ export function getDeps() {
 
   const emailClient = getEmailClient(Resource.RESEND_API_KEY.value);
 
-  return { db, emailClient, graphqlOctokit, openai, restOctokit };
+  return {
+    db,
+    closeConnection,
+    emailClient,
+    graphqlOctokit,
+    openai,
+    restOctokit,
+  };
 }
