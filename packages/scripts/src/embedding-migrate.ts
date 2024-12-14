@@ -32,10 +32,9 @@ async function main() {
   }
 
   let processedCount = 0;
-  let offset = 0;
 
   while (processedCount < embeddingCount) {
-    console.log(`Processing chunk starting at offset ${offset}...`);
+    console.log(`Processing chunk ${processedCount}...`);
 
     const issuesChunk = await db
       .select({
@@ -48,8 +47,7 @@ async function main() {
       .leftJoin(issueEmbeddings, eq(issueEmbeddings.issueId, issues.id))
       .where(and(isNotNull(issues.embedding), isNull(issueEmbeddings.id)))
       .orderBy(issues.id)
-      .limit(CHUNK_SIZE)
-      .offset(offset);
+      .limit(CHUNK_SIZE);
 
     if (issuesChunk.length === 0) break;
 
@@ -76,16 +74,15 @@ async function main() {
             "embeddingModel",
             "embeddingSyncStatus",
           ]),
+        })
+        .returning({
+          id: issueEmbeddings.id,
         });
 
       console.log(`Inserted ${insertedEmbeddings.length} embeddings`);
     });
 
     processedCount += issuesChunk.length;
-    offset += CHUNK_SIZE;
-    console.log(
-      `Progress: ${processedCount}/${embeddingCount} (${Math.round((processedCount / embeddingCount) * 100)}%)`,
-    );
   }
 
   await closeConnection();
