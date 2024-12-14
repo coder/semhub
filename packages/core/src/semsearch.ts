@@ -137,7 +137,6 @@ export namespace SemanticSearch {
         repoOwnerName: repos.owner,
         repoLastSyncedAt: repos.lastSyncedAt,
         commentCount: count(comments.id).as("comment_count"),
-        similarityScore: sql`(${similarityScore})`,
         rankingScore,
       })
       .from(issueTable)
@@ -150,7 +149,6 @@ export namespace SemanticSearch {
         repos.name,
         repos.owner,
         repos.lastSyncedAt,
-        sql`(${similarityScore})`,
       )
       .orderBy(desc(rankingScore))
       .where(
