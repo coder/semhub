@@ -3,7 +3,7 @@ import { WorkflowEntrypoint } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
 
 import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
-import { eq } from "@/core/db";
+import { eq, sql } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
 import { Github } from "@/core/github";
@@ -47,7 +47,9 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           repoName: repos.name,
           repoOwner: repos.owner,
           initLastEndCursor: repos.initLastEndCursor,
-          issueLastUpdatedAt: repoIssuesLastUpdatedSql(repos),
+          issueLastUpdatedAt: sql<
+            string | null
+          >`(${repoIssuesLastUpdatedSql(repos, db)})`,
         })
         .from(repos)
         .where(eq(repos.id, repoId))

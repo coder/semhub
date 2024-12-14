@@ -1,13 +1,11 @@
-import { sendEmail } from "@/core/email";
+import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 
-const { emailClient } = getDeps();
+const { db } = getDeps();
 
-await sendEmail(
-  {
-    to: "warren@coder.com",
-    subject: "Test",
-    html: "<p>Test</p>",
-  },
-  emailClient,
-);
+try {
+  const repo = await Repo.getNextEnqueuedRepo(db);
+  console.log(repo);
+} catch (e) {
+  console.error(e);
+}

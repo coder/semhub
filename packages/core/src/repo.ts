@@ -1,5 +1,5 @@
 import type { DbClient } from "@/db";
-import { and, asc, count, eq, inArray, isNull, lt, or, sql } from "@/db";
+import { and, asc, count, desc, eq, inArray, isNull, lt, or, sql } from "@/db";
 import { comments } from "@/db/schema/entities/comment.sql";
 import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
@@ -60,7 +60,9 @@ export namespace Repo {
           repoId: repos.id,
           repoName: repos.name,
           repoOwner: repos.owner,
-          repoIssuesLastUpdatedAt: repoIssuesLastUpdatedSql(repos),
+          repoIssuesLastUpdatedAt: sql<
+            string | null
+          >`(${repoIssuesLastUpdatedSql(repos, tx)})`,
         })
         .from(repos)
         .where(
@@ -263,13 +265,16 @@ export namespace Repo {
   }
 }
 
-export const repoIssuesLastUpdatedSql = (repoTable: typeof repos) => sql<
-  string | null
->`(
-  SELECT ${issueTable.issueUpdatedAt}
-  FROM ${issueTable}
-  LEFT JOIN ${issueEmbeddings} ON ${issueEmbeddings.issueId} = ${issueTable.id}
-  WHERE ${issueTable.repoId} = ${repoTable}.id AND ${issueEmbeddings.embedding} IS NOT NULL
-  ORDER BY ${issueTable.issueUpdatedAt} DESC
-  LIMIT 1
-)`;
+export const repoIssuesLastUpdatedSql = (
+  repoTable: typeof repos,
+  db: DbClient,
+) =>
+  db
+    .select({
+      lastUpdated: issueTable.issueUpdatedAt,
+    })
+    .from(issueTable)
+    .innerJoin(issueEmbeddings, eq(issueEmbeddings.issueId, issueTable.id))
+    .where(eq(issueTable.repoId, repoTable.id))
+    .orderBy(desc(issueTable.issueUpdatedAt))
+    .limit(1);
