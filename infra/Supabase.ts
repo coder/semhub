@@ -14,7 +14,7 @@ const db = new supabase.Project("semhub-db", {
   name: `semhub-db-${$app.stage}`,
   organizationId: supabaseOrgId,
   databasePassword: supabasePassword.result,
-  region: "ap-southeast-1",
+  region: $app.stage === "prod" ? "us-east-1" : "ap-southeast-1",
 });
 
 // Get the pooler URL and replace the password placeholder
