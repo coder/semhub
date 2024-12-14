@@ -1,7 +1,10 @@
-import { index, pgEnum, pgTable, text, vector } from "drizzle-orm/pg-core";
+import { index, pgEnum, pgTable, text, uniqueIndex, vector } from "drizzle-orm/pg-core";
+
+
 
 import { getBaseColumns, timestamptz } from "../base.sql";
 import { issueTable } from "./issue.sql";
+
 
 export const issueEmbeddingSyncStatusEnum = pgEnum(
   "issue_embedding_sync_status",
@@ -28,7 +31,7 @@ export const issueEmbeddingTable = pgTable(
       .default("ready"),
   },
   (table) => ({
-    issueEmbeddingsIssueIdIdx: index("issue_embeddings_issue_id_idx").on(
+    issueEmbeddingsIssueIdIdx: uniqueIndex("issue_embeddings_issue_id_idx").on(
       table.issueId,
     ),
     issueEmbeddingsEmbeddingIdx: index("issue_embeddings_embedding_idx").using(

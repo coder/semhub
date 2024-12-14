@@ -1,21 +1,23 @@
-import { count, isNotNull } from "drizzle-orm";
+import { and, count, eq, isNotNull, isNull } from "drizzle-orm";
 import { ulid } from "ulidx";
 
 import { issueEmbeddingTable as issueEmbeddings } from "@/core/db/schema/entities/issue-embedding.sql";
 import { issueTable as issues } from "@/core/db/schema/entities/issue.sql";
+import { conflictUpdateOnly } from "@/core/db/utils/conflict";
 import { getDeps } from "@/deps";
 
 async function main() {
   console.log("Starting embedding migration...");
 
-  const { db, closeConnection } = getDeps();
-  const CHUNK_SIZE = 100; // Adjust based on your needs
+  const { db, closeConnection } = getDeps(false);
+  const CHUNK_SIZE = 500; // Adjust based on your needs
 
   // Get total count first
   const [totalCount] = await db
     .select({ count: count() })
     .from(issues)
-    .where(isNotNull(issues.embedding));
+    .leftJoin(issueEmbeddings, eq(issueEmbeddings.issueId, issues.id))
+    .where(and(isNotNull(issues.embedding), isNull(issueEmbeddings.id)));
 
   if (!totalCount) {
     throw new Error("Something went wrong while fetching count");
@@ -43,7 +45,9 @@ async function main() {
         embeddingGeneratedAt: issues.embeddingCreatedAt,
       })
       .from(issues)
-      .where(isNotNull(issues.embedding))
+      .leftJoin(issueEmbeddings, eq(issueEmbeddings.issueId, issues.id))
+      .where(and(isNotNull(issues.embedding), isNull(issueEmbeddings.id)))
+      .orderBy(issues.id)
       .limit(CHUNK_SIZE)
       .offset(offset);
 
@@ -64,7 +68,15 @@ async function main() {
       const insertedEmbeddings = await tx
         .insert(issueEmbeddings)
         .values(embeddingsToInsert)
-        .returning({ id: issueEmbeddings.id });
+        .onConflictDoUpdate({
+          target: [issueEmbeddings.issueId],
+          set: conflictUpdateOnly(issueEmbeddings, [
+            "embedding",
+            "embeddingGeneratedAt",
+            "embeddingModel",
+            "embeddingSyncStatus",
+          ]),
+        });
 
       console.log(`Inserted ${insertedEmbeddings.length} embeddings`);
     });
