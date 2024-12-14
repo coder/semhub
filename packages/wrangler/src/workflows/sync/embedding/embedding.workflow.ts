@@ -78,7 +78,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
           },
         );
         await step.do(
-          `update issue embeddings in db (batch ${idx + 1})`,
+          `upsert issue embeddings in db (batch ${idx + 1})`,
           async () => {
             await Embedding.upsertIssueEmbeddings(embeddings, db);
           },
