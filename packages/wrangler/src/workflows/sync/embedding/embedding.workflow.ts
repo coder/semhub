@@ -8,12 +8,13 @@ import { issueEmbeddings } from "@/core/db/schema/entities/issue-embedding.sql";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
 import { Embedding } from "@/core/embedding";
+import { chunkArray } from "@/core/util";
 import { getDeps } from "@/deps";
 import {
   BATCH_SIZE_PER_EMBEDDING_CHUNK,
   NUM_ISSUES_TO_EMBED_PER_CRON,
 } from "@/workflows/sync/sync.param";
-import { chunkArray, type WorkflowRPC } from "@/workflows/workflow.util";
+import { type WorkflowRPC } from "@/workflows/workflow.util";
 
 interface Env extends WranglerSecrets {
   SYNC_EMBEDDING_WORKFLOW: Workflow;
