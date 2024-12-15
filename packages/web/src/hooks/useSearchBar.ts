@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { SEARCH_OPERATORS } from "@/core/constants/search.constant";
 import type {
@@ -138,9 +138,16 @@ export function useSearchBar(initialQuery = "") {
     );
   }, [showDropdown, isFocused, isTouched, commandInputValue, subMenu]);
 
-  useEffect(() => {
-    setCommandValue(defaultCommandValue);
-  }, [shouldShowDropdown]);
+  // this effect is necessary to override cmdk's built-in auto selection of the first item
+  // while still allowing manual selection via arrow keys
+  // remove this effect to see the difference in behavior
+  useLayoutEffect(() => {
+    // We use setTimeout to ensure our reset runs after the library's effect
+    const timer = setTimeout(() => {
+      setCommandValue(defaultCommandValue);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [commandInputValue]);
 
   // offset dropdown menu relative to where the user's currently typed word is
   const [menuCursorOffsetX, setMenuCursorOffsetX] = useState(0);
