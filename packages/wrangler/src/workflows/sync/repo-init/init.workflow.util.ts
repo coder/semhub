@@ -27,6 +27,7 @@ export async function initNextRepos(
       }
 
       const repoIdsToInit = repos.map(({ repoId }) => repoId);
+      await Repo.markInitInProgress(tx, repoIdsToInit);
       await Promise.all(
         repos.map(({ repoId, repoName, repoOwner }) =>
           workflow.create({
@@ -35,7 +36,6 @@ export async function initNextRepos(
           }),
         ),
       );
-      await Repo.markInitInProgress(tx, repoIdsToInit);
       return { success: true, repoIds: repoIdsToInit } as const;
     },
     {

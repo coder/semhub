@@ -4,7 +4,7 @@ import type { WorkflowStepConfig } from "cloudflare:workers";
 // where we truncate body size and code blocks
 
 //* Parameters for init workflow *//
-export const NUM_CONCURRENT_INITS = 1;
+export const NUM_CONCURRENT_INITS = 3;
 // for GitHub API calls
 export const NUM_EMBEDDING_WORKERS = 4; // also corresponds to number of consecutive API calls + upserts before spinning up workers
 
@@ -12,10 +12,9 @@ export const NUM_EMBEDDING_WORKERS = 4; // also corresponds to number of consecu
 export const PARENT_WORKER_SLEEP_DURATION = "30 seconds";
 
 // to avoid issues due to workers return size limit
-// attempt 0: 100, attempt 1: 50, attempt 2: 25, attempt 3: 12, attempt 4: 6, attempt 5: 3, attempt 6: 2
-// min 2 because there will always at least be 1
 const DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL = 100;
 export const REDUCE_ISSUES_MAX_ATTEMPTS = 6;
+// attempt 0: 100, attempt 1: 50, attempt 2: 25, attempt 3: 12, attempt 4: 6, attempt 5: 3, attempt 6: 2
 export const getNumIssues = (attempt: number) =>
   Math.max(
     1,

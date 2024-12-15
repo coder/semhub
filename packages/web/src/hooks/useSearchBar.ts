@@ -140,7 +140,7 @@ export function useSearchBar(initialQuery = "") {
 
   // this effect is necessary to override cmdk's built-in auto selection of the first item
   // while still allowing manual selection via arrow keys
-  // remove this effect to see the difference in behavior
+  // this results in a slight flicker, remove this effect to see the difference in behavior
   useLayoutEffect(() => {
     // We use setTimeout to ensure our reset runs after the library's effect
     const timer = setTimeout(() => {
