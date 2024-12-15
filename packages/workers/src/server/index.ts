@@ -32,13 +32,11 @@ export const app = new Hono<Context>();
 app.use("*", cors());
 
 // TODO: remove before merging/deploying
-app.get("/create-repo", async (c) => {
-  const params = {
-    owner: "microsoft",
-    name: "vscode",
-  };
+app.post("/create-repo", async (c) => {
+  const { owner, name } = await c.req.json<{ owner: string; name: string }>();
+
   const { db, restOctokit } = getDeps();
-  const data = await Github.getRepo(params.name, params.owner, restOctokit);
+  const data = await Github.getRepo(name, owner, restOctokit);
   const createdRepo = await Repo.createRepo(data, db);
   if (createdRepo.initStatus !== "ready") {
     return c.json({
