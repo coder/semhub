@@ -8,6 +8,12 @@ export function getDeps(secrets: WranglerSecrets) {
   const { db } = createDb({
     connectionString: secrets.DATABASE_URL,
     isProd: process.env.ENVIRONMENT === "prod",
+    options: {
+      connect_timeout: 10000, // 10 seconds
+      connection: {
+        statement_timeout: 60000, // 60 seconds
+      },
+    },
   });
 
   const openai = createOpenAIClient(secrets.OPENAI_API_KEY);

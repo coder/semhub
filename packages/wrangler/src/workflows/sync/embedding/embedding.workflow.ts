@@ -12,6 +12,7 @@ import { chunkArray } from "@/core/util";
 import { getDeps } from "@/deps";
 import {
   BATCH_SIZE_PER_EMBEDDING_CHUNK,
+  getDbStepConfig,
   NUM_ISSUES_TO_EMBED_PER_CRON,
 } from "@/workflows/sync/sync.param";
 import { type WorkflowRPC } from "@/workflows/workflow.util";
@@ -44,6 +45,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
     const { db, openai, emailClient } = getDeps(this.env);
     const issuesToEmbed = await step.do(
       `get issues to embed from db (${mode})`,
+      getDbStepConfig("long"),
       async () => {
         return mode === "init"
           ? await Embedding.selectIssuesForEmbeddingInit(
@@ -80,6 +82,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         );
         await step.do(
           `upsert issue embeddings in db (batch ${idx + 1})`,
+          getDbStepConfig("long"),
           async () => {
             await Embedding.upsertIssueEmbeddings(embeddings, db);
           },
@@ -105,6 +108,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         });
         await step.do(
           `sync unsuccessful, mark repo ${repoName} init status to error`,
+          getDbStepConfig("short"),
           async () => {
             await db
               .update(repos)
@@ -130,6 +134,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         });
         await step.do(
           "update issue embedding sync status to error",
+          getDbStepConfig("short"),
           async () => {
             await db
               .update(issueEmbeddings)

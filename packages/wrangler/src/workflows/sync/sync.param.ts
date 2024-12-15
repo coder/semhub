@@ -1,3 +1,5 @@
+import type { WorkflowStepConfig } from "cloudflare:workers";
+
 //* Parameters for init workflow *//
 export const NUM_CONCURRENT_INITS = 1;
 // for GitHub API calls
@@ -26,3 +28,16 @@ export const NUM_CONCURRENT_EMBEDDING_CRONS = 1;
 
 //* Parameters for issue sync workflow *//
 export const NUM_CONCURRENT_ISSUE_CRONS = 1;
+
+//* Parameters for database steps config *//
+
+export const getDbStepConfig = (
+  type: "short" | "long",
+): WorkflowStepConfig => ({
+  timeout: type === "short" ? "10 seconds" : "60 seconds",
+  retries: {
+    limit: 5,
+    backoff: "constant",
+    delay: "10 seconds",
+  },
+});
