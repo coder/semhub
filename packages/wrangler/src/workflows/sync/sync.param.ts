@@ -1,5 +1,8 @@
 import type { WorkflowStepConfig } from "cloudflare:workers";
 
+// See also bodySchema in core/src/github/schema.ts
+// where we truncate body size and code blocks
+
 //* Parameters for init workflow *//
 export const NUM_CONCURRENT_INITS = 1;
 // for GitHub API calls
