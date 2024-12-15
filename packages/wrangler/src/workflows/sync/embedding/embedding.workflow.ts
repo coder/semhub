@@ -4,16 +4,18 @@ import pMap from "p-map";
 
 import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
 import { eq, inArray } from "@/core/db";
-import { issueTable } from "@/core/db/schema/entities/issue.sql";
+import { issueEmbeddings } from "@/core/db/schema/entities/issue-embedding.sql";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
 import { Embedding } from "@/core/embedding";
+import { chunkArray } from "@/core/util";
 import { getDeps } from "@/deps";
 import {
   BATCH_SIZE_PER_EMBEDDING_CHUNK,
+  getDbStepConfig,
   NUM_ISSUES_TO_EMBED_PER_CRON,
 } from "@/workflows/sync/sync.param";
-import { chunkArray, type WorkflowRPC } from "@/workflows/workflow.util";
+import { type WorkflowRPC } from "@/workflows/workflow.util";
 
 interface Env extends WranglerSecrets {
   SYNC_EMBEDDING_WORKFLOW: Workflow;
@@ -43,6 +45,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
     const { db, openai, emailClient } = getDeps(this.env);
     const issuesToEmbed = await step.do(
       `get issues to embed from db (${mode})`,
+      getDbStepConfig("medium"),
       async () => {
         return mode === "init"
           ? await Embedding.selectIssuesForEmbeddingInit(
@@ -78,9 +81,10 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
           },
         );
         await step.do(
-          `update issue embeddings in db (batch ${idx + 1})`,
+          `upsert issue embeddings in db (batch ${idx + 1})`,
+          getDbStepConfig("medium"),
           async () => {
-            await Embedding.bulkUpdateIssueEmbeddings(embeddings, db);
+            await Embedding.upsertIssueEmbeddings(embeddings, db);
           },
         );
       };
@@ -104,6 +108,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         });
         await step.do(
           `sync unsuccessful, mark repo ${repoName} init status to error`,
+          getDbStepConfig("short"),
           async () => {
             await db
               .update(repos)
@@ -129,13 +134,14 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         });
         await step.do(
           "update issue embedding sync status to error",
+          getDbStepConfig("short"),
           async () => {
             await db
-              .update(issueTable)
+              .update(issueEmbeddings)
               .set({ embeddingSyncStatus: "error" })
               .where(
                 inArray(
-                  issueTable.id,
+                  issueEmbeddings.issueId,
                   // a little overinclusive...
                   issuesToEmbed.map((i) => i.id),
                 ),

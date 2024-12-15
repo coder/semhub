@@ -11,7 +11,7 @@ export const issueEmbeddingSyncStatusEnum = pgEnum(
   ["ready", "in_progress", "error"],
 );
 
-export const issueEmbeddingTable = pgTable(
+export const issueEmbeddings = pgTable(
   "issue_embeddings",
   {
     ...getBaseColumns("issue_embeddings"),
