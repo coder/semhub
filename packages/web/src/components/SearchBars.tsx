@@ -106,11 +106,8 @@ export function HomepageSearchBar() {
   } = useSearchBar();
 
   return (
-    <>
-      <form
-        onSubmit={(e) => handleSearch(e, query)}
-        className="relative mx-auto w-full max-w-xl"
-      >
+    <form onSubmit={(e) => handleSearch(e, query)}>
+      <div className="relative mx-auto w-full max-w-xl">
         <Input
           ref={inputRef}
           type="text"
@@ -150,7 +147,7 @@ export function HomepageSearchBar() {
             <XIcon className="size-4 text-muted-foreground" />
           </Button>
         )}
-      </form>
+      </div>
       <div className="mt-8 space-x-4">
         <Button
           type="submit"
@@ -168,6 +165,6 @@ export function HomepageSearchBar() {
           </span>
         </Button>
       </div>
-    </>
+    </form>
   );
 }
