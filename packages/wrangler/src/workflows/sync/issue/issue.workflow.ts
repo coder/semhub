@@ -42,6 +42,7 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
       // FIXME: this will fail if there are too many issues to sync
       // can consider using children worker? let's fix only if this is an issue
       // unlikely to have so many new issues within cron interval
+      // TODO: also, can consider fetching more than 100 comments to detect controversy
       const { issuesAndCommentsLabels } = await step.do(
         `get latest issues of ${name} from GitHub`,
         async () => {

@@ -211,18 +211,18 @@ function IssueMetadata({ issue }: { issue: Issue }) {
     </FastTooltip>
   );
 
+  // we show 99+ because we only save the first 100 comments from GitHub API and 3-digit numbers may clutter
+  const commentCount = issue.commentCount >= 100 ? "99+" : issue.commentCount;
   const commentElement = (
     <Tooltip>
       <TooltipTrigger asChild>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 hover:bg-muted/80">
           <MessageSquareIcon className="size-3.5" />
-          <span className="text-xs leading-none">{issue.commentCount}</span>
+          <span className="text-xs leading-none">{commentCount}</span>
         </span>
       </TooltipTrigger>
       <TooltipContent>
-        {/* we show 99+ because we only load the first 100 comments and 3-digit numbers may clutter */}
-        {issue.commentCount >= 100 ? "99+" : issue.commentCount}{" "}
-        {issue.commentCount === 1 ? "comment" : "comments"}
+        {commentCount} {issue.commentCount === 1 ? "comment" : "comments"}
       </TooltipContent>
     </Tooltip>
   );
