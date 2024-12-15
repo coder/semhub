@@ -71,7 +71,10 @@ export const issueTable = pgTable(
     authorNameIdx: index("author_name_idx").on(
       sql`lower((${table.author}->>'name'::text))`,
     ),
-    issueStateIdx: index("issue_state_idx").on(table.issueState),
+    // partial index because (1) OPEN issue is minority of total issues; (2) more frequently querying OPEN issues
+    issueStateOpenIdx: index("issue_state_open_idx")
+      .on(table.issueState)
+      .where(sql`issue_state = 'OPEN'`),
     // for order desc check
     issueUpdatedAtIdx: index("issue_updated_at_idx").on(table.issueUpdatedAt),
   }),

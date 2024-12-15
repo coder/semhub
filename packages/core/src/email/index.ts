@@ -15,9 +15,10 @@ export async function sendEmail(
     html: string;
   },
   client: Resend,
+  envPrefix?: string,
 ) {
   const { data, error } = await client.emails.send({
-    from: "Notification <notifications@mail.semhub.dev>",
+    from: `${envPrefix ? `${envPrefix} ` : ""}Semhub <notifications@mail.semhub.dev>`,
     to,
     subject,
     html,

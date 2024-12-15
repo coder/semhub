@@ -11,8 +11,6 @@ export interface WorkflowRPC<T extends ParamsRPC = ParamsRPC, E = unknown> {
   getInstanceStatus(id: string, env?: E): Promise<InstanceStatus>;
 }
 
-
-
 export function getApproximateSizeInBytes(obj: unknown) {
   return new TextEncoder().encode(JSON.stringify(obj)).length;
 }
