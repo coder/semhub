@@ -1,19 +1,20 @@
 import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import { WorkflowEntrypoint } from "cloudflare:workers";
 
-import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
+import type { WranglerEnv } from "@/core/constants/wrangler.constant";
 import { eq } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
+import { getEnvPrefix } from "@/util";
 import { type WorkflowRPC } from "@/workflows/workflow.util";
 
 import { getDbStepConfig } from "../sync.param";
 import { generateSyncWorkflowId } from "../sync.util";
 
-interface Env extends WranglerSecrets {
+interface Env extends WranglerEnv {
   SYNC_ISSUE_WORKFLOW: Workflow;
 }
 
@@ -87,6 +88,7 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
             html: `<p>Sync failed, error: ${errorMessage}</p>`,
           },
           emailClient,
+          getEnvPrefix(this.env.ENVIRONMENT),
         );
       });
       // mark repo as error

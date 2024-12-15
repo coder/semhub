@@ -2,13 +2,14 @@ import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import { WorkflowEntrypoint } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
 
-import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
+import type { WranglerEnv } from "@/core/constants/wrangler.constant";
 import { eq, sql } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
 import { Github } from "@/core/github";
 import { Repo, repoIssuesLastUpdatedSql } from "@/core/repo";
 import { getDeps } from "@/deps";
+import { getEnvPrefix } from "@/util";
 import {
   getDbStepConfig,
   getNumIssues,
@@ -25,7 +26,7 @@ import {
 import type { EmbeddingParams } from "../embedding/embedding.workflow";
 import { generateSyncWorkflowId } from "../sync.util";
 
-interface Env extends WranglerSecrets {
+interface Env extends WranglerEnv {
   REPO_INIT_WORKFLOW: Workflow;
   SYNC_EMBEDDING_WORKFLOW: WorkflowRPC<EmbeddingParams>;
 }
@@ -228,6 +229,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             html: `<p>Init failed, error: ${errorMessage}</p>`,
           },
           emailClient,
+          getEnvPrefix(this.env.ENVIRONMENT),
         );
       });
       await step.do(

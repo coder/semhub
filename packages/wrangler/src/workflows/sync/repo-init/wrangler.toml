@@ -2,6 +2,7 @@ name = "semhub-sync-repo-init-dev"
 main = "./init.workflow.ts"
 compatibility_date = "2024-10-22"       # keep in sync with @cloudflare/workers-types
 compatibility_flags = ["nodejs_compat"]
+vars = { ENVIRONMENT = "dev" }
 
 [observability]
 enabled = true
@@ -19,6 +20,7 @@ service = "semhub-sync-embedding-dev"
 # Production environment
 [env.prod]
 name = "semhub-sync-repo-init-prod"
+vars = { ENVIRONMENT = "prod" }
 
 [[env.prod.workflows]]
 name = "semhub-sync-repo-init-workflow-prod"

@@ -2,7 +2,7 @@ import { WorkflowEntrypoint } from "cloudflare:workers";
 import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import pMap from "p-map";
 
-import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
+import type { WranglerEnv } from "@/core/constants/wrangler.constant";
 import { eq, inArray } from "@/core/db";
 import { issueEmbeddings } from "@/core/db/schema/entities/issue-embedding.sql";
 import { repos } from "@/core/db/schema/entities/repo.sql";
@@ -10,6 +10,7 @@ import { sendEmail } from "@/core/email";
 import { Embedding } from "@/core/embedding";
 import { chunkArray } from "@/core/util";
 import { getDeps } from "@/deps";
+import { getEnvPrefix } from "@/util";
 import {
   BATCH_SIZE_PER_EMBEDDING_CHUNK,
   getDbStepConfig,
@@ -17,7 +18,7 @@ import {
 } from "@/workflows/sync/sync.param";
 import { type WorkflowRPC } from "@/workflows/workflow.util";
 
-interface Env extends WranglerSecrets {
+interface Env extends WranglerEnv {
   SYNC_EMBEDDING_WORKFLOW: Workflow;
 }
 
@@ -104,6 +105,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
               html: `<p>Embedding failed, error: ${errorMessage}</p>`,
             },
             emailClient,
+            getEnvPrefix(this.env.ENVIRONMENT),
           );
         });
         await step.do(
@@ -130,6 +132,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
               html: `<p>Embedding failed, error: ${errorMessage}. Affected issue IDs: ${affectedIssueIds}</p>`,
             },
             emailClient,
+            getEnvPrefix(this.env.ENVIRONMENT),
           );
         });
         await step.do(
