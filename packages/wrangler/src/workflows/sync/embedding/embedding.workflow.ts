@@ -45,7 +45,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
     const { db, openai, emailClient } = getDeps(this.env);
     const issuesToEmbed = await step.do(
       `get issues to embed from db (${mode})`,
-      getDbStepConfig("long"),
+      getDbStepConfig("medium"),
       async () => {
         return mode === "init"
           ? await Embedding.selectIssuesForEmbeddingInit(
@@ -82,7 +82,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         );
         await step.do(
           `upsert issue embeddings in db (batch ${idx + 1})`,
-          getDbStepConfig("long"),
+          getDbStepConfig("medium"),
           async () => {
             await Embedding.upsertIssueEmbeddings(embeddings, db);
           },

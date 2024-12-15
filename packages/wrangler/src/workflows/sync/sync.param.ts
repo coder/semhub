@@ -32,9 +32,18 @@ export const NUM_CONCURRENT_ISSUE_CRONS = 1;
 //* Parameters for database steps config *//
 
 export const getDbStepConfig = (
-  type: "short" | "long",
+  type: "short" | "medium" | "long",
 ): WorkflowStepConfig => ({
-  timeout: type === "short" ? "10 seconds" : "60 seconds",
+  timeout: (() => {
+    switch (type) {
+      case "short":
+        return "10 seconds";
+      case "medium":
+        return "20 seconds";
+      case "long":
+        return "60 seconds";
+    }
+  })(),
   retries: {
     limit: 5,
     backoff: "constant",
