@@ -11,11 +11,7 @@ export interface WorkflowRPC<T extends ParamsRPC = ParamsRPC, E = unknown> {
   getInstanceStatus(id: string, env?: E): Promise<InstanceStatus>;
 }
 
-export function chunkArray<T>(array: T[], size: number): T[][] {
-  return Array.from({ length: Math.ceil(array.length / size) }, (_, index) =>
-    array.slice(index * size, (index + 1) * size),
-  );
-}
+
 
 export function getApproximateSizeInBytes(obj: unknown) {
   return new TextEncoder().encode(JSON.stringify(obj)).length;

@@ -1,5 +1,4 @@
 import dedent from "dedent";
-import type { SQL } from "drizzle-orm";
 import pMap from "p-map";
 
 import { sleep, truncateCodeBlocks, truncateToByteSize } from "@/util";
@@ -9,13 +8,15 @@ import {
   type RateLimiter,
 } from "./constants/rate-limit.constant";
 import type { DbClient } from "./db";
-import { and, asc, eq, inArray, isNull, lt, not, or, sql } from "./db";
+import { and, asc, eq, inArray, isNull, lt, not, or } from "./db";
+import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
 import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
 import type { SelectIssueForEmbedding } from "./db/schema/entities/issue.schema";
 import { issueTable } from "./db/schema/entities/issue.sql";
 import type { SelectLabelForEmbedding } from "./db/schema/entities/label.schema";
 import { labels as labelTable } from "./db/schema/entities/label.sql";
 import { repos } from "./db/schema/entities/repo.sql";
+import { conflictUpdateOnly } from "./db/utils/conflict";
 import { jsonAggBuildObjectFromJoin } from "./db/utils/json";
 import type { OpenAIClient } from "./openai";
 import { isReducePromptError } from "./openai/errors";
@@ -126,13 +127,14 @@ export namespace Embedding {
         ),
       })
       .from(issueTable)
+      .leftJoin(issueEmbeddings, eq(issueEmbeddings.issueId, issueTable.id))
       .where(
         and(
           inArray(issueTable.id, issueIds),
           // this is not strictly necessary for mode "init", since issueIds preselected
           or(
-            isNull(issueTable.embedding),
-            lt(issueTable.embeddingCreatedAt, issueTable.issueUpdatedAt),
+            isNull(issueEmbeddings.embedding),
+            lt(issueEmbeddings.embeddingGeneratedAt, issueTable.issueUpdatedAt),
           ),
         ),
       )
@@ -170,12 +172,16 @@ export namespace Embedding {
           })
           .from(issueTable)
           .leftJoin(repos, eq(repos.id, issueTable.repoId))
+          .leftJoin(issueEmbeddings, eq(issueEmbeddings.issueId, issueTable.id))
           .where(
             and(
-              eq(issueTable.embeddingSyncStatus, "ready"),
+              eq(issueEmbeddings.embeddingSyncStatus, "ready"),
               or(
-                isNull(issueTable.embedding),
-                lt(issueTable.embeddingCreatedAt, issueTable.issueUpdatedAt),
+                isNull(issueEmbeddings.embedding),
+                lt(
+                  issueEmbeddings.embeddingGeneratedAt,
+                  issueTable.issueUpdatedAt,
+                ),
               ),
               not(eq(repos.syncStatus, "in_progress")), // these repos could see their issues changing, don't create embedding
               eq(repos.initStatus, "completed"), // embedding taken care of by init workflow
@@ -187,13 +193,13 @@ export namespace Embedding {
 
         if (issues.length === 0) return [];
         await tx
-          .update(issueTable)
+          .update(issueEmbeddings)
           .set({
             embeddingSyncStatus: "in_progress",
           })
           .where(
             inArray(
-              issueTable.id,
+              issueEmbeddings.issueId,
               issues.map((i) => i.id),
             ),
           );
@@ -204,31 +210,30 @@ export namespace Embedding {
       },
     );
   }
-  export async function bulkUpdateIssueEmbeddings(
+  export async function upsertIssueEmbeddings(
     embeddings: Awaited<ReturnType<typeof Embedding.createEmbeddings>>,
     db: DbClient,
   ) {
     if (embeddings.length === 0) return;
-    const sqlChunks: SQL[] = [];
-    const issueIdArray: string[] = [];
-    sqlChunks.push(sql`(case`);
-    for (const e of embeddings) {
-      sqlChunks.push(
-        sql`when ${issueTable.id} = ${e.issueId} then '[${sql.raw(e.embedding.join(","))}]'::vector`,
-      );
-      issueIdArray.push(e.issueId);
-    }
-    sqlChunks.push(sql`end)`);
-    const embeddingSql = sql.join(sqlChunks, sql.raw(" "));
+    const issueEmbeddingsToInsert = embeddings.map((e) => ({
+      issueId: e.issueId,
+      embedding: e.embedding,
+      embeddingModel: EMBEDDING_MODEL,
+      embeddingGeneratedAt: new Date(),
+      embeddingSyncStatus: "ready" as const,
+    }));
     await db
-      .update(issueTable)
-      .set({
-        embedding: embeddingSql,
-        embeddingModel: EMBEDDING_MODEL,
-        embeddingCreatedAt: new Date(),
-        embeddingSyncStatus: "ready",
-      })
-      .where(inArray(issueTable.id, issueIdArray));
+      .insert(issueEmbeddings)
+      .values(issueEmbeddingsToInsert)
+      .onConflictDoUpdate({
+        target: [issueEmbeddings.issueId],
+        set: conflictUpdateOnly(issueEmbeddings, [
+          "embedding",
+          "embeddingModel",
+          "embeddingGeneratedAt",
+          "embeddingSyncStatus",
+        ]),
+      });
   }
   interface FormatIssueParams {
     attempt: number;

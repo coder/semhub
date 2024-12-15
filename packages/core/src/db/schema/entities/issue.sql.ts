@@ -6,7 +6,6 @@ import {
   pgEnum,
   pgTable,
   text,
-  vector,
 } from "drizzle-orm/pg-core";
 
 import type { StateSubmenuValue } from "@/constants/search.constant";
@@ -36,12 +35,6 @@ export const issueStateReasonEnum = pgEnum("issue_state_reason", [
   "DUPLICATE",
 ]);
 
-export const embeddingSyncStatusEnum = pgEnum("embedding_sync_status", [
-  "ready",
-  "in_progress",
-  "error",
-]);
-
 export const issueTable = pgTable(
   "issues",
   {
@@ -60,22 +53,9 @@ export const issueTable = pgTable(
     issueCreatedAt: timestamptz("issue_created_at").notNull(),
     issueUpdatedAt: timestamptz("issue_updated_at").notNull(),
     issueClosedAt: timestamptz("issue_closed_at"),
-    embeddingModel: text("embedding_model"),
-    // max dimension of 2000 if we use HNSW index; see https://github.com/pgvector/pgvector/issues/461
-    // if we use text-embedding-3-large, which has 3072 dimensions, we need to reduce dimensions
-    // see https://platform.openai.com/docs/api-reference/embeddings/create#embeddings-create-dimensions
-    embedding: vector("embedding", { dimensions: 1536 }),
-    embeddingCreatedAt: timestamptz("embedding_created_at"),
-    embeddingSyncStatus: embeddingSyncStatusEnum("embedding_sync_status")
-      .notNull()
-      .default("ready"),
   },
   (table) => ({
     repoIdIdx: index("repo_id_idx").on(table.repoId),
-    embeddingIndex: index("embeddingIndex").using(
-      "hnsw",
-      table.embedding.op("vector_cosine_ops"),
-    ),
     // ILIKE substring match: use GIN index
     // equality query: use regular b-tree index
     // see https://www.cybertec-postgresql.com/en/postgresql-more-performance-for-like-and-ilike-statements/
@@ -94,15 +74,6 @@ export const issueTable = pgTable(
     issueStateIdx: index("issue_state_idx").on(table.issueState),
     // for order desc check
     issueUpdatedAtIdx: index("issue_updated_at_idx").on(table.issueUpdatedAt),
-    // to check if all embeddings for a repo have been created
-    embeddingNullIdx: index("embedding_null_idx")
-      .on(table.repoId)
-      .where(sql`${table.embedding} IS NULL`),
-    // to check if embedding needs to be updated
-    embeddingUpdateCheckIdx: index("embedding_update_check_idx").on(
-      table.embeddingCreatedAt,
-      table.issueUpdatedAt,
-    ),
   }),
 );
 

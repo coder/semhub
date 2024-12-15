@@ -10,6 +10,7 @@ import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import { type WorkflowRPC } from "@/workflows/workflow.util";
 
+import { getDbStepConfig } from "../sync.param";
 import { generateSyncWorkflowId } from "../sync.util";
 
 interface Env extends WranglerSecrets {
@@ -19,9 +20,13 @@ interface Env extends WranglerSecrets {
 export class IssueWorkflow extends WorkflowEntrypoint<Env> {
   async run(_: WorkflowEvent<{}>, step: WorkflowStep) {
     const { db, graphqlOctokit, emailClient } = getDeps(this.env);
-    const res = await step.do("get repo data and mark as syncing", async () => {
-      return await Repo.getNextEnqueuedRepo(db);
-    });
+    const res = await step.do(
+      "get repo data and mark as syncing",
+      getDbStepConfig("short"),
+      async () => {
+        return await Repo.getNextEnqueuedRepo(db);
+      },
+    );
     if (!res) {
       // all repos have been synced, return early
       return;
@@ -55,17 +60,22 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
       );
       await step.do(
         `upsert issues and comments/labels of ${name}`,
+        getDbStepConfig("long"),
         async () => {
           await Repo.upsertIssuesCommentsLabels(issuesAndCommentsLabels, db);
         },
       );
       // mark repo as synced
-      await step.do(`mark ${name} as synced`, async () => {
-        await db
-          .update(repos)
-          .set({ syncStatus: "ready", lastSyncedAt: new Date() })
-          .where(eq(repos.id, repoId));
-      });
+      await step.do(
+        `mark ${name} as synced`,
+        getDbStepConfig("short"),
+        async () => {
+          await db
+            .update(repos)
+            .set({ syncStatus: "ready", lastSyncedAt: new Date() })
+            .where(eq(repos.id, repoId));
+        },
+      );
     } catch (e) {
       await step.do("send email notification", async () => {
         const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
@@ -79,12 +89,16 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
         );
       });
       // mark repo as error
-      await step.do(`mark ${name} as error`, async () => {
-        await db
-          .update(repos)
-          .set({ syncStatus: "error" })
-          .where(eq(repos.id, repoId));
-      });
+      await step.do(
+        `mark ${name} as error`,
+        getDbStepConfig("short"),
+        async () => {
+          await db
+            .update(repos)
+            .set({ syncStatus: "error" })
+            .where(eq(repos.id, repoId));
+        },
+      );
       throw e;
     }
     // even if there is an error with one repo, we still want to sync the rest

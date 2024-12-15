@@ -3,13 +3,14 @@ import { WorkflowEntrypoint } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
 
 import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
-import { eq } from "@/core/db";
+import { eq, sql } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
 import { Github } from "@/core/github";
 import { Repo, repoIssuesLastUpdatedSql } from "@/core/repo";
 import { getDeps } from "@/deps";
 import {
+  getDbStepConfig,
   getNumIssues,
   NUM_EMBEDDING_WORKERS,
   PARENT_WORKER_SLEEP_DURATION,
@@ -40,26 +41,32 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
   async run(event: WorkflowEvent<RepoInitParams>, step: WorkflowStep) {
     const { repoId } = event.payload;
     const { db, graphqlOctokit, emailClient } = getDeps(this.env);
-    const result = await step.do("get repo info from db", async () => {
-      const [result] = await db
-        .select({
-          initStatus: repos.initStatus,
-          repoName: repos.name,
-          repoOwner: repos.owner,
-          initLastEndCursor: repos.initLastEndCursor,
-          issueLastUpdatedAt: repoIssuesLastUpdatedSql(repos),
-        })
-        .from(repos)
-        .where(eq(repos.id, repoId))
-        .limit(1);
-      if (!result) {
-        throw new NonRetryableError("Repo not found");
-      }
-      if (result.initStatus !== "in_progress") {
-        throw new NonRetryableError("Repo is not in progress");
-      }
-      return result;
-    });
+    const result = await step.do(
+      "get repo info from db",
+      getDbStepConfig("short"),
+      async () => {
+        const [result] = await db
+          .select({
+            initStatus: repos.initStatus,
+            repoName: repos.name,
+            repoOwner: repos.owner,
+            initLastEndCursor: repos.initLastEndCursor,
+            issueLastUpdatedAt: sql<
+              string | null
+            >`(${repoIssuesLastUpdatedSql(repos, db)})`,
+          })
+          .from(repos)
+          .where(eq(repos.id, repoId))
+          .limit(1);
+        if (!result) {
+          throw new NonRetryableError("Repo not found");
+        }
+        if (result.initStatus !== "in_progress") {
+          throw new NonRetryableError("Repo is not in progress");
+        }
+        return result;
+      },
+    );
     const { repoName, repoOwner, issueLastUpdatedAt, initLastEndCursor } =
       result;
     const name = `${repoOwner}/${repoName}`;
@@ -128,6 +135,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             }
             const insertedIssueIds = await step.do(
               "upsert issues, comments, and labels",
+              getDbStepConfig("long"),
               async () => {
                 return await Repo.upsertIssuesCommentsLabels(
                   issuesAndCommentsLabels,
@@ -179,12 +187,16 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         }),
       );
       if (hasMoreIssues) {
-        await step.do("update repo initLastEndCursor", async () => {
-          await db
-            .update(repos)
-            .set({ initLastEndCursor: after })
-            .where(eq(repos.id, repoId));
-        });
+        await step.do(
+          "update repo initLastEndCursor",
+          getDbStepConfig("short"),
+          async () => {
+            await db
+              .update(repos)
+              .set({ initLastEndCursor: after })
+              .where(eq(repos.id, repoId));
+          },
+        );
         await step.do(
           "performed one unit of work, call itself recursively",
           async () => {
@@ -195,12 +207,16 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           },
         );
       } else {
-        await step.do(`init for repo ${name} completed`, async () => {
-          await db
-            .update(repos)
-            .set({ initStatus: "completed", initializedAt: new Date() })
-            .where(eq(repos.id, repoId));
-        });
+        await step.do(
+          `init for repo ${name} completed`,
+          getDbStepConfig("short"),
+          async () => {
+            await db
+              .update(repos)
+              .set({ initStatus: "completed", initializedAt: new Date() })
+              .where(eq(repos.id, repoId));
+          },
+        );
       }
     } catch (e) {
       await step.do("send email notification", async () => {
@@ -216,6 +232,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
       });
       await step.do(
         "sync unsuccessful, mark repo init status to error",
+        getDbStepConfig("short"),
         async () => {
           await db
             .update(repos)

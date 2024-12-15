@@ -1,7 +1,9 @@
+import type { WorkflowStepConfig } from "cloudflare:workers";
+
 //* Parameters for init workflow *//
 export const NUM_CONCURRENT_INITS = 1;
 // for GitHub API calls
-export const NUM_EMBEDDING_WORKERS = 5; // also corresponds to number of consecutive API calls + upserts before spinning up workers
+export const NUM_EMBEDDING_WORKERS = 4; // also corresponds to number of consecutive API calls + upserts before spinning up workers
 
 // duration for parent worker to sleep before checking if workers have finished
 export const PARENT_WORKER_SLEEP_DURATION = "30 seconds";
@@ -26,3 +28,25 @@ export const NUM_CONCURRENT_EMBEDDING_CRONS = 1;
 
 //* Parameters for issue sync workflow *//
 export const NUM_CONCURRENT_ISSUE_CRONS = 1;
+
+//* Parameters for database steps config *//
+
+export const getDbStepConfig = (
+  type: "short" | "medium" | "long",
+): WorkflowStepConfig => ({
+  timeout: (() => {
+    switch (type) {
+      case "short":
+        return "10 seconds";
+      case "medium":
+        return "20 seconds";
+      case "long":
+        return "60 seconds";
+    }
+  })(),
+  retries: {
+    limit: 5,
+    backoff: "constant",
+    delay: "10 seconds",
+  },
+});

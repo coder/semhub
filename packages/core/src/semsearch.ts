@@ -7,6 +7,7 @@ import {
 import type { DbClient } from "./db";
 import { and, cosineDistance, desc, eq, gt, ilike, or, sql } from "./db";
 import { comments } from "./db/schema/entities/comment.sql";
+import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
 import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
 import {
   convertToIssueStateSql,
@@ -55,7 +56,13 @@ export namespace SemanticSearch {
       },
       openai,
     );
-    const similarity = sql<number>`(1-(${cosineDistance(issueTable.embedding, embedding)}))::float`;
+    const similarityScore = db
+      .select({
+        score: sql<number>`(1-(${cosineDistance(issueEmbeddings.embedding, embedding)}))::float`,
+      })
+      .from(issueEmbeddings)
+      .where(eq(issueEmbeddings.issueId, issueTable.id))
+      .limit(1);
 
     // Exponential decay for recency score
     // exp(-t/τ) where:
@@ -88,7 +95,7 @@ export namespace SemanticSearch {
 
     // Combined ranking score
     const rankingScore = sql<number>`
-      (${RANKING_WEIGHTS.SEMANTIC_SIMILARITY}::float * ${similarity}) +
+      (${RANKING_WEIGHTS.SEMANTIC_SIMILARITY}::float * (${similarityScore})) +
       (${RANKING_WEIGHTS.RECENCY}::float * ${recencyScore}) +
       (${RANKING_WEIGHTS.COMMENT_COUNT}::float * ${commentScore}) +
       (${RANKING_WEIGHTS.ISSUE_STATE}::float * (
@@ -134,8 +141,8 @@ export namespace SemanticSearch {
       })
       .from(issueTable)
       .leftJoin(repos, eq(issueTable.repoId, repos.id))
+      .leftJoin(issueEmbeddings, eq(issueEmbeddings.issueId, issueTable.id))
       .leftJoin(comments, eq(comments.issueId, issueTable.id))
-      // for aggregating comment count
       .groupBy(
         issueTable.id, // primary key covers all issues column
         repos.htmlUrl,
@@ -148,7 +155,7 @@ export namespace SemanticSearch {
         and(
           eq(repos.initStatus, "completed"),
           // probably should switch to ranking score?
-          gt(similarity, SIMILARITY_THRESHOLD),
+          gt(sql`(${similarityScore})`, SIMILARITY_THRESHOLD),
           // general substring queries match either title or body
           ...substringQueries.map((subQuery) =>
             or(
@@ -176,7 +183,6 @@ export namespace SemanticSearch {
         ),
       )
       .limit(lucky ? 1 : 50);
-    // console.log("query", pgDialect.sqlToQuery(selected.getSQL()));
     const result = await selected;
     return result;
   }
