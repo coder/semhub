@@ -4,3 +4,7 @@ export type WranglerSecrets = {
   GITHUB_PERSONAL_ACCESS_TOKEN: string;
   RESEND_API_KEY: string;
 };
+
+export interface WranglerEnv extends WranglerSecrets {
+  ENVIRONMENT: "dev" | "prod";
+}

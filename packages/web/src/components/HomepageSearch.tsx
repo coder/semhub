@@ -7,7 +7,7 @@ export function HomepageSearch() {
     // Using relative positioning and min-h-[calc(100vh-4rem)] instead of absolute inset-0
     // to prevent the div from overlaying and blocking clicks on the header.
     // The 4rem subtraction accounts for the header height (64px).
-    <div className="relative flex min-h-[calc(100vh-4rem)] w-full items-center justify-center">
+    <div className="relative flex w-full justify-center pt-28">
       <div className="w-full max-w-screen-xl px-4 text-center">
         <Link to="/">
           <div className="relative mb-4 h-24">
