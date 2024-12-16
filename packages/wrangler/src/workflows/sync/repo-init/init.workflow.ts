@@ -71,6 +71,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
     const { repoName, repoOwner, issueLastUpdatedAt, initLastEndCursor } =
       result;
     const name = `${repoOwner}/${repoName}`;
+    let responseSizeForDebugging = 0;
     try {
       const { issueIdsArray, hasMoreIssues, after } = await step.do(
         `get ${NUM_EMBEDDING_WORKERS} API calls worth of data for ${name}`,
@@ -109,6 +110,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
 
                   const responseSize = getApproximateSizeInBytes(result);
                   if (responseSize <= RESPONSE_SIZE_LIMIT_IN_BYTES) {
+                    responseSizeForDebugging = responseSize;
                     return result;
                   }
                   if (attempt < REDUCE_ISSUES_MAX_ATTEMPTS) {
@@ -222,11 +224,12 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
     } catch (e) {
       await step.do("send email notification", async () => {
         const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
+        const errorMessageWithResponseSize = `${errorMessage} (response size: ${responseSizeForDebugging} bytes)`;
         await sendEmail(
           {
             to: "warren@coder.com",
             subject: `${name} init failed`,
-            html: `<p>Init failed, error: ${errorMessage}</p>`,
+            html: `<p>Init failed, error: ${errorMessageWithResponseSize}</p>`,
           },
           emailClient,
           getEnvPrefix(this.env.ENVIRONMENT),
