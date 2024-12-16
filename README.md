@@ -94,12 +94,16 @@ Should probably set up a script to do this automatically as part of CI/CD.
 
 ### OAuth
 
-We choose to use GitHub App (instead of OAuth App) because it's recommended by GitHub and allows for more granular control. These parts need to be configured via console. To set this up:
+We choose to use GitHub App (instead of OAuth App) because of [these reasons](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/differences-between-github-apps-and-oauth-apps) (more granular control, scale with number of users, etc.). For dev vs prod, we use separate GitHub Apps (the production one is sited within the `coder` organization).
 
-- Create a GitHub App (ours is sited within the `coder` organization)
-- Create a new private key for the app (actually unsure if necessary)
-- Create a GitHub Client ID and Secret
-- Setup a callback URL
+To set up a GitHub App:
+
+- [Register a GitHub App](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app) (dev one can be within your personal account, the [prod one](https://github.com/organizations/coder/settings/apps/coder-semhub) is within the `coder` organization)
+  - Grant the following read-only permissions: Metadata (mandatory), Discussions, Issues, Pull Requests, Contents
+  - Deselect Webhook Active (for now?)
+  - Callback URL is: `https://auth.[stage].stg.semhub.dev/github/callback`
+- Generate and save the private key
+- Create a GitHub Client ID and Secret and load it into the `.secrets.dev` file
 
 ## Known issues / todos
 

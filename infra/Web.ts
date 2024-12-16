@@ -19,6 +19,7 @@ const web = new sst.aws.StaticSite("Web", {
       }
       return url;
     }),
+    // this is not actually a secret, safe to expose on frontend
     VITE_SEMHUB_CLIENT_ID: secret.githubAppClientId.value,
   },
   build: {
