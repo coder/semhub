@@ -223,6 +223,17 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
               .where(eq(repos.id, repoId));
           },
         );
+        await step.do("send email notification", async () => {
+          await sendEmail(
+            {
+              to: "warren@coder.com",
+              subject: `${name} init completed`,
+              html: `<p>Init completed</p>`,
+            },
+            emailClient,
+            getEnvPrefix(this.env.ENVIRONMENT),
+          );
+        });
       }
     } catch (e) {
       await step.do("send email notification", async () => {

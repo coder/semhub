@@ -1,4 +1,5 @@
 import type { DbClient } from "@/core/db";
+import { sendEmail, type EmailClient } from "@/core/email";
 import { Repo } from "@/core/repo";
 import type { RepoInitParams } from "@/workflows/sync/repo-init/init.workflow";
 import { NUM_CONCURRENT_INITS } from "@/workflows/sync/sync.param";
@@ -9,8 +10,9 @@ import { generateSyncWorkflowId } from "../sync.util";
 export async function initNextRepos(
   db: DbClient,
   workflow: WorkflowRPC<RepoInitParams>,
+  email: EmailClient,
 ) {
-  return await db.transaction(
+  const res = await db.transaction(
     async (tx) => {
       const inProgressCount = await Repo.getInitInProgressCount(tx);
       if (inProgressCount >= NUM_CONCURRENT_INITS) {
@@ -35,10 +37,23 @@ export async function initNextRepos(
           }),
         ),
       );
-      return { success: true, repoIds: repoIdsToInit } as const;
+      return { success: true, repos } as const;
     },
     {
       isolationLevel: "serializable",
     },
   );
+  if (res.success) {
+    await sendEmail(
+      {
+        to: "warren@coder.com",
+        subject: "Repo init completed",
+        html: `<p>Initialized the following repos: ${res.repos
+          .map(({ repoName, repoOwner }) => `${repoOwner}/${repoName}`)
+          .join(", ")}</p>`,
+      },
+      email,
+    );
+  }
+  return res;
 }

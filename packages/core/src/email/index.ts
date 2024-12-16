@@ -28,3 +28,5 @@ export async function sendEmail(
   }
   return data;
 }
+
+export type EmailClient = ReturnType<typeof getEmailClient>;
