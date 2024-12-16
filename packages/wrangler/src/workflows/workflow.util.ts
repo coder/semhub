@@ -24,7 +24,7 @@ export function sanitizePrefix(prefix: string): string {
   if (!prefix) return "workflow";
 
   // Replace any characters that aren't alphanumeric, hyphen, or underscore
-  let sanitized = prefix.replace(/[^a-zA-Z0-9-_]/g, "_");
+  let sanitized = prefix.replace(/[^a-zA-Z0-9-_]/g, "");
 
   // Ensure first character is alphanumeric or underscore (not hyphen)
   if (!/^[a-zA-Z0-9_]/.test(sanitized)) {
