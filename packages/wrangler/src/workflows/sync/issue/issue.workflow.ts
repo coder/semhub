@@ -116,6 +116,16 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
         }
         currentSince = lastIssueUpdatedAt;
       }
+      await step.do(
+        "update repo issuesLastEndCursor",
+        getDbStepConfig("short"),
+        async () => {
+          await db
+            .update(repos)
+            .set({ issuesLastEndCursor: after })
+            .where(eq(repos.id, repoId));
+        },
+      );
       // mark repo as synced
       await step.do(
         `mark ${name} as synced`,

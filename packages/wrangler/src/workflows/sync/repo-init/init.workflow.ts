@@ -192,17 +192,17 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           }
         }),
       );
+      await step.do(
+        "update repo issuesLastEndCursor",
+        getDbStepConfig("short"),
+        async () => {
+          await db
+            .update(repos)
+            .set({ issuesLastEndCursor: after })
+            .where(eq(repos.id, repoId));
+        },
+      );
       if (hasMoreIssues) {
-        await step.do(
-          "update repo issuesLastEndCursor",
-          getDbStepConfig("short"),
-          async () => {
-            await db
-              .update(repos)
-              .set({ issuesLastEndCursor: after })
-              .where(eq(repos.id, repoId));
-          },
-        );
         await step.do(
           "performed one unit of work, call itself recursively",
           async () => {
