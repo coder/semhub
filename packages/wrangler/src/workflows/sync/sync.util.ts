@@ -1,3 +1,5 @@
+import { sanitizePrefix } from "../workflow.util";
+
 /**
  * Calculates the timestamp for the current time window
  * @param windowSizeInMs The size of the time window in milliseconds
@@ -15,5 +17,6 @@ export function generateSyncWorkflowId(
   prefix: string,
   windowSizeInMs = 1,
 ): string {
-  return `${prefix}-${getCurrentWindowTimestamp(windowSizeInMs)}`;
+  const sanitizedPrefix = sanitizePrefix(prefix);
+  return `${sanitizedPrefix}-${getCurrentWindowTimestamp(windowSizeInMs)}`;
 }

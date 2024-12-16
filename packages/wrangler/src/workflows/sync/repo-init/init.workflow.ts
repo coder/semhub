@@ -114,9 +114,6 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                     return result;
                   }
                   if (attempt < REDUCE_ISSUES_MAX_ATTEMPTS) {
-                    console.log(
-                      `Response too large (${Math.round(responseSize / 1024)}KB) for ${name}, reducing numIssues from ${numIssues} to ${Math.max(2, Math.floor(numIssues / 2))}`,
-                    );
                     continue;
                   }
                   throw new NonRetryableError(

@@ -25,7 +25,6 @@ export async function initNextRepos(
       if (repos.length === 0) {
         return { success: false, message: "no repos to initialize" } as const;
       }
-
       const repoIdsToInit = repos.map(({ repoId }) => repoId);
       await Repo.markInitInProgress(tx, repoIdsToInit);
       await Promise.all(

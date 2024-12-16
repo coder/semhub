@@ -14,3 +14,22 @@ export interface WorkflowRPC<T extends ParamsRPC = ParamsRPC, E = unknown> {
 export function getApproximateSizeInBytes(obj: unknown) {
   return new TextEncoder().encode(JSON.stringify(obj)).length;
 }
+
+/**
+ * Sanitizes the prefix to match the required pattern
+ * Replaces invalid characters and ensures valid start character
+ */
+export function sanitizePrefix(prefix: string): string {
+  // If empty or undefined, return a default
+  if (!prefix) return "workflow";
+
+  // Replace any characters that aren't alphanumeric, hyphen, or underscore
+  let sanitized = prefix.replace(/[^a-zA-Z0-9-_]/g, "_");
+
+  // Ensure first character is alphanumeric or underscore (not hyphen)
+  if (!/^[a-zA-Z0-9_]/.test(sanitized)) {
+    sanitized = `w${sanitized}`;
+  }
+
+  return sanitized;
+}
