@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { SEARCH_OPERATORS } from "@/core/constants/search.constant";
 import type {
@@ -141,6 +141,7 @@ export function useSearchBar(initialQuery = "") {
   // this effect is necessary to override cmdk's built-in auto selection of the first item
   // while still allowing manual selection via arrow keys
   // this results in a slight flicker, remove this effect to see the difference in behavior
+  // if you modify this, remember to test on both Chromium and WebKit
   const [needsReset, setNeedsReset] = useState(false);
   useEffect(() => {
     if (needsReset) {
