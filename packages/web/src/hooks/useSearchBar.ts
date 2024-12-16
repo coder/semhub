@@ -141,12 +141,15 @@ export function useSearchBar(initialQuery = "") {
   // this effect is necessary to override cmdk's built-in auto selection of the first item
   // while still allowing manual selection via arrow keys
   // this results in a slight flicker, remove this effect to see the difference in behavior
-  useLayoutEffect(() => {
-    // We use setTimeout to ensure our reset runs after the library's effect
-    const timer = setTimeout(() => {
+  const [needsReset, setNeedsReset] = useState(false);
+  useEffect(() => {
+    if (needsReset) {
       setCommandValue(defaultCommandValue);
-    }, 0);
-    return () => clearTimeout(timer);
+      setNeedsReset(false);
+    }
+  }, [needsReset]);
+  useEffect(() => {
+    setNeedsReset(true);
   }, [commandInputValue]);
 
   // offset dropdown menu relative to where the user's currently typed word is
