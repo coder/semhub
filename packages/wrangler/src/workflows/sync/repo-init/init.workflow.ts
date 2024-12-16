@@ -57,7 +57,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             initStatus: repos.initStatus,
             repoName: repos.name,
             repoOwner: repos.owner,
-            initLastEndCursor: repos.initLastEndCursor,
+            issuesLastEndCursor: repos.issuesLastEndCursor,
             issueLastUpdatedAt: sql<
               string | null
             >`(${repoIssuesLastUpdatedSql(repos, db)})`,
@@ -74,7 +74,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         return result;
       },
     );
-    const { repoName, repoOwner, issueLastUpdatedAt, initLastEndCursor } =
+    const { repoName, repoOwner, issueLastUpdatedAt, issuesLastEndCursor } =
       result;
     const name = `${repoOwner}/${repoName}`;
     let responseSizeForDebugging = 0;
@@ -87,7 +87,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             ? new Date(issueLastUpdatedAt)
             : null;
           let hasMoreIssues = true;
-          let after = initLastEndCursor ?? null;
+          let after = issuesLastEndCursor ?? null;
 
           for (let i = 0; i < NUM_EMBEDDING_WORKERS && hasMoreIssues; i++) {
             const {
@@ -194,12 +194,12 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
       );
       if (hasMoreIssues) {
         await step.do(
-          "update repo initLastEndCursor",
+          "update repo issuesLastEndCursor",
           getDbStepConfig("short"),
           async () => {
             await db
               .update(repos)
-              .set({ initLastEndCursor: after })
+              .set({ issuesLastEndCursor: after })
               .where(eq(repos.id, repoId));
           },
         );

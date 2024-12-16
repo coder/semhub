@@ -133,6 +133,10 @@ export namespace Github {
       lastIssueUpdatedAt,
     };
   }
+  /**
+   * @deprecated Use getLatestRepoIssues instead
+   * Could consider calling from a beefy local machine/server
+   */
   export async function getIssuesViaIterator(
     {
       repoId,

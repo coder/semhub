@@ -12,6 +12,7 @@ export const NUM_EMBEDDING_WORKERS = 5; // also corresponds to number of consecu
 export const PARENT_WORKER_SLEEP_DURATION = "30 seconds";
 
 // to avoid issues due to workers return size limit
+// used in issue sync too
 const DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL = 100;
 export const REDUCE_ISSUES_MAX_ATTEMPTS = 6;
 // attempt 0: 100, attempt 1: 50, attempt 2: 25, attempt 3: 12, attempt 4: 6, attempt 5: 3, attempt 6: 2
