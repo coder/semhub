@@ -1,10 +1,11 @@
+import { auth } from "./Auth";
 import { domain } from "./Dns";
 import { allSecrets } from "./Secret";
 
 const hono = new sst.cloudflare.Worker("Hono", {
   url: true,
   handler: "./packages/workers/src/api.ts",
-  link: [...allSecrets],
+  link: [auth, ...allSecrets],
   domain: "api." + domain,
   transform: {
     worker: {

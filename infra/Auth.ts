@@ -1,8 +1,11 @@
 import { domain } from "./Dns";
+import { allSecrets } from "./Secret";
+import { database } from "./Supabase";
 
-new sst.cloudflare.Auth("auth", {
+export const auth = new sst.cloudflare.Auth("auth", {
   authenticator: {
-    handler: "packages/workers/src/auth.ts",
+    handler: "packages/workers/src/authenticator.ts",
     domain: `auth.${domain}`,
+    link: [database, ...allSecrets],
   },
 });

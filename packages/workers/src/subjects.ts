@@ -3,6 +3,7 @@ import { z } from "zod";
 
 export const subjects = createSubjects({
   user: z.object({
-    userID: z.string(),
+    email: z.string(),
+    userId: z.string(),
   }),
 });

@@ -20,6 +20,7 @@
     ]
   },
   "dependencies": {
+    "@openauthjs/openauth": "^0.2.3",
     "dedent": "^1.5.3",
     "drizzle-orm": "^0.33.0",
     "drizzle-zod": "^0.5.1",
