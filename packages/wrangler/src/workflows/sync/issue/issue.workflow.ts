@@ -1,5 +1,6 @@
 import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
 import { WorkflowEntrypoint } from "cloudflare:workers";
+import { NonRetryableError } from "cloudflare:workflows";
 
 import type { WranglerEnv } from "@/core/constants/wrangler.constant";
 import { eq } from "@/core/db";
@@ -9,9 +10,17 @@ import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import { getEnvPrefix } from "@/util";
-import { type WorkflowRPC } from "@/workflows/workflow.util";
+import {
+  getApproximateSizeInBytes,
+  type WorkflowRPC,
+} from "@/workflows/workflow.util";
 
-import { getDbStepConfig } from "../sync.param";
+import {
+  getDbStepConfig,
+  getNumIssues,
+  REDUCE_ISSUES_MAX_ATTEMPTS,
+  RESPONSE_SIZE_LIMIT_IN_BYTES,
+} from "../sync.param";
 import { generateSyncWorkflowId } from "../sync.util";
 
 interface Env extends WranglerEnv {
@@ -36,37 +45,77 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
       repoId,
       repoName,
       repoOwner,
+      issuesLastEndCursor,
       repoIssuesLastUpdatedAt: repoIssuesLastUpdatedAtRaw,
     } = res;
     const name = `${repoOwner}/${repoName}`;
     try {
-      // FIXME: this will fail if there are too many issues to sync
-      // can consider using children worker? let's fix only if this is an issue
-      // unlikely to have so many new issues within cron interval
-      // TODO: also, can consider fetching more than 100 comments to detect controversy
-      const { issuesAndCommentsLabels } = await step.do(
-        `get latest issues of ${name} from GitHub`,
-        async () => {
-          return await Github.getIssuesViaIterator(
-            {
-              repoId,
-              repoName,
-              repoOwner,
-              repoIssuesLastUpdatedAt: repoIssuesLastUpdatedAtRaw
-                ? new Date(repoIssuesLastUpdatedAtRaw)
-                : null,
-            },
-            graphqlOctokit,
-          );
-        },
-      );
-      await step.do(
-        `upsert issues and comments/labels of ${name}`,
-        getDbStepConfig("long"),
-        async () => {
-          await Repo.upsertIssuesCommentsLabels(issuesAndCommentsLabels, db);
-        },
-      );
+      let currentSince = repoIssuesLastUpdatedAtRaw
+        ? new Date(repoIssuesLastUpdatedAtRaw)
+        : null;
+      let hasMoreIssues = true;
+      let after = issuesLastEndCursor ?? null;
+
+      while (hasMoreIssues) {
+        const {
+          hasNextPage,
+          issuesAndCommentsLabels,
+          lastIssueUpdatedAt,
+          endCursor,
+        } = await step.do(
+          `get latest issues of ${name} from GitHub`,
+          async () => {
+            for (
+              let attempt = 0;
+              attempt <= REDUCE_ISSUES_MAX_ATTEMPTS;
+              attempt++
+            ) {
+              const numIssues = getNumIssues(attempt);
+              const result = await Github.getLatestRepoIssues({
+                repoId,
+                repoName,
+                repoOwner,
+                octokit: graphqlOctokit,
+                since: currentSince,
+                numIssues,
+                after,
+              });
+
+              const responseSize = getApproximateSizeInBytes(result);
+              if (responseSize <= RESPONSE_SIZE_LIMIT_IN_BYTES) {
+                return result;
+              }
+              if (attempt < REDUCE_ISSUES_MAX_ATTEMPTS) {
+                continue;
+              }
+              throw new NonRetryableError(
+                `Response size (${Math.round(responseSize / 1024)}KB) too large even with numIssues=${numIssues}. See: ${result.issuesAndCommentsLabels.issuesToInsert.map((issue) => issue.htmlUrl).join(", ")}`,
+              );
+            }
+            throw new NonRetryableError(
+              `Failed to get issues for ${name} after ${REDUCE_ISSUES_MAX_ATTEMPTS} attempts`,
+            );
+          },
+        );
+
+        await step.do(
+          `upsert issues and comments/labels of ${name}`,
+          getDbStepConfig("long"),
+          async () => {
+            await Repo.upsertIssuesCommentsLabels(issuesAndCommentsLabels, db);
+          },
+        );
+
+        after = endCursor;
+        if (!hasNextPage) {
+          hasMoreIssues = false;
+          break;
+        }
+        if (!lastIssueUpdatedAt) {
+          throw new NonRetryableError("lastIssueUpdatedAt is undefined");
+        }
+        currentSince = lastIssueUpdatedAt;
+      }
       // mark repo as synced
       await step.do(
         `mark ${name} as synced`,

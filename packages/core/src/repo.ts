@@ -60,6 +60,7 @@ export namespace Repo {
           repoId: repos.id,
           repoName: repos.name,
           repoOwner: repos.owner,
+          issuesLastEndCursor: repos.issuesLastEndCursor,
           repoIssuesLastUpdatedAt: sql<
             string | null
           >`(${repoIssuesLastUpdatedSql(repos, tx)})`,
@@ -114,7 +115,7 @@ export namespace Repo {
       labelsToInsert,
       issueToLabelRelationsToInsertNodeIds,
     }: Awaited<
-      ReturnType<typeof Github.getIssuesViaIterator>
+      ReturnType<typeof Github.getLatestRepoIssues>
     >["issuesAndCommentsLabels"],
     db: DbClient,
   ) {
