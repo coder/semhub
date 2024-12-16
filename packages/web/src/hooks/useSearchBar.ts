@@ -142,6 +142,7 @@ export function useSearchBar(initialQuery = "") {
   // while still allowing manual selection via arrow keys
   // this results in a slight flicker, remove this effect to see the difference in behavior
   // if you modify this, remember to test on both Chromium and WebKit
+  // for ideal behaviour, probably need to (1) submit PR to cmdk; or (2) roll our own dropdown component
   const [needsReset, setNeedsReset] = useState(false);
   useEffect(() => {
     if (needsReset) {
