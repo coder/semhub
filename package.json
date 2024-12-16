@@ -20,6 +20,9 @@
     "script": "cd packages/scripts && bun run shell",
     "check:all": "concurrently -g --prefix \"[{name}]\" --prefix-colors \"blue.bold,green.bold,yellow.bold,red.bold,magenta.bold\" --names \"typecheck,test,lint,format\" \"bun typecheck\" \"bun --filter=* test\" \"bun lint\" \"bun format:check\""
   },
+  "overrides": {
+    "zod": "3.24.1"
+  },
   "devDependencies": {
     "@eslint/compat": "^1.2.0",
     "@eslint/js": "^9.12.0",
@@ -35,6 +38,6 @@
     "concurrently": "^8.2.2"
   },
   "dependencies": {
-    "sst": "^3.3.3"
+    "sst": "^3.4.5"
   }
 }

@@ -39,5 +39,14 @@ declare module "sst" {
       "type": "sst.aws.StaticSite"
       "url": string
     }
+    "auth": {
+      "publicKey": string
+      "type": "sst.cloudflare.Auth"
+      "url": string
+    }
+    "authAuthenticator": {
+      "type": "sst.cloudflare.Worker"
+      "url": string
+    }
   }
 }

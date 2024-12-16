@@ -27,6 +27,11 @@ declare module "sst" {
       "type": "sst.aws.StaticSite"
       "url": string
     }
+    "auth": {
+      "publicKey": string
+      "type": "sst.cloudflare.Auth"
+      "url": string
+    }
   }
 }
 // cloudflare 
@@ -37,5 +42,6 @@ declare module "sst" {
     "InitCronHandler": cloudflare.Service
     "SyncEmbeddingHandler": cloudflare.Service
     "SyncIssueHandler": cloudflare.Service
+    "authAuthenticator": cloudflare.Service
   }
 }

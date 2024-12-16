@@ -8,7 +8,8 @@
   "dependencies": {
     "@semhub/core": "workspace:*",
     "@semhub/wrangler": "workspace:*",
-    "@hono/zod-validator": "^0.4.1"
+    "@hono/zod-validator": "^0.4.1",
+    "@openauthjs/openauth": "0.2.3"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241022.0"

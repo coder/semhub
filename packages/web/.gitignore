@@ -4,7 +4,6 @@
 *.log*
 
 # Dist
-node_modules
 dist/
 build/
 .vinxi
