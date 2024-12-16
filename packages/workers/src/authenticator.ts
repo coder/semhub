@@ -1,7 +1,4 @@
-import {
-  type ExecutionContext,
-  type KVNamespace,
-} from "@cloudflare/workers-types";
+import { type ExecutionContext } from "@cloudflare/workers-types";
 import { authorizer } from "@openauthjs/openauth";
 import { GithubAdapter } from "@openauthjs/openauth/adapter/github";
 import { CloudflareStorage } from "@openauthjs/openauth/storage/cloudflare";
@@ -9,15 +6,14 @@ import { Resource } from "sst";
 
 import { subjects } from "./subjects";
 
-interface Env {
-  CloudflareAuthKV: KVNamespace;
-}
-
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+  async fetch(request: Request, ctx: ExecutionContext) {
     return authorizer({
+      // storage: MemoryStorage({
+      //   persist: "/tmp/openauth.json",
+      // }),
       storage: CloudflareStorage({
-        namespace: env.CloudflareAuthKV,
+        namespace: Resource.AuthKv,
       }),
       subjects,
       providers: {
@@ -61,6 +57,6 @@ export default {
         }
         throw new Error("Invalid provider");
       },
-    }).fetch(request, env, ctx);
+    }).fetch(request, ctx);
   },
 };

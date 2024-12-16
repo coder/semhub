@@ -1,15 +1,25 @@
 import { apiUrl } from "./Api";
+import { authUrl } from "./Auth";
 import { domain } from "./Dns";
+import { secret } from "./Secret";
 
 const web = new sst.aws.StaticSite("Web", {
   path: "packages/web",
   environment: {
+    // when adding new env vars, you may have to rm -rf node_modules
     VITE_API_URL: apiUrl.apply((url) => {
       if (typeof url !== "string") {
         throw new Error("API URL must be a string");
       }
       return url;
     }),
+    VITE_AUTH_URL: authUrl.apply((url) => {
+      if (typeof url !== "string") {
+        throw new Error("Auth URL must be a string");
+      }
+      return url;
+    }),
+    VITE_SEMHUB_CLIENT_ID: secret.githubAppClientId.value,
   },
   build: {
     command: "vite build",
@@ -49,5 +59,5 @@ const web = new sst.aws.StaticSite("Web", {
 // });
 
 export const outputs = {
-  url: web.url,
+  web: web.url,
 };

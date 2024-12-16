@@ -10,6 +10,10 @@ declare module "sst" {
     "DATABASE_URL": {
       "type": "sst.sst.Secret"
       "value": string
+    "Auth": {
+      "publicKey": string
+      "type": "sst.cloudflare.Auth"
+      "url": string
     }
     "GITHUB_PERSONAL_ACCESS_TOKEN": {
       "type": "sst.sst.Secret"
@@ -35,21 +39,17 @@ declare module "sst" {
       "type": "sst.aws.StaticSite"
       "url": string
     }
-    "auth": {
-      "publicKey": string
-      "type": "sst.cloudflare.Auth"
-      "url": string
-    }
   }
 }
 // cloudflare
 import * as cloudflare from "@cloudflare/workers-types";
 declare module "sst" {
   export interface Resource {
+    "AuthAuthenticator": cloudflare.Service
+    "AuthKv": cloudflare.KVNamespace
     "Hono": cloudflare.Service
     "InitCronHandler": cloudflare.Service
     "SyncEmbeddingHandler": cloudflare.Service
     "SyncIssueHandler": cloudflare.Service
-    "authAuthenticator": cloudflare.Service
   }
 }
