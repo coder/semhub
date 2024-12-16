@@ -6,7 +6,7 @@ import type { WorkflowStepConfig } from "cloudflare:workers";
 //* Parameters for init workflow *//
 export const NUM_CONCURRENT_INITS = 3;
 // for GitHub API calls
-export const NUM_EMBEDDING_WORKERS = 4; // also corresponds to number of consecutive API calls + upserts before spinning up workers
+export const NUM_EMBEDDING_WORKERS = 5; // also corresponds to number of consecutive API calls + upserts before spinning up workers
 
 // duration for parent worker to sleep before checking if workers have finished
 export const PARENT_WORKER_SLEEP_DURATION = "30 seconds";
@@ -20,7 +20,7 @@ export const getNumIssues = (attempt: number) =>
     1,
     Math.floor(DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL / Math.pow(2, attempt)),
   );
-export const RESPONSE_SIZE_LIMIT_IN_BYTES = 900000;
+export const RESPONSE_SIZE_LIMIT_IN_BYTES = 800000;
 
 //* Parameters for issue embedding workflow *//
 export const BATCH_SIZE_PER_EMBEDDING_CHUNK = 25; // clearly linked to DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL
@@ -43,7 +43,7 @@ export const getDbStepConfig = (
       case "medium":
         return "20 seconds";
       case "long":
-        return "60 seconds";
+        return "120 seconds";
     }
   })(),
   retries: {
