@@ -42,6 +42,12 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
   async run(event: WorkflowEvent<RepoInitParams>, step: WorkflowStep) {
     const { repoId } = event.payload;
     const { db, graphqlOctokit, emailClient } = getDeps(this.env);
+    // wait 10 seconds before starting
+    // this prevents race condition where in_progress status has not been committed yet
+    await step.sleep(
+      "wait for in_progress status to be committed",
+      "10 seconds",
+    );
     const result = await step.do(
       "get repo info from db",
       getDbStepConfig("short"),
