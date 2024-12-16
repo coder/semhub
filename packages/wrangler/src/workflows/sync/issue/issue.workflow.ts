@@ -164,7 +164,6 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
             .where(eq(repos.id, repoId));
         },
       );
-      throw e;
     }
     // even if there is an error with one repo, we still want to sync the rest
     // call itself recursively to sync next repo
