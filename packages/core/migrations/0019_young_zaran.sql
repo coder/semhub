@@ -1,0 +1,1 @@
+ALTER TABLE "repos" RENAME COLUMN "init_last_end_cursor" TO "issues_last_end_cursor";
