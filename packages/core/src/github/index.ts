@@ -57,7 +57,9 @@ export namespace Github {
     const { success, data, error } =
       loadIssuesWithCommentsResSchema.safeParse(response);
     if (!success) {
-      throw new Error("error parsing issues with issues", error);
+      throw new Error(
+        `error parsing issues with issues: ${JSON.stringify(error)}`,
+      );
     }
     const issues = data.repository.issues.nodes;
     const hasNextPage = data.repository.issues.pageInfo.hasNextPage;
