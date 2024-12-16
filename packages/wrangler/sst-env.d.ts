@@ -23,6 +23,14 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "SEMHUB_GITHUB_APP_CLIENT_ID": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "SEMHUB_GITHUB_APP_CLIENT_SECRET": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "Web": {
       "type": "sst.aws.StaticSite"
       "url": string
@@ -34,7 +42,7 @@ declare module "sst" {
     }
   }
 }
-// cloudflare 
+// cloudflare
 import * as cloudflare from "@cloudflare/workers-types";
 declare module "sst" {
   export interface Resource {

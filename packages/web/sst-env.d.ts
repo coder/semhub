@@ -29,6 +29,14 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "SEMHUB_GITHUB_APP_CLIENT_ID": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "SEMHUB_GITHUB_APP_CLIENT_SECRET": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "SyncEmbeddingHandler": {
       "type": "sst.cloudflare.Worker"
     }
