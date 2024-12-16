@@ -68,7 +68,7 @@ export const loadIssuesWithCommentsResSchema = z.object({
       nodes: z.array(loadRepoIssuesQueryIssueSchema),
       pageInfo: z.object({
         hasNextPage: z.boolean(),
-        endCursor: z.string(),
+        endCursor: z.string().nullable(),
       }),
     }),
   }),

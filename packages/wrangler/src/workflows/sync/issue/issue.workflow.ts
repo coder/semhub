@@ -106,7 +106,8 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
           },
         );
 
-        after = endCursor;
+        // endCursor is null if there is no more issues
+        after = endCursor ?? after;
         if (!hasNextPage) {
           hasMoreIssues = false;
           break;
@@ -120,10 +121,12 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
         "update repo issuesLastEndCursor",
         getDbStepConfig("short"),
         async () => {
-          await db
-            .update(repos)
-            .set({ issuesLastEndCursor: after })
-            .where(eq(repos.id, repoId));
+          if (after) {
+            await db
+              .update(repos)
+              .set({ issuesLastEndCursor: after })
+              .where(eq(repos.id, repoId));
+          }
         },
       );
       // mark repo as synced
