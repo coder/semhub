@@ -35,7 +35,7 @@ app.use("*", cors());
 app.post("/create-repo", async (c) => {
   const { owner, name } = await c.req.json<{ owner: string; name: string }>();
 
-  const { db, restOctokit } = getDeps();
+  const { db, restOctokit, emailClient } = getDeps();
   const data = await Github.getRepo(name, owner, restOctokit);
   const createdRepo = await Repo.createRepo(data, db);
   if (createdRepo.initStatus !== "ready") {
@@ -44,7 +44,7 @@ app.post("/create-repo", async (c) => {
       message: "did not trigger workflow",
     });
   }
-  const res = await initNextRepos(db, c.env.REPO_INIT_WORKFLOW);
+  const res = await initNextRepos(db, c.env.REPO_INIT_WORKFLOW, emailClient);
   return c.json(res);
 });
 
