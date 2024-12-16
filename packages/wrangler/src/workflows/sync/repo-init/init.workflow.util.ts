@@ -47,8 +47,8 @@ export async function initNextRepos(
     await sendEmail(
       {
         to: "warren@coder.com",
-        subject: "Repo init completed",
-        html: `<p>Initialized the following repos: ${res.repos
+        subject: "Repo init started",
+        html: `<p>Started initializing the following repos: ${res.repos
           .map(({ repoName, repoOwner }) => `${repoOwner}/${repoName}`)
           .join(", ")}</p>`,
       },
