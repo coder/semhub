@@ -15,14 +15,14 @@ const prefixes = {
   users: "usr",
 } as const;
 
-export function createID(prefix: keyof typeof prefixes): string {
+function createId(prefix: keyof typeof prefixes): string {
   return [prefixes[prefix], ulid()].join("_");
 }
 
 const getIdColumn = (tableName: keyof typeof prefixes) =>
   text("id")
     .primaryKey()
-    .$defaultFn(() => createID(tableName));
+    .$defaultFn(() => createId(tableName));
 
 const timestamps = {
   createdAt: timestamptz("created_at").defaultNow().notNull(),

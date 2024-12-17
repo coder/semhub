@@ -10,8 +10,8 @@ export function createDb(config: {
   isProd: boolean;
   options?: postgres.Options<{}>;
 }) {
-  // Disable prefetch as it is not supported for "Transaction" pool mode
   const client = postgres(config.connectionString, {
+    // Disable prepare as it is not supported for "Transaction" pool mode
     prepare: false,
     ...config.options,
   });
