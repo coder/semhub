@@ -32,6 +32,7 @@ export default {
       },
       success: async (ctx, value) => {
         if (value.provider === "github") {
+          console.log({ value });
           // const email = value.tokenset.;
           console.log(value.tokenset.access);
           // const { db } = getDeps();
