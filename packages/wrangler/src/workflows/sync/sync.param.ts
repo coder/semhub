@@ -21,7 +21,11 @@ export const getNumIssues = (attempt: number) =>
     1,
     Math.floor(DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL / Math.pow(2, attempt)),
   );
-export const RESPONSE_SIZE_LIMIT_IN_BYTES = 800000;
+// for reasons I don't fully understand, the actual size of the return value can be
+// arbitrarily larger than the response size limit set here (pending Cloudflare support response)
+// the problem with a limit that is too high is the return values will be too large to return
+// a limit that is too low will (1) result in lower throughput (2) if a single issue is too large, it will fail
+export const RESPONSE_SIZE_LIMIT_IN_BYTES = 700000;
 
 //* Parameters for issue embedding workflow *//
 export const BATCH_SIZE_PER_EMBEDDING_CHUNK = 25; // clearly linked to DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL
