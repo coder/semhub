@@ -43,13 +43,7 @@ export default {
       },
       success: async (ctx, value) => {
         if (value.provider === "github") {
-          const { data, error, success } = tokensetRawSchema.safeParse(
-            value.tokenset.raw,
-          );
-          if (!success) {
-            console.error("something went wrong", error);
-            return new Response("something went wrong", { status: 500 });
-          }
+          const data = tokensetRawSchema.parse(value.tokenset.raw);
           const { access_token: accessToken } = data;
           const { db } = getDeps();
           const { email, id } = await User.upsert({

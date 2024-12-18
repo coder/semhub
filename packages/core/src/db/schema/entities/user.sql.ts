@@ -1,4 +1,3 @@
-import { sql } from "drizzle-orm";
 import { jsonb, pgTable, text } from "drizzle-orm/pg-core";
 
 import { getBaseColumns, timestamptz } from "../base.sql";

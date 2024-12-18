@@ -141,6 +141,13 @@
       "when": 1734342723624,
       "tag": "0019_young_zaran",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1734514988072,
+      "tag": "0020_fresh_reaper",
+      "breakpoints": true
     }
   ]
 }
