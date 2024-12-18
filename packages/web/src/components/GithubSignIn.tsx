@@ -13,7 +13,9 @@ import { GithubIcon } from "./icons/GithubIcon";
 import { Button } from "./ui/button";
 
 export function GithubSignIn() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem("isLoggedIn") === "true";
+  });
 
   useEffect(() => {
     // Check if we're handling a callback
@@ -21,10 +23,13 @@ export function GithubSignIn() {
       handleCallback().then((success) => {
         if (success) {
           setIsLoggedIn(true);
+          localStorage.setItem("isLoggedIn", "true");
         }
       });
     } else {
-      setIsLoggedIn(isAuthenticated());
+      const authStatus = isAuthenticated();
+      setIsLoggedIn(authStatus);
+      localStorage.setItem("isLoggedIn", authStatus.toString());
     }
   }, []);
 
@@ -44,6 +49,7 @@ export function GithubSignIn() {
   const handleLogout = () => {
     logout();
     setIsLoggedIn(false);
+    localStorage.setItem("isLoggedIn", "false");
   };
 
   return (
