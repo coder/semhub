@@ -1,4 +1,4 @@
-import { SVGProps } from "react";
+import { type SVGProps } from "react";
 import { siGithub } from "simple-icons";
 
 export const GithubIcon = (props: SVGProps<SVGSVGElement>) => (

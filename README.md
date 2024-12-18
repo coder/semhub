@@ -84,6 +84,7 @@ To set up a GitHub App:
   - Callback URL is: `https://auth.[stage].stg.semhub.dev/github/callback`
 - Generate and save the private key
 - Create a GitHub Client ID and Secret and load it into the `.secrets.dev` file
+- Go to Optional features and uncheck "User-to-server token expiration"
 
 Note that when you use a GitHub App on a personal account, the warning message on the authorization page is misleading. See [this thread](https://github.com/orgs/community/discussions/37117).
 
@@ -105,6 +106,7 @@ Should probably set up a script to do this automatically as part of CI/CD.
 ## Todos
 
 1. Cache searches on Cloudflare KV. On public, non-logged in page, we will have a short list of suggested searches. We will cache these to speed up results.
+1. Deal with webhook that comes from user revocation of GitHub App
 
 ## Known issues
 

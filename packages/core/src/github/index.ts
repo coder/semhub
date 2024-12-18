@@ -7,11 +7,11 @@ import type { CreateLabel } from "@/db/schema/entities/label.schema";
 import { graphql } from "./graphql";
 import {
   getIssueNumbersResSchema,
-  githubRepoSchema,
   loadIssuesWithCommentsResSchema,
   type CommentGraphql,
   type IssueGraphql,
-} from "./schema";
+} from "./schema.graphql";
+import { repoSchema } from "./schema.rest";
 import type { GraphqlOctokit, RestOctokit } from "./shared";
 
 export namespace Github {
@@ -24,11 +24,8 @@ export namespace Github {
       owner: repoOwner,
       repo: repoName,
     });
-    const { success, data } = githubRepoSchema.safeParse(repoData);
-    if (!success) {
-      throw new Error("error parsing repo data from GitHub");
-    }
-    return data;
+    const repoDataParsed = repoSchema.parse(repoData);
+    return repoDataParsed;
   }
   export async function getLatestRepoIssues({
     repoId,
