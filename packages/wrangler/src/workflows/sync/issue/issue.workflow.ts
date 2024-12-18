@@ -18,8 +18,8 @@ import {
 import {
   getDbStepConfig,
   getNumIssues,
+  getSizeLimit,
   REDUCE_ISSUES_MAX_ATTEMPTS,
-  RESPONSE_SIZE_LIMIT_IN_BYTES,
 } from "../sync.param";
 import { generateSyncWorkflowId } from "../sync.util";
 
@@ -49,6 +49,7 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
       repoIssuesLastUpdatedAt: repoIssuesLastUpdatedAtRaw,
     } = res;
     const name = `${repoOwner}/${repoName}`;
+    let responseSizeForDebugging = 0;
     try {
       let currentSince = repoIssuesLastUpdatedAtRaw
         ? new Date(repoIssuesLastUpdatedAtRaw)
@@ -70,7 +71,7 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
               attempt <= REDUCE_ISSUES_MAX_ATTEMPTS;
               attempt++
             ) {
-              const numIssues = getNumIssues(attempt);
+              const numIssues = getNumIssues(attempt, name);
               const result = await Github.getLatestRepoIssues({
                 repoId,
                 repoName,
@@ -82,7 +83,8 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
               });
 
               const responseSize = getApproximateSizeInBytes(result);
-              if (responseSize <= RESPONSE_SIZE_LIMIT_IN_BYTES) {
+              if (responseSize <= getSizeLimit(name)) {
+                responseSizeForDebugging = responseSize;
                 return result;
               }
               if (attempt < REDUCE_ISSUES_MAX_ATTEMPTS) {
@@ -143,11 +145,12 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
     } catch (e) {
       await step.do("send email notification", async () => {
         const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
+        const errorMessageWithResponseSize = `${errorMessage} (response size: ${responseSizeForDebugging} bytes)`;
         await sendEmail(
           {
             to: "warren@coder.com",
             subject: `${name} sync failed`,
-            html: `<p>Sync failed, error: ${errorMessage}</p>`,
+            html: `<p>Sync failed, error: ${errorMessageWithResponseSize}</p>`,
           },
           emailClient,
           getEnvPrefix(this.env.ENVIRONMENT),
