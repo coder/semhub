@@ -12,7 +12,7 @@ import { githubLogin } from "@/workers/auth/auth.constant";
 import { GithubIcon } from "./icons/GithubIcon";
 import { Button } from "./ui/button";
 
-export function GithubSignIn() {
+export function SignInButton() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return localStorage.getItem("isLoggedIn") === "true";
   });

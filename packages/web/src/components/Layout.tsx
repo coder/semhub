@@ -1,5 +1,5 @@
 import { DarkModeToggle } from "./DarkModeToggle";
-import { GithubSignIn } from "./GithubSignIn";
+import { SignInButton } from "./SignInButton";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,7 +10,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {/* Left side content can go here */}
           </div>
           <nav className="flex items-center gap-4">
-            <GithubSignIn />
+            <SignInButton />
             <DarkModeToggle />
           </nav>
         </div>
