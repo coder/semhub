@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { truncateCodeBlocks, truncateToByteSize } from "@/util";
+import { truncateCodeBlocks, truncateToByteSize } from "@/util/truncate";
 
 // shape from GitHub GraphQL API
 export const loadRepoIssuesQueryAuthorSchema = z
@@ -93,7 +93,7 @@ export const getIssueNumbersResSchema = z.object({
 - hooked up GitHub GraphQL schema for type inference
 */
 
-// shape from REST API
+// shapes from REST API
 export const githubRepoSchema = z
   .object({
     owner: z
@@ -107,6 +107,14 @@ export const githubRepoSchema = z
     private: z.boolean(),
   })
   .strip();
+
+export const githubUserEmailsSchema = z.array(
+  z.object({
+    email: z.string(),
+    primary: z.boolean(),
+    verified: z.boolean(),
+  }),
+);
 
 // export const githubUserSchema = z
 //   .object({

@@ -1,7 +1,8 @@
 import dedent from "dedent";
 import pMap from "p-map";
 
-import { sleep, truncateCodeBlocks, truncateToByteSize } from "@/util";
+import { sleep } from "@/util/sleep";
+import { truncateCodeBlocks, truncateToByteSize } from "@/util/truncate";
 
 import {
   EMBEDDING_MODEL,

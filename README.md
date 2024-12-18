@@ -78,11 +78,14 @@ We choose to use GitHub App (instead of OAuth App) because of [these reasons](ht
 To set up a GitHub App:
 
 - [Register a GitHub App](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app) (dev one can be within your personal account, the [prod one](https://github.com/organizations/coder/settings/apps/coder-semhub) is within the `coder` organization)
-  - Grant the following read-only permissions: Metadata (mandatory), Discussions, Issues, Pull Requests, Contents
+  - Select the following read-only Repository permissions: Metadata (mandatory), Discussions, Issues, Pull Requests, Contents
+  - Select the following read-only User permissions: Emails
   - Deselect Webhook Active (for now?)
   - Callback URL is: `https://auth.[stage].stg.semhub.dev/github/callback`
 - Generate and save the private key
 - Create a GitHub Client ID and Secret and load it into the `.secrets.dev` file
+
+Note that when you use a GitHub App on a personal account, the warning message on the authorization page is misleading. See [this thread](https://github.com/orgs/community/discussions/37117).
 
 ## Deployment
 

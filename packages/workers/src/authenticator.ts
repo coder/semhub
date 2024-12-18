@@ -4,6 +4,9 @@ import { GithubAdapter } from "@openauthjs/openauth/adapter/github";
 import { CloudflareStorage } from "@openauthjs/openauth/storage/cloudflare";
 import { Resource } from "sst";
 
+import { githubUserEmailsSchema } from "@/core/github/schema";
+import { parseHostname } from "@/core/util/url";
+
 import { subjects } from "./subjects";
 
 export default {
@@ -30,9 +33,29 @@ export default {
         //   }),
         // ),
       },
+      allow: async (input) => {
+        const url = new URL(input.redirectURI);
+        const { domain } = parseHostname(url.hostname);
+        if (domain === "semhub.dev" || domain === "localhost") return true;
+        // in the future, can consider whitelisting specific subdomains or ports
+        return false;
+      },
       success: async (ctx, value) => {
         if (value.provider === "github") {
-          console.log({ value });
+          const { access } = value.tokenset;
+          const response = await fetch("https://api.github.com/user/emails", {
+            headers: {
+              Authorization: `token ${access}`,
+              Accept: "application/vnd.github.v3+json",
+            },
+          });
+          const emails = githubUserEmailsSchema.parse(await response.json());
+          const primary = emails.find((email) => email.primary);
+          console.log(primary);
+          if (!primary || !primary.verified) {
+            throw new Error("Email not verified");
+          }
+          const email = primary.email;
           // const email = value.tokenset.;
           console.log(value.tokenset.access);
           // const { db } = getDeps();

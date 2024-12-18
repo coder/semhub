@@ -8,7 +8,7 @@ import { issueEmbeddings } from "@/core/db/schema/entities/issue-embedding.sql";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
 import { Embedding } from "@/core/embedding";
-import { chunkArray } from "@/core/util";
+import { chunkArray } from "@/core/util/truncate";
 import { getDeps } from "@/deps";
 import { getEnvPrefix } from "@/util";
 import {
