@@ -7,6 +7,7 @@ import {
   isAuthenticated,
   logout,
 } from "@/lib/auth";
+import { githubLogin } from "@/workers/auth/auth.constant";
 
 import { GithubIcon } from "./icons/GithubIcon";
 import { Button } from "./ui/button";
@@ -33,7 +34,7 @@ export function GithubSignIn() {
       "code",
       {
         pkce: true,
-        provider: "github",
+        provider: githubLogin.provider,
       },
     );
     sessionStorage.setItem("challenge", JSON.stringify(challenge));

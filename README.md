@@ -81,7 +81,7 @@ To set up a GitHub App:
   - Select the following read-only Repository permissions: Metadata (mandatory), Discussions, Issues, Pull Requests, Contents
   - Select the following read-only User permissions: Emails
   - Deselect Webhook Active (for now?)
-  - Callback URL is: `https://auth.[stage].stg.semhub.dev/github/callback`
+  - Callback URL is: `https://auth.[stage].stg.semhub.dev/{provider}/callback` (see `packages/workers/src/auth/auth.constant.ts` for the provider name)
 - Generate and save the private key
 - Create a GitHub Client ID and Secret and load it into the `.secrets.dev` file
 - Go to Optional features and uncheck "User-to-server token expiration"

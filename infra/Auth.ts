@@ -6,7 +6,7 @@ const authKv = new sst.cloudflare.Kv("AuthKv", {});
 
 export const auth = new sst.cloudflare.Auth("Auth", {
   authenticator: {
-    handler: "packages/workers/src/authenticator.ts",
+    handler: "packages/workers/src/auth/authenticator.ts",
     link: [authKv, database, ...allSecrets],
     // for reasons I don't fully understand, sometimes custom domain must be set up manually from the Workers > Settings > Domains and Routes tab
     domain: "auth." + domain,
