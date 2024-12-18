@@ -23,7 +23,6 @@ export namespace User {
   }) {
     const octokit = getRestOctokit(accessToken);
     const { data: userData } = await octokit.rest.users.getAuthenticated();
-    console.log("userData", userData);
     const userDataParsed = githubUserSchema.parse(userData);
     const {
       login,
@@ -35,15 +34,16 @@ export namespace User {
       location,
       bio,
     } = userDataParsed;
-    const userMetadata: UserMetadata = {
-      company,
-      location,
-      bio,
-    };
     const { data: emailsData } =
       await octokit.rest.users.listEmailsForAuthenticatedUser();
     const emailsDataParsed = userEmailsSchema.parse(emailsData);
     const email = emailsDataParsed.find((email) => email.primary)?.email;
+    const userMetadata: UserMetadata = {
+      company,
+      location,
+      bio,
+      emails: emailsDataParsed.map((data) => data.email),
+    };
     if (!email) {
       throw new Error("no primary email found");
     }
@@ -61,7 +61,7 @@ export namespace User {
         metadata: userMetadata,
       })
       .onConflictDoUpdate({
-        target: [users.nodeId, users.email], // email should be unique too?
+        target: [users.nodeId],
         set: conflictUpdateOnly(users, [
           "name",
           "avatarUrl",
@@ -70,15 +70,20 @@ export namespace User {
           "metadata",
           "htmlUrl",
           "login",
+          "email",
         ]),
       })
       .returning({
         id: users.id,
-        email: users.email,
       });
     if (!user) {
       throw new Error("error upserting user");
     }
-    return user;
+    return {
+      userId: user.id,
+      primaryEmail: email,
+      avatarUrl,
+      name,
+    };
   }
 }

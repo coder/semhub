@@ -26,6 +26,11 @@ export default {
           clientSecret: Resource.SEMHUB_GITHUB_APP_CLIENT_SECRET.value,
           scopes: githubLoginScopes,
         }),
+        // githubRepo: GithubAdapter({
+        //   clientID: Resource.SEMHUB_GITHUB_APP_CLIENT_ID.value,
+        //   clientSecret: Resource.SEMHUB_GITHUB_APP_CLIENT_SECRET.value,
+        //   scopes: githubLoginScopes,
+        // }),
         // password: PasswordAdapter(
         //   PasswordUI({
         //     sendCode: async (email, code) => {
@@ -46,14 +51,16 @@ export default {
           const data = tokensetRawSchema.parse(value.tokenset.raw);
           const { access_token: accessToken } = data;
           const { db } = getDeps();
-          const { email, id } = await User.upsert({
+          const { userId, primaryEmail, avatarUrl, name } = await User.upsert({
             accessToken,
             db,
             githubScopes: githubLoginScopes,
           });
           return ctx.subject("user", {
-            email,
-            userId: id,
+            email: primaryEmail,
+            userId,
+            avatarUrl,
+            name,
           });
         }
         throw new Error("Invalid provider");
