@@ -13,10 +13,10 @@ import { getEnvPrefix } from "@/util";
 import {
   getDbStepConfig,
   getNumIssues,
+  getSizeLimit,
   NUM_EMBEDDING_WORKERS,
   PARENT_WORKER_SLEEP_DURATION,
   REDUCE_ISSUES_MAX_ATTEMPTS,
-  RESPONSE_SIZE_LIMIT_IN_BYTES,
 } from "@/workflows/sync/sync.param";
 import {
   getApproximateSizeInBytes,
@@ -115,7 +115,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                   });
 
                   const responseSize = getApproximateSizeInBytes(result);
-                  if (responseSize <= RESPONSE_SIZE_LIMIT_IN_BYTES) {
+                  if (responseSize <= getSizeLimit(name)) {
                     responseSizeForDebugging = responseSize;
                     return result;
                   }
