@@ -34,6 +34,6 @@
   },
   "dependencies": {
     "@pulumi/pulumi": "^3.136.1",
-    "sst": "^3.3.3"
+    "sst": "^3.4.24"
   }
 }

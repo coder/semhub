@@ -5,32 +5,8 @@
 To develop using this repo, make sure you have installed the following:
 
 - [Bun](https://bun.sh/docs/installation)
-- [SST](https://github.com/sst/ion)
 
-You also need the following environment variables (see `.env.example`) and secrets (see `.secrets.example`):
-
-Environment variables:
-
-- `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare [account ID](https://developers.cloudflare.com/fundamentals/setup/find-account-and-zone-ids/). (may not be 100% necessary)
-- `CLOUDFLARE_API_TOKEN`: Cloudflare API token to deploy Cloudflare workers and manage DNS.
-- `SUPABASE_ACCESS_TOKEN`: We use Supabase as our database, you can generate this from the Supabase dashboard, under `Dashboard > Account > Access tokens > Generate new token`.
-- `SUPABASE_ORG_ID`: Needed as part of IaC to create the Supabase project. You can find it in the URL of the Supabase dashboard when selecting your organization, i.e. `https://supabase.com/dashboard/org/{SUPABASE_ORG_ID}/general`
-
-Secrets:
-
-Make a copy of `.secrets.example` and name it `.secrets` and a copy of `.env.example` and name it `.env` and fill in the values above. To load the secrets into SST, run `bun secret:load`.
-
-To test on mobile, use Ngrok to create a tunnel to your local server:
-
-```zsh
-ngrok http 3001
-```
-
-## Codebase
-
-This template uses
-[npm Workspaces](https://docs.npmjs.com/cli/v8/using-npm/workspaces). It has 3
-packages to start with and you can add more it.
+### Monorepo
 
 1. `core/`
 
@@ -70,10 +46,47 @@ packages to start with and you can add more it.
    - We use Durable Objects as a rate limiter. The rate limiter is currently unused, and the same durable object is used for dev and prod, which is not ideal, but it also makes sense since I'm using the same API key (and OpenAI account) for both dev and prod. To split in the future.
    - We use Cloudflare Workflows to orchestrate the sync process. See [the README](./packages/wrangler/README.md) for more details.
 
-### Infrastructure
+The `infra/` directory allows you to logically split the infrastructure of your app into separate files. This can be helpful as your app grows.
 
-The `infra/` directory allows you to logically split the infrastructure of your
-app into separate files. This can be helpful as your app grows.
+### Environment variables
+
+You need the following environment variables (see `.env.example`) and secrets (see `.secrets.example`):
+
+- `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare [account ID](https://developers.cloudflare.com/fundamentals/setup/find-account-and-zone-ids/). (may not be 100% necessary)
+- `CLOUDFLARE_API_TOKEN`: Cloudflare API token to deploy Cloudflare workers and manage DNS.
+- `SUPABASE_ACCESS_TOKEN`: We use Supabase as our database, you can generate this from the Supabase dashboard, under `Dashboard > Account > Access tokens > Generate new token`.
+- `SUPABASE_ORG_ID`: Needed as part of IaC to create the Supabase project. You can find it in the URL of the Supabase dashboard when selecting your organization, i.e. `https://supabase.com/dashboard/org/{SUPABASE_ORG_ID}/general`
+
+We currently also use AWS to deploy the frontend, but this is temporary and will be replaced by Cloudflare in the future.
+
+### Secrets
+
+Make a copy of `.secrets.example` and name it `.secrets` and a copy of `.env.example` and name it `.env` and fill in the values above. To load the secrets into SST, run `bun secret:load`.
+
+### Mobile
+
+To test on mobile, use Ngrok to create a tunnel to your local frontend:
+
+```zsh
+ngrok http 3001
+```
+
+### OAuth
+
+We choose to use GitHub App (instead of OAuth App) because of [these reasons](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/differences-between-github-apps-and-oauth-apps) (more granular control, scale with number of users, etc.). For dev vs prod, we use separate GitHub Apps (the production one is sited within the `coder` organization).
+
+To set up a GitHub App:
+
+- [Register a GitHub App](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app) (dev one can be within your personal account, the [prod one](https://github.com/organizations/coder/settings/apps/coder-semhub) is within the `coder` organization)
+  - Select the following read-only Repository permissions: Metadata (mandatory), Discussions, Issues, Pull Requests, Contents
+  - Select the following read-only User permissions: Emails
+  - Deselect Webhook Active (for now?)
+  - Callback URL is: `https://auth.[stage].stg.semhub.dev/{provider}/callback` (see `packages/workers/src/auth/auth.constant.ts` for the provider name)
+- Generate and save the private key
+- Create a GitHub Client ID and Secret and load it into the `.secrets.dev` file
+- Go to Optional features and uncheck "User-to-server token expiration"
+
+Note that when you use a GitHub App on a personal account, the warning message on the authorization page is misleading. See [this thread](https://github.com/orgs/community/discussions/37117).
 
 ## Deployment
 
@@ -90,11 +103,12 @@ For a deploying a given change to prod, it makes sense (for backward compatibili
 
 Should probably set up a script to do this automatically as part of CI/CD.
 
-## Misc dev notes
+## Todos
 
-When bulk inserting using Drizzle, make sure that the array in `values()` is not empty. Hence the various checks to either early return if the array is empty or making such insertions conditional. If we accidentally pass an empty array, an error will be thrown, disrupting the control flow. TODO: enforce this by using ESLint?
+1. Cache searches on Cloudflare KV. On public, non-logged in page, we will have a short list of suggested searches. We will cache these to speed up results.
+1. Deal with webhook that comes from user revocation of GitHub App
 
-## Known issues / todos
+## Known issues
 
-1. Set up proper OAuth to allow users to log in and authorise to load issues from private repos.
+1. When bulk inserting using Drizzle, make sure that the array in `values()` is not empty. Hence the various checks to either early return if the array is empty or making such insertions conditional. If we accidentally pass an empty array, an error will be thrown, disrupting the control flow. TODO: enforce this by using ESLint?
 1. Need some way to deal with error logging. Logging for SST-deployed workers is off by default (can turn it on via console, but it'll be overridden at the next update). At scale, will need to set something up so we will be informed of unknown errors.

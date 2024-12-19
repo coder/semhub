@@ -4,29 +4,25 @@ import { ulid } from "ulidx";
 export function timestamptz(name: string) {
   return timestamp(name, { precision: 6, withTimezone: true });
 }
-// whenever a new table is added, we need to update this function
-// else it will default to the full table name, which is fine too actually
-function mapTableNameToPrefix(tableName: string) {
-  switch (tableName) {
-    case "repos":
-      return "rep";
-    case "issues":
-      return "iss";
-    case "comments":
-      return "cmt";
-    case "labels":
-      return "lbl";
-    case "issue_embeddings":
-      return "iss_emb";
-    default:
-      return tableName;
-  }
+
+// comprehensive list of all tables
+const prefixes = {
+  repos: "rep",
+  issues: "iss",
+  comments: "cmt",
+  labels: "lbl",
+  issue_embeddings: "iss_emb",
+  users: "usr",
+} as const;
+
+function createId(prefix: keyof typeof prefixes): string {
+  return [prefixes[prefix], ulid()].join("_");
 }
 
-const getIdColumn = (tableName: string) =>
+const getIdColumn = (tableName: keyof typeof prefixes) =>
   text("id")
     .primaryKey()
-    .$defaultFn(() => `${mapTableNameToPrefix(tableName)}_${ulid()}`);
+    .$defaultFn(() => createId(tableName));
 
 const timestamps = {
   createdAt: timestamptz("created_at").defaultNow().notNull(),
@@ -36,7 +32,7 @@ const timestamps = {
     .notNull(),
 };
 
-export const getBaseColumns = (tableName: string) => ({
+export const getBaseColumns = (tableName: keyof typeof prefixes) => ({
   id: getIdColumn(tableName),
   ...timestamps,
 });

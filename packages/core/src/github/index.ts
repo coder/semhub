@@ -7,11 +7,11 @@ import type { CreateLabel } from "@/db/schema/entities/label.schema";
 import { graphql } from "./graphql";
 import {
   getIssueNumbersResSchema,
-  githubRepoSchema,
   loadIssuesWithCommentsResSchema,
   type CommentGraphql,
   type IssueGraphql,
-} from "./schema";
+} from "./schema.graphql";
+import { repoSchema } from "./schema.rest";
 import type { GraphqlOctokit, RestOctokit } from "./shared";
 
 export namespace Github {
@@ -24,11 +24,8 @@ export namespace Github {
       owner: repoOwner,
       repo: repoName,
     });
-    const { success, data } = githubRepoSchema.safeParse(repoData);
-    if (!success) {
-      throw new Error("error parsing repo data from GitHub");
-    }
-    return data;
+    const repoDataParsed = repoSchema.parse(repoData);
+    return repoDataParsed;
   }
   export async function getLatestRepoIssues({
     repoId,
@@ -54,15 +51,7 @@ export namespace Github {
       since: since?.toISOString() ?? null,
       first: numIssues,
     });
-    const { success, data, error } =
-      loadIssuesWithCommentsResSchema.safeParse(response);
-    if (!success) {
-      throw new Error(
-        `error parsing issues with issues: response: ${JSON.stringify(
-          response,
-        )} error: ${JSON.stringify(error)}`,
-      );
-    }
+    const data = loadIssuesWithCommentsResSchema.parse(response);
     const issues = data.repository.issues.nodes;
     const hasNextPage = data.repository.issues.pageInfo.hasNextPage;
     const endCursor = data.repository.issues.pageInfo.endCursor;
@@ -172,11 +161,7 @@ export namespace Github {
     const rawLabels = [];
     const rawIssueToLabelRelations = [];
     for await (const response of iterator) {
-      const { success, data, error } =
-        loadIssuesWithCommentsResSchema.safeParse(response);
-      if (!success) {
-        throw new Error("error parsing issues with issues", error);
-      }
+      const data = loadIssuesWithCommentsResSchema.parse(response);
       const issues = data.repository.issues.nodes;
       if (issues.length === 0) {
         continue;
@@ -438,11 +423,7 @@ export namespace Github {
       first: numIssuesPerQuery,
     });
     for await (const response of iterator) {
-      const { success, data, error } =
-        getIssueNumbersResSchema.safeParse(response);
-      if (!success) {
-        throw new Error("error parsing issue numbers from GitHub", error);
-      }
+      const data = getIssueNumbersResSchema.parse(response);
       allIssueNumbers.push(
         ...data.repository.issues.nodes.map((n) => ({
           number: n.number,

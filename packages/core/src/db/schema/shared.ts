@@ -6,13 +6,6 @@ export type Author = {
   htmlUrl: string;
 } | null;
 
-export interface Label {
-  nodeId: string;
-  name: string;
-  color: string; // hex
-  description: string | null;
-}
-
 export const authorSchema: z.ZodType<Author> = z
   .object({
     name: z.string(),
