@@ -13,6 +13,7 @@ import { initNextRepos } from "@/wrangler/workflows/sync/repo-init/init.workflow
 import type { WorkflowRPC } from "@/wrangler/workflows/workflow.util";
 
 import type { ErrorResponse } from "./response";
+import { authRouter } from "./router/auth.router";
 import { searchRouter } from "./router/search.router";
 
 export interface Context extends Env {
@@ -48,7 +49,10 @@ app.post("/create-repo", async (c) => {
   return c.json(res);
 });
 
-const _routes = app.basePath("/api").route("/search", searchRouter);
+const _routes = app
+  .basePath("/api")
+  .route("/search", searchRouter)
+  .route("/auth", authRouter);
 
 export type ApiRoutes = typeof _routes;
 

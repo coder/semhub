@@ -4,7 +4,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc --build",
-    "auth:generate": "sst shell -- bunx @better-auth/cli generate --config ./src/auth.ts --output ../core/src/db/schema/entities/auth-schema.ts"
+    "auth:generate": "sst shell -- bunx @better-auth/cli generate --config ./src/auth/index.ts --output ../core/src/db/schema/entities/auth-schema.ts"
   },
   "dependencies": {
     "@semhub/core": "workspace:*",
