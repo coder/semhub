@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc --build"
+    "build": "tsc --build",
+    "auth:generate": "sst shell -- bunx @better-auth/cli generate --config ./src/auth.ts --output ../core/src/db/schema/entities/auth-schema.ts"
   },
   "dependencies": {
     "@semhub/core": "workspace:*",

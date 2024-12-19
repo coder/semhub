@@ -20,6 +20,6 @@
     },
     "rootDir": "../../"
   },
-  "include": ["./src/**/*", "../../infra/types.ts"],
+  "include": ["./src/**/*", "../../infra/types.ts", "src/auth.ts"],
   "exclude": ["dist", "node_modules"]
 }

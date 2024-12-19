@@ -1,4 +1,4 @@
-import { jsonb, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 
 import { getBaseColumns, timestamptz } from "../base.sql";
 
@@ -16,7 +16,10 @@ export const users = pgTable("users", {
   nodeId: text("node_id").notNull().unique(),
   login: text("login").notNull(),
   name: text("name").notNull(),
-  email: text("email").notNull(), // not unique because users can change their emails. we track the underlying Github user using nodeId
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("emailVerified").notNull(),
+  // email: text("email").notNull(), // not unique because users can change their emails. we track the underlying Github user using nodeId
+  image: text("image"),
   avatarUrl: text("avatar_url"),
   htmlUrl: text("html_url").notNull(),
   githubScopes: jsonb("github_scopes").$type<GithubScopes>(),
