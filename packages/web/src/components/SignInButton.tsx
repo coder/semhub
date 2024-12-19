@@ -1,22 +1,21 @@
 import { LogOutIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-import { isAuthenticated, login, logout } from "@/lib/api/auth";
+import { login, logout } from "@/lib/api/auth";
 
 import { GithubIcon } from "./icons/GithubIcon";
 import { Button } from "./ui/button";
 
 export function SignInButton() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    // Check auth status on mount
-    isAuthenticated().then(setIsLoggedIn);
-  }, []);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem("isLoggedIn") === "true";
+  });
 
   const handleLogin = async () => {
     try {
       const redirectUrl = await login();
+      localStorage.setItem("isLoggedIn", "true");
+      setIsLoggedIn(true);
       window.location.href = redirectUrl;
     } catch (error) {
       console.error("Login failed:", error);
@@ -26,6 +25,7 @@ export function SignInButton() {
   const handleLogout = async () => {
     try {
       await logout();
+      localStorage.setItem("isLoggedIn", "false");
       setIsLoggedIn(false);
     } catch (error) {
       console.error("Logout failed:", error);

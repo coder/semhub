@@ -13,15 +13,9 @@ export const authRouter = new Hono<Context>()
     const accessToken = getCookie(c, "access_token");
     const refreshToken = getCookie(c, "refresh_token");
 
-    if (!accessToken || !refreshToken) {
-      return c.json({ authenticated: false }, { status: 401 });
-    }
-    console.log("typeof client", typeof client);
-    console.log("did i reach here");
     const verified = await client.verify(subjects, accessToken || "", {
-      refresh: refreshToken || undefined,
+      refresh: refreshToken,
     });
-    console.log("not here");
 
     if (verified.err) {
       return c.redirect(`${c.req.url}/authorize`);
