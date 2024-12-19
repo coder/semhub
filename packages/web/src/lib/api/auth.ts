@@ -5,7 +5,8 @@ export async function login() {
   if (!res.ok) {
     throw new Error("Failed to start auth flow");
   }
-  return res.url;
+  const data = await res.json();
+  return data.url;
 }
 
 export async function logout() {

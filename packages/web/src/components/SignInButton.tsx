@@ -1,5 +1,5 @@
 import { LogOutIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { login, logout } from "@/lib/api/auth";
 
@@ -14,13 +14,20 @@ export function SignInButton() {
   const handleLogin = async () => {
     try {
       const redirectUrl = await login();
-      localStorage.setItem("isLoggedIn", "true");
-      setIsLoggedIn(true);
+      sessionStorage.setItem("auth_pending", "true");
       window.location.href = redirectUrl;
     } catch (error) {
       console.error("Login failed:", error);
     }
   };
+
+  useEffect(() => {
+    if (sessionStorage.getItem("auth_pending") === "true") {
+      sessionStorage.removeItem("auth_pending");
+      localStorage.setItem("isLoggedIn", "true");
+      setIsLoggedIn(true);
+    }
+  }, []);
 
   const handleLogout = async () => {
     try {

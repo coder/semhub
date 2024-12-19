@@ -3,6 +3,8 @@ import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { Resource } from "sst";
 
+import { getDeps } from "@/deps";
+
 import type { Context } from "..";
 import { githubLogin } from "../../auth/auth.constant";
 import { subjects } from "../../subjects";
@@ -43,17 +45,21 @@ export const authRouter = new Hono<Context>()
   .get("/authorize", async (c) => {
     const client = getAuthClient();
     const url = new URL(c.req.url);
-    console.log("urlorigin", url.origin);
     const redirectURI = `${url.origin}/api/auth/callback`;
-    console.log("reached here");
-    const authUrl = await client.authorize(redirectURI, "code", {
-      pkce: true,
-      provider: githubLogin.provider,
-    });
-    console.log("reached here");
-    return c.redirect(authUrl.url);
+    try {
+      const authUrl = await client
+        .authorize(redirectURI, "code")
+        .then((v) => v.url);
+      console.log("authUrl", authUrl);
+      return c.json({ url: authUrl });
+    } catch (e) {
+      console.error("Error authorizing", e);
+      return c.text("Error authorizing");
+    }
   })
   .get("/callback", async (c) => {
+    const { currStage } = getDeps();
+    const isLocalDevelopment = currStage !== "prod" && currStage !== "stg";
     const client = getAuthClient();
     try {
       const url = new URL(c.req.url);
@@ -67,15 +73,15 @@ export const authRouter = new Hono<Context>()
       const response = c.redirect("/");
       setCookie(c, "access_token", exchanged.tokens.access, {
         httpOnly: true,
-        secure: true,
-        sameSite: "Strict",
+        secure: !isLocalDevelopment,
+        sameSite: isLocalDevelopment ? "Lax" : "Strict",
         path: "/",
         maxAge: 2147483647,
       });
       setCookie(c, "refresh_token", exchanged.tokens.refresh, {
         httpOnly: true,
-        secure: true,
-        sameSite: "Strict",
+        secure: !isLocalDevelopment,
+        sameSite: isLocalDevelopment ? "Lax" : "Strict",
         path: "/",
         maxAge: 2147483647,
       });

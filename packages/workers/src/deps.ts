@@ -6,9 +6,10 @@ import { getGraphqlOctokit, getRestOctokit } from "@/core/github/shared";
 import { createOpenAIClient } from "@/core/openai";
 
 export function getDeps() {
+  const currStage = Resource.App.stage;
   const { db } = createDb({
     connectionString: Resource.DATABASE_URL.value,
-    isProd: Resource.App.stage === "prod",
+    isProd: currStage === "prod",
   });
 
   const openai = createOpenAIClient(Resource.OPENAI_API_KEY.value);
@@ -23,5 +24,5 @@ export function getDeps() {
 
   const emailClient = getEmailClient(Resource.RESEND_API_KEY.value);
 
-  return { db, emailClient, graphqlOctokit, openai, restOctokit };
+  return { db, emailClient, graphqlOctokit, openai, restOctokit, currStage };
 }

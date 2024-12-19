@@ -6,7 +6,7 @@ import { Resource } from "sst";
 
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
-import { getAllowedOrigins } from "@/auth/auth.constant";
+import { getAllowedOriginsOnApi } from "@/auth/auth.constant";
 import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
 import type { RepoInitParams } from "@/wrangler/workflows/sync/repo-init/init.workflow";
@@ -21,6 +21,7 @@ export interface Context extends Env {
   Bindings: {
     RATE_LIMITER: Service<RateLimiterWorker>;
     REPO_INIT_WORKFLOW: WorkflowRPC<RepoInitParams>;
+    Auth: Service;
   };
   Variables: {
     // user: User | null;
@@ -30,14 +31,16 @@ export interface Context extends Env {
 
 export const app = new Hono<Context>();
 
-app.use(
-  "*",
-  cors({
-    origin: getAllowedOrigins() as unknown as string[],
+app.use("*", async (c, next) => {
+  return cors({
+    origin: getAllowedOriginsOnApi(),
+    allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["POST", "GET", "OPTIONS"],
+    exposeHeaders: ["Content-Length", "Access-Control-Allow-Origin"],
+    maxAge: 600,
     credentials: true,
-    maxAge: 3600,
-  }),
-);
+  })(c, next);
+});
 
 // TODO: move this into a protected endpoint with middleware
 app.post("/create-repo", async (c) => {
