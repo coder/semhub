@@ -14,14 +14,14 @@ export const allowedDomains = {
   prod: "semhub.dev",
   dev: {
     host: "localhost",
-    port: "3001"
-  }
+    port: "3001",
+  },
 } as const;
 
-export function getAllowedOrigins(): string[] {
+export function getAllowedOrigins() {
   return [
     `https://${allowedDomains.prod}`,
     `https://*.${allowedDomains.prod}`,
-    `http://${allowedDomains.dev.host}:${allowedDomains.dev.port}`
-  ];
+    `http://${allowedDomains.dev.host}:${allowedDomains.dev.port}`,
+  ] as const;
 }

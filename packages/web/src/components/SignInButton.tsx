@@ -1,7 +1,7 @@
 import { LogOutIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { isAuthenticated, login, logout } from "@/lib/api";
+import { isAuthenticated, login, logout } from "@/lib/api/auth";
 
 import { GithubIcon } from "./icons/GithubIcon";
 import { Button } from "./ui/button";

@@ -38,6 +38,6 @@
     "concurrently": "^8.2.2"
   },
   "dependencies": {
-    "sst": "^3.4.5"
+    "sst": "^3.4.24"
   }
 }

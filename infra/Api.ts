@@ -7,14 +7,6 @@ const hono = new sst.cloudflare.Worker("Hono", {
   handler: "./packages/workers/src/api.ts",
   link: [auth, ...allSecrets],
   domain: "api." + domain,
-  environment: {
-    OPENAUTH_ISSUER: auth.url.apply((url) => {
-      if (typeof url !== "string") {
-        throw new Error("Auth URL must be a string");
-      }
-      return url;
-    }),
-  },
   transform: {
     worker: {
       // staging will bind to dev wrangler workers too

@@ -6,7 +6,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Loader2Icon } from "lucide-react";
 import type { z } from "zod";
 
-import { searchIssues } from "@/lib/api";
+import { searchIssues } from "@/lib/api/search";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IssueCard } from "@/components/IssueCard";

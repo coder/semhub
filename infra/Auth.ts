@@ -14,8 +14,6 @@ export const auth = new sst.cloudflare.Auth("Auth", {
   },
 });
 
-export const authUrl = auth.url;
-
 export const outputs = {
-  auth: authUrl,
+  auth: auth.url,
 };

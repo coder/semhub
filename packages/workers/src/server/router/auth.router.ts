@@ -9,13 +9,16 @@ import { subjects } from "../../subjects";
 
 export const authRouter = new Hono<Context>()
   .get("/", async (c) => {
-    const client = getAuthClient(c.var.OPENAUTH_ISSUER);
+    const client = getAuthClient();
     const accessToken = getCookie(c, "access_token");
     const refreshToken = getCookie(c, "refresh_token");
 
+    console.log("typeof client", typeof client);
+    console.log("did i reach here");
     const verified = await client.verify(subjects, accessToken || "", {
       refresh: refreshToken || undefined,
     });
+    console.log("not here");
 
     if (verified.err) {
       return c.redirect(`${c.req.url}/authorize`);
@@ -41,17 +44,20 @@ export const authRouter = new Hono<Context>()
     return response;
   })
   .get("/authorize", async (c) => {
-    const client = getAuthClient(c.var.OPENAUTH_ISSUER);
+    const client = getAuthClient();
     const url = new URL(c.req.url);
+    console.log("urlorigin", url.origin);
     const redirectURI = `${url.origin}/api/auth/callback`;
+    console.log("reached here");
     const authUrl = await client.authorize(redirectURI, "code", {
       pkce: true,
       provider: githubLogin.provider,
     });
+    console.log("reached here");
     return c.redirect(authUrl.url);
   })
   .get("/callback", async (c) => {
-    const client = getAuthClient(c.var.OPENAUTH_ISSUER);
+    const client = getAuthClient();
     try {
       const url = new URL(c.req.url);
       const redirectURI = `${url.origin}/api/auth/callback`;
@@ -87,10 +93,10 @@ export const authRouter = new Hono<Context>()
     return c.redirect("/");
   });
 
-function getAuthClient(issuer: string) {
+function getAuthClient() {
   return createClient({
+    issuer: Resource.Auth.url,
     clientID: githubLogin.provider,
     fetch: (input, init) => Resource.AuthAuthenticator.fetch(input, init),
-    issuer,
   });
 }

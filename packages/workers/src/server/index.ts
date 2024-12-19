@@ -23,7 +23,6 @@ export interface Context extends Env {
     REPO_INIT_WORKFLOW: WorkflowRPC<RepoInitParams>;
   };
   Variables: {
-    OPENAUTH_ISSUER: string;
     // user: User | null;
     // session: Session | null;
   };
@@ -34,13 +33,13 @@ export const app = new Hono<Context>();
 app.use(
   "*",
   cors({
-    origin: getAllowedOrigins(),
+    origin: getAllowedOrigins() as unknown as string[],
     credentials: true,
     maxAge: 3600,
   }),
 );
 
-// TODO: remove before merging/deploying
+// TODO: move this into a protected endpoint with middleware
 app.post("/create-repo", async (c) => {
   const { owner, name } = await c.req.json<{ owner: string; name: string }>();
 
