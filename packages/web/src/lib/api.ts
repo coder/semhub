@@ -12,12 +12,11 @@ if (!apiUrl) {
 }
 
 const client = hc<ApiRoutes>(apiUrl, {
-  // TODO: auth
   fetch: (input: RequestInfo | URL, init?: RequestInit) =>
     fetch(input, {
       ...init,
-      // credentials: "include",
-      // redirect: "follow",
+      credentials: "include",
+      redirect: "follow",
     }),
 }).api;
 

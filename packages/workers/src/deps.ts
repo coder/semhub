@@ -8,9 +8,10 @@ import { getGraphqlOctokit, getRestOctokit } from "@/core/github/shared";
 import { createOpenAIClient } from "@/core/openai";
 
 export function getDeps() {
+  const currStage = Resource.App.stage;
   const { db } = createDb({
     connectionString: Resource.Supabase.databaseUrl,
-    isProd: Resource.App.stage === "prod",
+    isProd: currStage === "prod",
   });
 
   const openai = createOpenAIClient(Resource.OPENAI_API_KEY.value);
@@ -30,7 +31,18 @@ export function getDeps() {
       db,
       githubClientId: Resource.SEMHUB_GITHUB_APP_CLIENT_ID.value,
       githubClientSecret: Resource.SEMHUB_GITHUB_APP_CLIENT_SECRET.value,
+      betterAuthSecret: Resource.BETTER_AUTH_SECRET.value,
     }),
   );
-  return { auth, db, emailClient, graphqlOctokit, openai, restOctokit };
+  return {
+    auth,
+    db,
+    emailClient,
+    graphqlOctokit,
+    openai,
+    restOctokit,
+    currStage,
+  };
 }
+
+export type Deps = ReturnType<typeof getDeps>;

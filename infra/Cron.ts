@@ -1,3 +1,4 @@
+import { serverBaseUrl } from "./Api";
 import { allSecrets } from "./Secret";
 import { database } from "./Supabase";
 import type { CronPatterns } from "./types";
@@ -12,7 +13,7 @@ const createCronJob = (name: string, schedule: string) => {
   return new sst.cloudflare.Cron(name, {
     job: {
       handler: "./packages/workers/src/cron.ts",
-      link: [database, ...allSecrets],
+      link: [database, ...allSecrets, serverBaseUrl],
       transform: {
         worker: {
           serviceBindings: [

@@ -4,6 +4,7 @@ export const secret = {
   resendApiKey: new sst.Secret("RESEND_API_KEY"),
   githubAppClientId: new sst.Secret("SEMHUB_GITHUB_APP_CLIENT_ID"),
   githubAppClientSecret: new sst.Secret("SEMHUB_GITHUB_APP_CLIENT_SECRET"),
+  betterAuthSecret: new sst.Secret("BETTER_AUTH_SECRET"),
 };
 
 export const allSecrets = Object.values(secret);

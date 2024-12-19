@@ -2,10 +2,16 @@ import { domain } from "./Dns";
 import { allSecrets } from "./Secret";
 import { database } from "./Supabase";
 
+export const serverBaseUrl = new sst.Linkable("ServerBaseUrl", {
+  properties: {
+    url: "api." + domain,
+  },
+});
+
 const hono = new sst.cloudflare.Worker("Hono", {
   url: true,
   handler: "./packages/workers/src/api.ts",
-  link: [database, ...allSecrets],
+  link: [database, ...allSecrets, serverBaseUrl],
   domain: "api." + domain,
   transform: {
     worker: {

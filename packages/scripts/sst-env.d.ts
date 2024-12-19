@@ -6,6 +6,10 @@ import "sst"
 export {}
 declare module "sst" {
   export interface Resource {
+    "BETTER_AUTH_SECRET": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "GITHUB_PERSONAL_ACCESS_TOKEN": {
       "type": "sst.sst.Secret"
       "value": string
@@ -32,6 +36,10 @@ declare module "sst" {
     "SEMHUB_GITHUB_APP_CLIENT_SECRET": {
       "type": "sst.sst.Secret"
       "value": string
+    }
+    "ServerBaseUrl": {
+      "type": "sst.sst.Linkable"
+      "url": string
     }
     "Supabase": {
       "databasePassword": string

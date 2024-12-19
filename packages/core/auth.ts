@@ -17,5 +17,7 @@ export const auth = betterAuth(
     githubClientId: Resource.SEMHUB_GITHUB_APP_CLIENT_ID.value,
     // @ts-ignore Resource will be available during CLI runtime
     githubClientSecret: Resource.SEMHUB_GITHUB_APP_CLIENT_SECRET.value,
+    // @ts-ignore Resource will be available during CLI runtime
+    betterAuthSecret: Resource.BETTER_AUTH_SECRET.value,
   }),
 );

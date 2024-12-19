@@ -7,7 +7,6 @@ import { Button } from "./ui/button";
 
 export function SignIn() {
   const { data: session, isPending } = useSession();
-
   const handleLogin = async () => {
     try {
       await authClient.signIn.social({
@@ -34,7 +33,12 @@ export function SignIn() {
   };
 
   if (isPending) {
-    return null; // or a loading spinner
+    return (
+      <Button variant="outline" disabled className="gap-2">
+        <GithubIcon className="size-4" />
+        Loading...
+      </Button>
+    );
   }
 
   return (

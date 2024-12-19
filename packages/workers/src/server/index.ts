@@ -4,8 +4,10 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { Resource } from "sst";
 
+import { corsConfig } from "@/core/auth/config";
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
+import type { Deps } from "@/deps";
 import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
 import type { RepoInitParams } from "@/wrangler/workflows/sync/repo-init/init.workflow";
@@ -22,15 +24,41 @@ export interface Context extends Env {
     REPO_INIT_WORKFLOW: WorkflowRPC<RepoInitParams>;
   };
   Variables: {
-    // user: User | null;
-    // session: Session | null;
+    user: Deps["auth"]["$Infer"]["Session"]["user"] | null;
+    session: Deps["auth"]["$Infer"]["Session"]["session"] | null;
   };
 }
 
 export const app = new Hono<Context>();
 
-// TODO: set up auth
-app.use("*", cors());
+// CORS middleware - Apply before any other middleware
+app.use("*", async (c, next) => {
+  const { currStage } = getDeps();
+  const currentCorsConfig = corsConfig[currStage === "prod" ? "prod" : "dev"];
+
+  return cors({
+    origin: currentCorsConfig.origins,
+    allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["POST", "GET", "OPTIONS"],
+    exposeHeaders: ["Content-Length", "Access-Control-Allow-Origin"],
+    maxAge: 600,
+    credentials: true,
+  })(c, next);
+});
+
+// Auth middleware to handle session
+app.use("*", async (c, next) => {
+  const { auth } = getDeps();
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) {
+    c.set("user", null);
+    c.set("session", null);
+    return next();
+  }
+  c.set("user", session.user);
+  c.set("session", session.session);
+  return next();
+});
 
 // TODO: remove before merging/deploying
 app.post("/create-repo", async (c) => {
