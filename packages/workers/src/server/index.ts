@@ -6,6 +6,7 @@ import { Resource } from "sst";
 
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
+import { getAllowedOrigins } from "@/auth/auth.constant";
 import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
 import type { RepoInitParams } from "@/wrangler/workflows/sync/repo-init/init.workflow";
@@ -13,6 +14,7 @@ import { initNextRepos } from "@/wrangler/workflows/sync/repo-init/init.workflow
 import type { WorkflowRPC } from "@/wrangler/workflows/workflow.util";
 
 import type { ErrorResponse } from "./response";
+import { authRouter } from "./router/auth.router";
 import { searchRouter } from "./router/search.router";
 
 export interface Context extends Env {
@@ -21,6 +23,7 @@ export interface Context extends Env {
     REPO_INIT_WORKFLOW: WorkflowRPC<RepoInitParams>;
   };
   Variables: {
+    OPENAUTH_ISSUER: string;
     // user: User | null;
     // session: Session | null;
   };
@@ -28,8 +31,14 @@ export interface Context extends Env {
 
 export const app = new Hono<Context>();
 
-// TODO: set up auth
-app.use("*", cors());
+app.use(
+  "*",
+  cors({
+    origin: getAllowedOrigins(),
+    credentials: true,
+    maxAge: 3600,
+  }),
+);
 
 // TODO: remove before merging/deploying
 app.post("/create-repo", async (c) => {
@@ -48,7 +57,10 @@ app.post("/create-repo", async (c) => {
   return c.json(res);
 });
 
-const _routes = app.basePath("/api").route("/search", searchRouter);
+const _routes = app
+  .basePath("/api")
+  .route("/auth", authRouter)
+  .route("/search", searchRouter);
 
 export type ApiRoutes = typeof _routes;
 

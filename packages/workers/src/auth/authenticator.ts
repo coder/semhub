@@ -10,7 +10,7 @@ import { parseHostname } from "@/core/util/url";
 
 import { getDeps } from "../deps";
 import { subjects } from "../subjects";
-import { githubLogin } from "./auth.constant";
+import { allowedDomains, githubLogin } from "./auth.constant";
 
 export default {
   async fetch(request: Request, ctx: ExecutionContext) {
@@ -34,8 +34,7 @@ export default {
       allow: async (input) => {
         const url = new URL(input.redirectURI);
         const { domain } = parseHostname(url.hostname);
-        if (domain === "semhub.dev") return true; // can consider whitelisting specific subdomains
-        if (domain === "localhost" && url.port === "3001") return true;
+        if (domain === allowedDomains.prod) return true;
         return false;
       },
       success: async (ctx, value) => {

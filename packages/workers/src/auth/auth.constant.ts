@@ -9,3 +9,19 @@ export const githubRepo = {
     scopes: ["repo"],
   },
 };
+
+export const allowedDomains = {
+  prod: "semhub.dev",
+  dev: {
+    host: "localhost",
+    port: "3001"
+  }
+} as const;
+
+export function getAllowedOrigins(): string[] {
+  return [
+    `https://${allowedDomains.prod}`,
+    `https://*.${allowedDomains.prod}`,
+    `http://${allowedDomains.dev.host}:${allowedDomains.dev.port}`
+  ];
+}

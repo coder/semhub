@@ -1,55 +1,35 @@
 import { LogOutIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import {
-  authClient,
-  handleCallback,
-  isAuthenticated,
-  logout,
-} from "@/lib/auth";
-import { githubLogin } from "@/workers/auth/auth.constant";
+import { isAuthenticated, login, logout } from "@/lib/api";
 
 import { GithubIcon } from "./icons/GithubIcon";
 import { Button } from "./ui/button";
 
 export function SignInButton() {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return localStorage.getItem("isLoggedIn") === "true";
-  });
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    // Check if we're handling a callback
-    if (location.search.includes("code=")) {
-      handleCallback().then((success) => {
-        if (success) {
-          setIsLoggedIn(true);
-          localStorage.setItem("isLoggedIn", "true");
-        }
-      });
-    } else {
-      const authStatus = isAuthenticated();
-      setIsLoggedIn(authStatus);
-      localStorage.setItem("isLoggedIn", authStatus.toString());
-    }
+    // Check auth status on mount
+    isAuthenticated().then(setIsLoggedIn);
   }, []);
 
   const handleLogin = async () => {
-    const { challenge, url } = await authClient.authorize(
-      location.origin,
-      "code",
-      {
-        pkce: true,
-        provider: githubLogin.provider,
-      },
-    );
-    sessionStorage.setItem("challenge", JSON.stringify(challenge));
-    location.href = url;
+    try {
+      const redirectUrl = await login();
+      window.location.href = redirectUrl;
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
   };
 
-  const handleLogout = () => {
-    logout();
-    setIsLoggedIn(false);
-    localStorage.setItem("isLoggedIn", "false");
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setIsLoggedIn(false);
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   };
 
   return (
