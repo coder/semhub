@@ -1,5 +1,7 @@
+import { betterAuth } from "better-auth";
 import { Resource } from "sst";
 
+import { getBetterAuthConfig } from "@/core/auth/config";
 import { createDb } from "@/core/db";
 import { getEmailClient } from "@/core/email";
 import { getGraphqlOctokit, getRestOctokit } from "@/core/github/shared";
@@ -23,5 +25,12 @@ export function getDeps() {
 
   const emailClient = getEmailClient(Resource.RESEND_API_KEY.value);
 
-  return { db, emailClient, graphqlOctokit, openai, restOctokit };
+  const auth = betterAuth(
+    getBetterAuthConfig({
+      db,
+      githubClientId: Resource.SEMHUB_GITHUB_APP_CLIENT_ID.value,
+      githubClientSecret: Resource.SEMHUB_GITHUB_APP_CLIENT_SECRET.value,
+    }),
+  );
+  return { auth, db, emailClient, graphqlOctokit, openai, restOctokit };
 }

@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 
-import { auth } from "@/auth";
+import { getDeps } from "@/deps";
 
-export const authRouter = new Hono().on(["POST", "GET"], "/**", (c) =>
-  auth.handler(c.req.raw),
-);
+export const authRouter = new Hono().on(["POST", "GET"], "/**", (c) => {
+  const { auth } = getDeps();
+  return auth.handler(c.req.raw);
+});

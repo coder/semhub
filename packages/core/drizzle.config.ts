@@ -7,7 +7,7 @@ export default defineConfig({
   verbose: true,
   dialect: "postgresql",
   dbCredentials: {
-    // @ts-ignore Resource will be available during runtime
+    // @ts-ignore Resource will be available during CLI runtime
     url: Resource.Supabase.databaseUrl,
   },
   schema: "src/**/*.sql.ts",

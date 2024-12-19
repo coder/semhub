@@ -11,7 +11,8 @@
     "db:generate": "sst shell -- drizzle-kit generate",
     "db:migrate": "sst shell -- drizzle-kit migrate",
     "db:migrate:prod": "sst shell --stage prod -- drizzle-kit migrate",
-    "db:push": "sst shell -- drizzle-kit push"
+    "db:push": "sst shell -- drizzle-kit push",
+    "auth:generate": "sst shell -- bunx @better-auth/cli generate --output ./src/db/schema/entities/auth-schema.ts"
   },
   "exports": {
     "./*": [
