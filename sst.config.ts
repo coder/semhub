@@ -8,7 +8,6 @@ export default $config({
       removal: "retain-all",
       home: "cloudflare",
       providers: {
-        supabase: "0.0.3",
         random: true,
         aws: true,
       },

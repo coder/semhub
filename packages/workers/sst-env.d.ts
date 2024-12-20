@@ -7,6 +7,10 @@ export {}
 import "sst"
 declare module "sst" {
   export interface Resource {
+    "DATABASE_URL": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "GITHUB_PERSONAL_ACCESS_TOKEN": {
       "type": "sst.sst.Secret"
       "value": string
@@ -18,14 +22,6 @@ declare module "sst" {
     "RESEND_API_KEY": {
       "type": "sst.sst.Secret"
       "value": string
-    }
-    "Supabase": {
-      "databasePassword": string
-      "databaseUrl": string
-      "organizationId": string
-      "projectName": string
-      "region": string
-      "type": "sst.sst.Linkable"
     }
     "Web": {
       "type": "sst.aws.StaticSite"

@@ -2,10 +2,8 @@
 // this is a script to deploy cloudflare resources
 // not meant to be referenced by other parts of the codebase
 import { execSync } from "child_process";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Resource } from "sst";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
 
 async function deploy() {
@@ -13,7 +11,6 @@ async function deploy() {
   const isProd = wranglerArgs.includes("prod");
   const env = isProd ? "prod" : "dev";
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const envFlag = isProd ? "--env prod" : "";
   const cloudflareEnvVars = `CF_ACCOUNT_ID=${process.env.CLOUDFLARE_ACCOUNT_ID} CF_API_TOKEN=${process.env.CLOUDFLARE_API_TOKEN}`;
 
@@ -23,27 +20,27 @@ async function deploy() {
     execSync(`${cloudflareEnvVars} wrangler ${wranglerArgs}`, {
       stdio: "inherit",
     });
-    // if (wranglerArgs.startsWith("deploy")) {
-    //   // Extract config path from arguments
-    //   const configMatch = wranglerArgs.match(/--config\s+([^\s]+)/);
-    //   const configPath = configMatch ? `--config ${configMatch[1]}` : "";
-    //   // Then add the secrets with the config path
-    //   const secrets: WranglerSecrets = {
-    //     DATABASE_URL: Resource.Supabase.databaseUrl,
-    //     OPENAI_API_KEY: Resource.OPENAI_API_KEY.value,
-    //     GITHUB_PERSONAL_ACCESS_TOKEN:
-    //       Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value,
-    //     RESEND_API_KEY: Resource.RESEND_API_KEY.value,
-    //   };
-    //   for (const [key, value] of Object.entries(secrets)) {
-    //     execSync(
-    //       `echo "${value}" | ${cloudflareEnvVars} wrangler secret put ${key} ${configPath} ${envFlag}`,
-    //       {
-    //         stdio: "inherit",
-    //       },
-    //     );
-    //   }
-    // }
+    if (wranglerArgs.startsWith("deploy")) {
+      // Extract config path from arguments
+      const configMatch = wranglerArgs.match(/--config\s+([^\s]+)/);
+      const configPath = configMatch ? `--config ${configMatch[1]}` : "";
+      // Then add the secrets with the config path
+      const secrets: WranglerSecrets = {
+        DATABASE_URL: Resource.DATABASE_URL.value,
+        OPENAI_API_KEY: Resource.OPENAI_API_KEY.value,
+        GITHUB_PERSONAL_ACCESS_TOKEN:
+          Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value,
+        RESEND_API_KEY: Resource.RESEND_API_KEY.value,
+      };
+      for (const [key, value] of Object.entries(secrets)) {
+        execSync(
+          `echo "${value}" | ${cloudflareEnvVars} wrangler secret put ${key} ${configPath} ${envFlag}`,
+          {
+            stdio: "inherit",
+          },
+        );
+      }
+    }
     console.log("Done!");
   } catch (error) {
     console.error("Error:", error);

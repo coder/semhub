@@ -7,7 +7,7 @@ import { createOpenAIClient } from "@/core/openai";
 
 export function getDeps(withLogging = true) {
   const { db, closeConnection } = createDb({
-    connectionString: Resource.Supabase.databaseUrl,
+    connectionString: Resource.DATABASE_URL.value,
     isProd: !withLogging,
   });
 
