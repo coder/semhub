@@ -2,22 +2,19 @@ import { authKv } from "./Auth";
 import { domain } from "./Dns";
 import { allSecrets } from "./Secret";
 
-// Create a secret that persists across deployments
-const signingSecretString = new random.RandomString("SigningSecret", {
+const secretKeyString = new random.RandomString("SecretKey", {
   special: false,
   length: 64,
 });
-
-// Make it linkable for use in other stacks
-const signingSecret = new sst.Linkable("SigningSecret", {
+const secretKey = new sst.Linkable("SecretKey", {
   properties: {
-    secretValue: signingSecretString.result,
+    value: secretKeyString.result,
   },
 });
 const hono = new sst.cloudflare.Worker("Hono", {
   url: true,
   handler: "./packages/workers/src/api.ts",
-  link: [authKv, ...allSecrets, signingSecret],
+  link: [authKv, ...allSecrets, secretKey],
   domain: "api." + domain,
   transform: {
     worker: {

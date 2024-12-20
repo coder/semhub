@@ -74,7 +74,7 @@ export const authRouter = new Hono<Context>()
   })
   // used in OAuth
   .get("/authorize", async (c) => {
-    const { signingSecret } = getDeps();
+    const { secretKey } = getDeps();
     const client = getAuthClient();
     const url = new URL(c.req.url);
     const returnTo = c.req.query("returnTo") || "/"; // TODO: send user back to frontend on "/"
@@ -96,7 +96,7 @@ export const authRouter = new Hono<Context>()
       );
       // Sign the returnTo URL directly
       const signature = await createHmacDigest({
-        secret: signingSecret,
+        secret: secretKey,
         data: `${challengeState}:${returnTo}`,
       });
       const state = `${signature}.${challengeState}:${returnTo}`;
@@ -112,7 +112,7 @@ export const authRouter = new Hono<Context>()
   })
   // used in OAuth
   .get("/callback", async (c) => {
-    const { signingSecret, currStage } = getDeps();
+    const { secretKey, currStage } = getDeps();
     const client = getAuthClient();
     try {
       const url = new URL(c.req.url);
@@ -144,7 +144,7 @@ export const authRouter = new Hono<Context>()
       await Resource.AuthKv.delete(`oauth:challenge ${challengeState}`);
       // Verify the signature
       const isValid = await verifyHmacDigest({
-        secret: signingSecret,
+        secret: secretKey,
         data: `${challengeState}:${returnTo}`,
         digest: signature,
       });

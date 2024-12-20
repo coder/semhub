@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { client } from "../api/client";
+import { queryKeys } from "../queryClient";
 import { storage } from "../storage";
 
 export function useSession() {
   const { data, error, isLoading, refetch } = useQuery({
-    queryKey: ["session"],
+    queryKey: [queryKeys.session],
     queryFn: async () => {
       const res = await client.auth.$get();
       if (!res.ok) {

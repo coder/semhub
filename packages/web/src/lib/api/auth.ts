@@ -1,4 +1,5 @@
-import { storage } from "../storage";
+import { queryClient, queryKeys } from "@/lib/queryClient";
+
 import { client } from "./client";
 
 export async function login() {
@@ -8,19 +9,18 @@ export async function login() {
     },
   });
   if (!res.ok) {
-    storage.setAuthStatus(false);
     throw new Error("Failed to start auth flow");
   }
   const { authUrl } = await res.json();
-  storage.setAuthStatus(true);
   window.location.href = authUrl;
 }
 
 export async function logout() {
-  await client.auth.logout.$get({
+  const response = await client.auth.logout.$get({
     query: {
       returnTo: window.location.origin + "/",
     },
   });
-  storage.setAuthStatus(false);
+  await queryClient.invalidateQueries({ queryKey: queryKeys.session });
+  return response;
 }
