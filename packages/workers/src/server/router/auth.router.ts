@@ -11,7 +11,7 @@ import { getCookieOptions, githubLogin } from "../../auth/auth.constant";
 import { subjects } from "../../subjects";
 
 export const authRouter = new Hono<Context>()
-  // slightly idiosyncratic implementation to get back session data
+  // slightly idiosyncratic implementation to get session data on frontend
   .get("/", async (c) => {
     const { currStage } = getDeps();
     try {
@@ -38,6 +38,7 @@ export const authRouter = new Hono<Context>()
           401,
         );
       }
+      verified.subject;
 
       // Set new tokens if they were refreshed
       if (verified.tokens) {
@@ -78,18 +79,23 @@ export const authRouter = new Hono<Context>()
     const returnTo = c.req.query("returnTo") || "/"; // TODO: send user back to frontend on "/"
     const redirectURI = `${url.origin}/api/auth/callback`;
     try {
-      const authResponse = await client.authorize(redirectURI, "code");
+      const {
+        // challengeState is a UUID
+        challenge: { state: challengeState },
+        url: authUrl,
+      } = await client.authorize(redirectURI, "code");
 
       // Sign the returnTo URL directly
       const signature = await createHmacDigest({
         secret: signingSecret,
-        data: returnTo,
+        data: `${challengeState}:${returnTo}`,
       });
-      const state = `${signature}.${returnTo}`;
-      const url = new URL(authResponse.url);
+      const state = `${signature}.${challengeState}:${returnTo}`;
+      const url = new URL(authUrl);
+      // this overrides the state in the authResponse.url, but it's OK
+      // since the signature + the returnTo ensures the same
       url.searchParams.set("state", encodeURIComponent(state));
-      const authUrl = url.toString();
-      return c.json({ authUrl });
+      return c.json({ authUrl: url.toString() });
     } catch (e: any) {
       console.error("Error authorizing", e.toString());
       return c.text("Error authorizing", e.toString());
@@ -97,24 +103,30 @@ export const authRouter = new Hono<Context>()
   })
   // used in OAuth
   .get("/callback", async (c) => {
-    const { currStage } = getDeps();
+    const { signingSecret, currStage } = getDeps();
     const client = getAuthClient();
     try {
-      const { signingSecret } = getDeps();
       const url = new URL(c.req.url);
       const redirectURI = `${url.origin}/api/auth/callback`;
       const code = c.req.query("code");
       const state = c.req.query("state");
 
-      // Verify state signature
       if (!state) throw new Error("No state provided");
-      const [signature, ...returnToParts] =
-        decodeURIComponent(state).split(".");
-      const returnTo = returnToParts.join(".");
-      if (!returnTo || !signature) throw new Error("Invalid state");
+
+      // Split into signature and data
+      const [signature, ...dataParts] = decodeURIComponent(state).split(".");
+      const data = dataParts.join("."); // rejoin in case data contains dots
+      if (!signature || !data) throw new Error("Invalid state format");
+
+      // Split data into challengeState and returnTo parts
+      const [challengeState, ...returnToParts] = data.split(":");
+      const returnTo = returnToParts.join(":"); // rejoin returnTo parts that might contain ":"
+      if (!challengeState || !returnTo) throw new Error("Invalid state data");
+
+      // Verify the signature
       const isValid = await verifyHmacDigest({
         secret: signingSecret,
-        data: returnTo,
+        data: `${challengeState}:${returnTo}`,
         digest: signature,
       });
       if (!isValid) throw new Error("Invalid state signature");

@@ -6,7 +6,7 @@ import { Resource } from "sst";
 
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
-import { getCORSAllowedOrigins } from "@/auth/auth.constant";
+import { getApiServerCORS } from "@/auth/auth.constant";
 import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
 import type { RepoInitParams } from "@/wrangler/workflows/sync/repo-init/init.workflow";
@@ -33,14 +33,7 @@ export const app = new Hono<Context>();
 
 app.use("*", async (c, next) => {
   const { currStage } = getDeps();
-  return cors({
-    origin: getCORSAllowedOrigins(currStage),
-    allowHeaders: ["Content-Type", "Authorization"],
-    allowMethods: ["POST", "GET", "OPTIONS"],
-    exposeHeaders: ["Content-Length", "Access-Control-Allow-Origin"],
-    maxAge: 600,
-    credentials: true,
-  })(c, next);
+  return cors(getApiServerCORS(currStage))(c, next);
 });
 
 // TODO: move this into a protected endpoint with middleware

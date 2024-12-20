@@ -11,24 +11,13 @@ import { parseHostname } from "@/core/util/url";
 
 import { getDeps } from "../deps";
 import { subjects } from "../subjects";
-import {
-  APP_DOMAIN,
-  getCORSAllowedOrigins,
-  githubLogin,
-} from "./auth.constant";
+import { APP_DOMAIN, getAuthServerCORS, githubLogin } from "./auth.constant";
 
 const app = new Hono();
 
 app.use("*", async (c, next) => {
   const { currStage } = getDeps();
-  return cors({
-    origin: getCORSAllowedOrigins(currStage),
-    allowHeaders: ["Content-Type", "Authorization"],
-    allowMethods: ["POST", "GET", "OPTIONS"],
-    exposeHeaders: ["Content-Length", "Access-Control-Allow-Origin"],
-    maxAge: 600,
-    credentials: true,
-  })(c, next);
+  return cors(getAuthServerCORS(currStage))(c, next);
 });
 
 app.all("*", async (c) => {
@@ -54,7 +43,7 @@ app.all("*", async (c) => {
         const data = tokensetRawSchema.parse(value.tokenset.raw);
         const { access_token: accessToken } = data;
         const { db } = getDeps();
-        const { userId, primaryEmail, avatarUrl, name } = await User.upsert({
+        const { userId, primaryEmail } = await User.upsert({
           accessToken,
           db,
           githubScopes: githubLogin.scopes,

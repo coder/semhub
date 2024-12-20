@@ -53,5 +53,8 @@ declare module "sst" {
     "AuthAuthenticator": cloudflare.Service
     "AuthKv": cloudflare.KVNamespace
     "Hono": cloudflare.Service
+    "InitCronHandler": cloudflare.Service
+    "SyncEmbeddingHandler": cloudflare.Service
+    "SyncIssueHandler": cloudflare.Service
   }
 }

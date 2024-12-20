@@ -37,16 +37,40 @@ export function getCookieOptions(stage: string): CookieOptions {
   };
 }
 
-// cannot use wildcard if CORS "credentials: include" is used
-export function getCORSAllowedOrigins(stage: string) {
+export function getAuthServerCORS(stage: string) {
   const isLocalDev = stage !== "prod" && stage !== "stg";
-  const domains = [
+  // can use wildcard if CORS "credentials: include" is not used
+  const origins = [`https://*.${APP_DOMAIN}`];
+  if (isLocalDev) {
+    origins.push(`http://localhost:3001`);
+  }
+  return {
+    credentials: false,
+    origin: origins,
+    allowHeaders: ["Content-Type"],
+    allowMethods: ["POST", "GET", "OPTIONS"],
+    exposeHeaders: ["Content-Length", "Access-Control-Allow-Origin"],
+    maxAge: 600,
+  };
+}
+
+export function getApiServerCORS(stage: string) {
+  const isLocalDev = stage !== "prod" && stage !== "stg";
+  // cannot use wildcard if CORS "credentials: include" is used
+  const origins = [
     `https://${APP_DOMAIN}`,
     `https://${APP_STG_DOMAIN}`,
     `https://www.${APP_DOMAIN}`,
   ];
   if (isLocalDev) {
-    domains.push(`http://localhost:3001`);
+    origins.push(`http://localhost:3001`);
   }
-  return domains;
+  return {
+    credentials: true,
+    origin: origins,
+    allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["POST", "GET", "OPTIONS"],
+    exposeHeaders: ["Content-Length", "Access-Control-Allow-Origin"],
+    maxAge: 600,
+  };
 }
