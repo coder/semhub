@@ -9,17 +9,6 @@ declare module "sst" {
     "DATABASE_URL": {
       "type": "sst.sst.Secret"
       "value": string
-    "Auth": {
-      "publicKey": string
-      "type": "sst.cloudflare.Auth"
-      "url": string
-    }
-    "AuthAuthenticator": {
-      "type": "sst.cloudflare.Worker"
-      "url": string
-    }
-    "AuthKv": {
-      "type": "sst.cloudflare.Kv"
     }
     "GITHUB_PERSONAL_ACCESS_TOKEN": {
       "type": "sst.sst.Secret"

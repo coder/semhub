@@ -73,9 +73,6 @@ app.all("*", async (c) => {
         });
         return ctx.subject("user", {
           email: primaryEmail,
-          userId,
-          avatarUrl,
-          name,
         });
       }
       throw new Error("Invalid provider");
