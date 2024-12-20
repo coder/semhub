@@ -1,6 +1,7 @@
 import { createClient } from "@openauthjs/openauth/client";
 import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import { HTTPException } from "hono/http-exception";
 import { Resource } from "sst";
 
 import { createHmacDigest, verifyHmacDigest } from "@/core/util/crypto";
@@ -85,6 +86,14 @@ export const authRouter = new Hono<Context>()
         url: authUrl,
       } = await client.authorize(redirectURI, "code");
 
+      // store challengeState in KV to prevent replay
+      await Resource.AuthKv.put(
+        `oauth:challenge ${challengeState}`,
+        "challengeState",
+        {
+          expirationTtl: 60, // in seconds
+        },
+      );
       // Sign the returnTo URL directly
       const signature = await createHmacDigest({
         secret: signingSecret,
@@ -111,28 +120,40 @@ export const authRouter = new Hono<Context>()
       const code = c.req.query("code");
       const state = c.req.query("state");
 
-      if (!state) throw new Error("No state provided");
+      if (!state)
+        throw new HTTPException(400, { message: "No state provided" });
 
       // Split into signature and data
       const [signature, ...dataParts] = decodeURIComponent(state).split(".");
       const data = dataParts.join("."); // rejoin in case data contains dots
-      if (!signature || !data) throw new Error("Invalid state format");
+      if (!signature || !data)
+        throw new HTTPException(400, { message: "Invalid state format" });
 
       // Split data into challengeState and returnTo parts
       const [challengeState, ...returnToParts] = data.split(":");
       const returnTo = returnToParts.join(":"); // rejoin returnTo parts that might contain ":"
-      if (!challengeState || !returnTo) throw new Error("Invalid state data");
+      if (!challengeState || !returnTo)
+        throw new HTTPException(400, { message: "Invalid state data" });
 
+      // retrieve  and delete challengeState from KV to prevent replay
+      const challengeStateFromKV = await Resource.AuthKv.get(
+        `oauth:challenge ${challengeState}`,
+      );
+      if (!challengeStateFromKV)
+        throw new HTTPException(400, { message: "Challenge state not found" });
+      await Resource.AuthKv.delete(`oauth:challenge ${challengeState}`);
       // Verify the signature
       const isValid = await verifyHmacDigest({
         secret: signingSecret,
         data: `${challengeState}:${returnTo}`,
         digest: signature,
       });
-      if (!isValid) throw new Error("Invalid state signature");
-      if (!code) throw new Error("No code provided");
+      if (!isValid)
+        throw new HTTPException(400, { message: "Invalid state signature" });
+      if (!code) throw new HTTPException(400, { message: "No code provided" });
       const exchanged = await client.exchange(code, redirectURI);
-      if (exchanged.err) throw new Error("Invalid code");
+      if (exchanged.err)
+        throw new HTTPException(400, { message: "Invalid code" });
       setCookie(
         c,
         "access_token",
