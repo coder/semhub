@@ -2,10 +2,10 @@
 import { readdirSync } from "fs";
 
 export default $config({
-  app(input) {
+  app() {
     return {
       name: "semhub",
-      removal: input?.stage === "prod" ? "retain" : "remove",
+      removal: "retain-all",
       home: "cloudflare",
       providers: {
         supabase: "0.0.3",
