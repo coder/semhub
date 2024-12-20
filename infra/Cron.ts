@@ -35,7 +35,9 @@ const createCronJob = (name: string, schedule: string) => {
   });
 };
 
-// Create the three cron jobs with their specific schedules
-createCronJob("SyncIssue", CRON_PATTERNS.SYNC_ISSUE);
-createCronJob("InitCron", CRON_PATTERNS.INIT);
-createCronJob("SyncEmbedding", CRON_PATTERNS.SYNC_EMBEDDING);
+// only run these if NOT on staging, else we will get duplicate crons on dev and staging running against the same db
+if ($app.stage !== "stg") {
+  createCronJob("SyncIssue", CRON_PATTERNS.SYNC_ISSUE);
+  createCronJob("InitCron", CRON_PATTERNS.INIT);
+  createCronJob("SyncEmbedding", CRON_PATTERNS.SYNC_EMBEDDING);
+}

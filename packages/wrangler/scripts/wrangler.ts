@@ -9,6 +9,7 @@ import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
 async function deploy() {
   const wranglerArgs = process.argv.slice(2).join(" ");
   const isProd = wranglerArgs.includes("prod");
+  // let's ignore staging for now, staging workers will bind to same wrangler workers as dev
   const env = isProd ? "prod" : "dev";
 
   const envFlag = isProd ? "--env prod" : "";

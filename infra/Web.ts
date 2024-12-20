@@ -16,6 +16,7 @@ const web = new sst.aws.StaticSite("Web", {
     output: "./dist",
   },
   domain: {
+    // have to add CNAME record on Cloudflare to point to Cloudfront distribution manually?
     dns: false,
     name: domain,
     cert: "arn:aws:acm:us-east-1:522745012037:certificate/e21a712d-8ba1-418d-b04a-2504614ab453",

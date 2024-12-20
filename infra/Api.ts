@@ -8,6 +8,7 @@ const hono = new sst.cloudflare.Worker("Hono", {
   domain: "api." + domain,
   transform: {
     worker: {
+      // staging will bind to dev wrangler workers too
       serviceBindings: [
         {
           name: "RATE_LIMITER",
