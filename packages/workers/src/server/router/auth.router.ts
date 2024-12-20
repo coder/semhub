@@ -120,9 +120,11 @@ export const authRouter = new Hono<Context>()
     }
   })
   .get("/logout", (c) => {
-    deleteCookie(c, "access_token", { path: "/" });
-    deleteCookie(c, "refresh_token", { path: "/" });
-    return c.redirect("/");
+    const { currStage } = getDeps();
+    const returnTo = c.req.query("returnTo") || "/";
+    deleteCookie(c, "access_token", getCookieOptions(currStage));
+    deleteCookie(c, "refresh_token", getCookieOptions(currStage));
+    return c.redirect(returnTo);
   });
 
 function getAuthClient() {

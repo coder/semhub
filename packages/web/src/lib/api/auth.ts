@@ -15,6 +15,9 @@ export async function login() {
 }
 
 export async function logout() {
-  await client.auth.logout.$get();
-  window.location.href = "/";
+  await client.auth.logout.$get({
+    query: {
+      returnTo: window.location.origin + "/",
+    },
+  });
 }
