@@ -12,6 +12,7 @@ export const githubRepo = {
 
 export const allowedDomains = {
   prod: "semhub.dev",
+  stg: "stg.semhub.dev",
   dev: {
     host: "localhost",
     port: "3001",
@@ -20,18 +21,18 @@ export const allowedDomains = {
 
 // cannot use wildcard if CORS "credentials: include" is used
 export function getAllowedOriginsOnApi() {
-  // TODO: list more domains in the future if we have staging
   return [
     `https://${allowedDomains.prod}`,
+    `https://${allowedDomains.stg}`,
     `https://www.${allowedDomains.prod}`,
     `http://${allowedDomains.dev.host}:${allowedDomains.dev.port}`,
   ];
 }
 
 export function getAllowedOriginsOnAuth(stage: string) {
-  // TODO: list more domains in the future if we have staging
   return [
     `https://api.${stage}.stg.${allowedDomains.prod}`,
+    `https://api.${allowedDomains.stg}`,
     `https://api.${allowedDomains.prod}`,
     `http://${allowedDomains.dev.host}:${allowedDomains.dev.port}`,
   ];
