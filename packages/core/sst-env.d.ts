@@ -7,6 +7,11 @@ export {}
 import "sst"
 declare module "sst" {
   export interface Resource {
+    "Auth": {
+      "publicKey": string
+      "type": "sst.cloudflare.Auth"
+      "url": string
+    }
     "DATABASE_URL": {
       "type": "sst.sst.Secret"
       "value": string
@@ -41,6 +46,8 @@ declare module "sst" {
 import * as cloudflare from "@cloudflare/workers-types";
 declare module "sst" {
   export interface Resource {
+    "AuthAuthenticator": cloudflare.Service
+    "AuthKv": cloudflare.KVNamespace
     "Hono": cloudflare.Service
     "InitCronHandler": cloudflare.Service
     "SyncEmbeddingHandler": cloudflare.Service
