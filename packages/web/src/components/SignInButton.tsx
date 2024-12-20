@@ -1,47 +1,43 @@
 import { LogOutIcon } from "lucide-react";
-import { useEffect, useState } from "react";
 
 import { login, logout } from "@/lib/api/auth";
+import { useSession } from "@/lib/api/useSession";
 
 import { GithubIcon } from "./icons/GithubIcon";
 import { Button } from "./ui/button";
 
 export function SignInButton() {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return localStorage.getItem("isLoggedIn") === "true";
-  });
+  const { isAuthenticated, isLoading } = useSession();
+  console.log({ isAuthenticated, isLoading });
 
   const handleLogin = async () => {
     try {
       const redirectUrl = await login();
-      sessionStorage.setItem("auth_pending", "true");
       window.location.href = redirectUrl;
     } catch (error) {
       console.error("Login failed:", error);
     }
   };
 
-  useEffect(() => {
-    if (sessionStorage.getItem("auth_pending") === "true") {
-      sessionStorage.removeItem("auth_pending");
-      localStorage.setItem("isLoggedIn", "true");
-      setIsLoggedIn(true);
-    }
-  }, []);
-
   const handleLogout = async () => {
     try {
       await logout();
-      localStorage.setItem("isLoggedIn", "false");
-      setIsLoggedIn(false);
     } catch (error) {
       console.error("Logout failed:", error);
     }
   };
 
+  if (isLoading) {
+    return (
+      <Button variant="outline" disabled>
+        Loading...
+      </Button>
+    );
+  }
+
   return (
     <>
-      {!isLoggedIn ? (
+      {!isAuthenticated ? (
         <Button variant="outline" onClick={handleLogin} className="gap-2">
           <GithubIcon className="size-4" />
           Sign in
