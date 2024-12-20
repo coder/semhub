@@ -15,20 +15,28 @@ export function useSession() {
     retry: false,
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
   });
-  if (!data || error) {
+  if (error || !data) {
     return {
       isAuthenticated: false,
-      userEmail: null,
-      error: error?.message || "Failed to fetch session",
+      user: null,
+      message: error?.message || "Failed to fetch session",
       isLoading,
       refresh: refetch,
     };
   }
-
+  if (!data.authenticated) {
+    return {
+      isAuthenticated: false,
+      user: null,
+      message: data.message || "Failed to fetch session",
+      isLoading,
+      refresh: refetch,
+    };
+  }
   return {
-    isAuthenticated: data.authenticated,
-    userEmail: data.authenticated ? data.userEmail : null,
-    error: null,
+    isAuthenticated: true,
+    user: data.user,
+    message: null,
     isLoading,
     refresh: refetch,
   };

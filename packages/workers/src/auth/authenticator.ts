@@ -12,9 +12,9 @@ import { parseHostname } from "@/core/util/url";
 import { getDeps } from "../deps";
 import { subjects } from "../subjects";
 import {
-  allowedDomains,
-  getAllowedOriginsOnApi,
-  getAllowedOriginsOnAuth,
+  APP_DOMAIN,
+  getCORSAllowedOriginsOnApi,
+  getCORSAllowedOriginsOnAuth,
   githubLogin,
 } from "./auth.constant";
 
@@ -28,8 +28,8 @@ app.use("*", async (c, next) => {
 
   return cors({
     origin: isCallback
-      ? getAllowedOriginsOnAuth(currStage)
-      : getAllowedOriginsOnApi(),
+      ? getCORSAllowedOriginsOnAuth(currStage)
+      : getCORSAllowedOriginsOnApi(),
     allowHeaders: ["Content-Type", "Authorization"],
     allowMethods: ["POST", "GET", "OPTIONS"],
     exposeHeaders: ["Content-Length", "Access-Control-Allow-Origin"],
@@ -54,12 +54,7 @@ app.all("*", async (c) => {
     allow: async (input) => {
       const url = new URL(input.redirectURI);
       const { domain } = parseHostname(url.hostname);
-      return (
-        domain === allowedDomains.prod ||
-        domain?.endsWith(`.${allowedDomains.prod}`) ||
-        (domain === allowedDomains.dev.host &&
-          url.port === allowedDomains.dev.port)
-      );
+      return domain === APP_DOMAIN;
     },
     success: async (ctx, value) => {
       if (value.provider === githubLogin.provider) {
@@ -72,6 +67,7 @@ app.all("*", async (c) => {
           githubScopes: githubLogin.scopes,
         });
         return ctx.subject("user", {
+          id: userId,
           email: primaryEmail,
         });
       }

@@ -6,19 +6,18 @@ import { Resource } from "sst";
 import { getDeps } from "@/deps";
 
 import type { Context } from "..";
-import { githubLogin } from "../../auth/auth.constant";
+import { getCookieOptions, githubLogin } from "../../auth/auth.constant";
 import { subjects } from "../../subjects";
 
 export const authRouter = new Hono<Context>()
+  // slightly idiosyncratic implementation to get back session data
   .get("/", async (c) => {
     const { currStage } = getDeps();
-    const isLocalDevelopment = currStage !== "prod" && currStage !== "stg";
     try {
       const client = getAuthClient();
       const accessToken = getCookie(c, "access_token");
       const refreshToken = getCookie(c, "refresh_token");
 
-      console.log({ accessToken, refreshToken });
       // If no tokens exist, return unauthorized immediately
       if (!accessToken && !refreshToken) {
         return c.json({
@@ -26,55 +25,55 @@ export const authRouter = new Hono<Context>()
           message: "No tokens",
         } as const);
       }
-      console.log("verifying");
       const verified = await client.verify(subjects, accessToken || "", {
         refresh: refreshToken,
       });
       if (verified.err) {
-        return c.json({
-          authenticated: false,
-          error: verified.err.message,
-        } as const);
+        return c.json(
+          {
+            authenticated: false,
+            message: verified.err.message,
+          } as const,
+          401,
+        );
       }
 
       // Set new tokens if they were refreshed
       if (verified.tokens) {
-        setCookie(c, "access_token", verified.tokens.access, {
-          httpOnly: true,
-          secure: !isLocalDevelopment,
-          sameSite: isLocalDevelopment ? "Lax" : "Strict",
-          path: "/",
-          domain: isLocalDevelopment ? "localhost" : ".semhub.dev",
-          maxAge: 60 * 60,
-        });
-        setCookie(c, "refresh_token", verified.tokens.refresh, {
-          httpOnly: true,
-          secure: !isLocalDevelopment,
-          sameSite: isLocalDevelopment ? "Lax" : "Strict",
-          path: "/",
-          domain: isLocalDevelopment ? "localhost" : ".semhub.dev",
-          maxAge: 14 * 24 * 60 * 60,
-        });
+        setCookie(
+          c,
+          "access_token",
+          verified.tokens.access,
+          getCookieOptions(currStage),
+        );
+        setCookie(
+          c,
+          "refresh_token",
+          verified.tokens.refresh,
+          getCookieOptions(currStage),
+        );
       }
       // Return the session data
       return c.json({
         authenticated: true,
-        userEmail: verified.subject.properties.email,
+        user:
+          verified.subject.type === "user" ? verified.subject.properties : null,
       } as const);
     } catch (_error) {
       return c.json(
         {
           authenticated: false,
-          error: "Server error",
+          message: "Server error",
         } as const,
         500,
       );
     }
   })
+  // used in OAuth
   .get("/authorize", async (c) => {
     const client = getAuthClient();
     const url = new URL(c.req.url);
-    const returnTo = c.req.query("returnTo") || "/";
+    const returnTo = c.req.query("returnTo") || "/"; // TODO: send user back to frontend on "/"
     const redirectURI = `${url.origin}/api/auth/callback`;
     try {
       const authUrl = await client.authorize(redirectURI, "code").then((v) => {
@@ -88,9 +87,9 @@ export const authRouter = new Hono<Context>()
       return c.text("Error authorizing", e.toString());
     }
   })
+  // used in OAuth
   .get("/callback", async (c) => {
     const { currStage } = getDeps();
-    const isLocalDevelopment = currStage !== "prod" && currStage !== "stg";
     const client = getAuthClient();
     try {
       const url = new URL(c.req.url);
@@ -102,22 +101,18 @@ export const authRouter = new Hono<Context>()
       if (!code) throw new Error("No code provided");
       const exchanged = await client.exchange(code, redirectURI);
       if (exchanged.err) throw new Error("Invalid code");
-      setCookie(c, "access_token", exchanged.tokens.access, {
-        httpOnly: true,
-        secure: !isLocalDevelopment,
-        sameSite: isLocalDevelopment ? "Lax" : "Strict",
-        path: "/",
-        domain: isLocalDevelopment ? "localhost" : ".semhub.dev",
-        maxAge: 60 * 60,
-      });
-      setCookie(c, "refresh_token", exchanged.tokens.refresh, {
-        httpOnly: true,
-        secure: !isLocalDevelopment,
-        sameSite: isLocalDevelopment ? "Lax" : "Strict",
-        path: "/",
-        domain: isLocalDevelopment ? "localhost" : ".semhub.dev",
-        maxAge: 14 * 24 * 60 * 60,
-      });
+      setCookie(
+        c,
+        "access_token",
+        exchanged.tokens.access,
+        getCookieOptions(currStage),
+      );
+      setCookie(
+        c,
+        "refresh_token",
+        exchanged.tokens.refresh,
+        getCookieOptions(currStage),
+      );
       return c.redirect(returnTo);
     } catch (e: any) {
       console.error("Error authorizing", e.toString());

@@ -8,7 +8,6 @@ import { Button } from "./ui/button";
 
 export function SignInButton() {
   const { isAuthenticated, isLoading } = useSession();
-  console.log({ isAuthenticated, isLoading });
 
   const handleLogin = async () => {
     try {
