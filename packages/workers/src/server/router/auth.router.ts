@@ -75,8 +75,7 @@ export const authRouter = new Hono<Context>()
     const { signingSecret } = getDeps();
     const client = getAuthClient();
     const url = new URL(c.req.url);
-    // const returnTo = c.req.query("returnTo") || "/"; // TODO: send user back to frontend on "/"
-    const returnTo = "https://stg.semhub.dev";
+    const returnTo = c.req.query("returnTo") || "/"; // TODO: send user back to frontend on "/"
     const redirectURI = `${url.origin}/api/auth/callback`;
     try {
       const authResponse = await client.authorize(redirectURI, "code");
@@ -87,7 +86,6 @@ export const authRouter = new Hono<Context>()
         data: returnTo,
       });
       const state = `${signature}.${returnTo}`;
-      console.log("state", state);
       const url = new URL(authResponse.url);
       url.searchParams.set("state", encodeURIComponent(state));
       const authUrl = url.toString();
@@ -114,7 +112,6 @@ export const authRouter = new Hono<Context>()
         decodeURIComponent(state).split(".");
       const returnTo = returnToParts.join(".");
       if (!returnTo || !signature) throw new Error("Invalid state");
-      console.log({ signature, returnTo });
       const isValid = await verifyHmacDigest({
         secret: signingSecret,
         data: returnTo,

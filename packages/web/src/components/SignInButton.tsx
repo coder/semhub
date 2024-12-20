@@ -1,7 +1,7 @@
 import { LogOutIcon } from "lucide-react";
 
 import { login, logout } from "@/lib/api/auth";
-import { useSession } from "@/lib/api/useSession";
+import { useSession } from "@/lib/hooks/useSession";
 
 import { GithubIcon } from "./icons/GithubIcon";
 import { Button } from "./ui/button";

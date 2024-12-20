@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { client } from "./client";
+import { client } from "../api/client";
+import { storage } from "../storage";
 
 export function useSession() {
   const { data, error, isLoading, refetch } = useQuery({
@@ -8,13 +9,28 @@ export function useSession() {
     queryFn: async () => {
       const res = await client.auth.$get();
       if (!res.ok) {
+        storage.setAuthStatus(false);
         throw new Error("Failed to fetch session");
       }
-      return res.json();
+      const data = await res.json();
+      storage.setAuthStatus(data.authenticated);
+      return data;
     },
+    enabled: storage.getAuthStatus(),
     retry: false,
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
+
+  if (!storage.getAuthStatus()) {
+    return {
+      isAuthenticated: false,
+      user: null,
+      message: null,
+      isLoading: false,
+      refresh: refetch,
+    };
+  }
+
   if (error || !data) {
     return {
       isAuthenticated: false,

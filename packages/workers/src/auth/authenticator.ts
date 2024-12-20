@@ -13,8 +13,7 @@ import { getDeps } from "../deps";
 import { subjects } from "../subjects";
 import {
   APP_DOMAIN,
-  getCORSAllowedOriginsOnApi,
-  getCORSAllowedOriginsOnAuth,
+  getCORSAllowedOrigins,
   githubLogin,
 } from "./auth.constant";
 
@@ -22,13 +21,8 @@ const app = new Hono();
 
 app.use("*", async (c, next) => {
   const { currStage } = getDeps();
-  const url = new URL(c.req.url);
-  // For the callback endpoint, use API origins for cookie setting
-  const isCallback = url.pathname.includes("/callback");
   return cors({
-    origin: isCallback
-      ? getCORSAllowedOriginsOnAuth(currStage)
-      : getCORSAllowedOriginsOnApi(currStage),
+    origin: getCORSAllowedOrigins(currStage),
     allowHeaders: ["Content-Type", "Authorization"],
     allowMethods: ["POST", "GET", "OPTIONS"],
     exposeHeaders: ["Content-Length", "Access-Control-Allow-Origin"],

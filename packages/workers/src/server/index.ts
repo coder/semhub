@@ -6,7 +6,7 @@ import { Resource } from "sst";
 
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
-import { getCORSAllowedOriginsOnApi } from "@/auth/auth.constant";
+import { getCORSAllowedOrigins } from "@/auth/auth.constant";
 import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
 import type { RepoInitParams } from "@/wrangler/workflows/sync/repo-init/init.workflow";
@@ -34,7 +34,7 @@ export const app = new Hono<Context>();
 app.use("*", async (c, next) => {
   const { currStage } = getDeps();
   return cors({
-    origin: getCORSAllowedOriginsOnApi(currStage),
+    origin: getCORSAllowedOrigins(currStage),
     allowHeaders: ["Content-Type", "Authorization"],
     allowMethods: ["POST", "GET", "OPTIONS"],
     exposeHeaders: ["Content-Length", "Access-Control-Allow-Origin"],
