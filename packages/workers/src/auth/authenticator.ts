@@ -25,11 +25,10 @@ app.use("*", async (c, next) => {
   const url = new URL(c.req.url);
   // For the callback endpoint, use API origins for cookie setting
   const isCallback = url.pathname.includes("/callback");
-
   return cors({
     origin: isCallback
       ? getCORSAllowedOriginsOnAuth(currStage)
-      : getCORSAllowedOriginsOnApi(),
+      : getCORSAllowedOriginsOnApi(currStage),
     allowHeaders: ["Content-Type", "Authorization"],
     allowMethods: ["POST", "GET", "OPTIONS"],
     exposeHeaders: ["Content-Length", "Access-Control-Allow-Origin"],

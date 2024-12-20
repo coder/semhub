@@ -24,5 +24,14 @@ export function getDeps() {
 
   const emailClient = getEmailClient(Resource.RESEND_API_KEY.value);
 
-  return { db, emailClient, graphqlOctokit, openai, restOctokit, currStage };
+  const signingSecret = Resource.SigningSecret.secretValue;
+  return {
+    db,
+    emailClient,
+    graphqlOctokit,
+    openai,
+    restOctokit,
+    currStage,
+    signingSecret,
+  };
 }

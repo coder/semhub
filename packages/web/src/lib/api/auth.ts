@@ -10,8 +10,9 @@ export async function login() {
   if (!res.ok) {
     throw new Error("Failed to start auth flow");
   }
-  const data = await res.json();
-  return data.url;
+  const { authUrl } = await res.json();
+  console.log("authUrl", authUrl);
+  window.location.href = authUrl;
 }
 
 export async function logout() {

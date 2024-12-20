@@ -49,6 +49,10 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "SigningSecret": {
+      "secretValue": string
+      "type": "sst.sst.Linkable"
+    }
     "SyncEmbeddingHandler": {
       "type": "sst.cloudflare.Worker"
     }

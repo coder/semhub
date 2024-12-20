@@ -38,12 +38,17 @@ export function getCookieOptions(stage: string): CookieOptions {
 }
 
 // cannot use wildcard if CORS "credentials: include" is used
-export function getCORSAllowedOriginsOnApi() {
-  return [
+export function getCORSAllowedOriginsOnApi(stage: string) {
+  const isLocalDev = stage !== "prod" && stage !== "stg";
+  const domains = [
     `https://${APP_DOMAIN}`,
     `https://${APP_STG_DOMAIN}`,
     `https://www.${APP_DOMAIN}`,
   ];
+  if (isLocalDev) {
+    domains.push(`http://localhost:3001`);
+  }
+  return domains;
 }
 
 export function getCORSAllowedOriginsOnAuth(stage: string) {

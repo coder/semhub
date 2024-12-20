@@ -32,8 +32,9 @@ export interface Context extends Env {
 export const app = new Hono<Context>();
 
 app.use("*", async (c, next) => {
+  const { currStage } = getDeps();
   return cors({
-    origin: getCORSAllowedOriginsOnApi(),
+    origin: getCORSAllowedOriginsOnApi(currStage),
     allowHeaders: ["Content-Type", "Authorization"],
     allowMethods: ["POST", "GET", "OPTIONS"],
     exposeHeaders: ["Content-Length", "Access-Control-Allow-Origin"],

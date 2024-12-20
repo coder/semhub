@@ -36,6 +36,10 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "SigningSecret": {
+      "secretValue": string
+      "type": "sst.sst.Linkable"
+    }
     "Web": {
       "type": "sst.aws.StaticSite"
       "url": string

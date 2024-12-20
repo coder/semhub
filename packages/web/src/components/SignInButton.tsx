@@ -11,8 +11,7 @@ export function SignInButton() {
 
   const handleLogin = async () => {
     try {
-      const redirectUrl = await login();
-      window.location.href = redirectUrl;
+      await login();
     } catch (error) {
       console.error("Login failed:", error);
     }

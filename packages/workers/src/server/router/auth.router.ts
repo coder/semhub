@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { Resource } from "sst";
 
+import { createHmacDigest, verifyHmacDigest } from "@/core/util/crypto";
 import { getDeps } from "@/deps";
 
 import type { Context } from "..";
@@ -71,17 +72,25 @@ export const authRouter = new Hono<Context>()
   })
   // used in OAuth
   .get("/authorize", async (c) => {
+    const { signingSecret } = getDeps();
     const client = getAuthClient();
     const url = new URL(c.req.url);
     const returnTo = c.req.query("returnTo") || "/"; // TODO: send user back to frontend on "/"
     const redirectURI = `${url.origin}/api/auth/callback`;
     try {
-      const authUrl = await client.authorize(redirectURI, "code").then((v) => {
-        const finalUrl = new URL(v.url);
-        finalUrl.searchParams.set("state", encodeURIComponent(returnTo));
-        return finalUrl.toString();
+      const authResponse = await client.authorize(redirectURI, "code");
+
+      // Sign the returnTo URL directly
+      const signature = await createHmacDigest({
+        secret: signingSecret,
+        data: returnTo,
       });
-      return c.json({ url: authUrl });
+      const state = `${signature}.${returnTo}`;
+      console.log("state", state);
+      const url = new URL(authResponse.url);
+      url.searchParams.set("state", encodeURIComponent(state));
+      const authUrl = url.toString();
+      return c.json({ authUrl });
     } catch (e: any) {
       console.error("Error authorizing", e.toString());
       return c.text("Error authorizing", e.toString());
@@ -92,12 +101,23 @@ export const authRouter = new Hono<Context>()
     const { currStage } = getDeps();
     const client = getAuthClient();
     try {
+      const { signingSecret } = getDeps();
       const url = new URL(c.req.url);
       const redirectURI = `${url.origin}/api/auth/callback`;
       const code = c.req.query("code");
       const state = c.req.query("state");
-      const returnTo = state ? decodeURIComponent(state) : "/";
 
+      // Verify state signature
+      if (!state) throw new Error("No state provided");
+      const [signature, returnTo] = decodeURIComponent(state).split(".", 2);
+      if (!returnTo || !signature) throw new Error("Invalid state");
+      console.log({ signature, returnTo });
+      const isValid = await verifyHmacDigest({
+        secret: signingSecret,
+        data: returnTo,
+        digest: signature,
+      });
+      if (!isValid) throw new Error("Invalid state signature");
       if (!code) throw new Error("No code provided");
       const exchanged = await client.exchange(code, redirectURI);
       if (exchanged.err) throw new Error("Invalid code");
