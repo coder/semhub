@@ -17,15 +17,23 @@ export async function login() {
 }
 
 export async function logout() {
-  // Clear storage first for immediate UI update
+  // Clear storage first
   storage.clearAuthStatus();
   storage.clearUserData();
+
+  // Immediately update query cache to trigger UI updates
+  queryClient.setQueryData([queryKeys.session], {
+    authenticated: false,
+    user: null,
+  });
 
   const response = await client.auth.logout.$get({
     query: {
       returnTo: window.location.origin + "/",
     },
   });
+
+  // Still invalidate to ensure fresh state
   await queryClient.invalidateQueries({ queryKey: [queryKeys.session] });
   return response;
 }
