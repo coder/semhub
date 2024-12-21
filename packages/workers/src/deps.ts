@@ -24,7 +24,7 @@ export function getDeps() {
 
   const emailClient = getEmailClient(Resource.RESEND_API_KEY.value);
 
-  const secretKey = Resource.SecretKey.value;
+  const signingKey = Resource.Keys.hmacSecretKey;
   return {
     db,
     emailClient,
@@ -32,6 +32,6 @@ export function getDeps() {
     openai,
     restOctokit,
     currStage,
-    secretKey,
+    signingKey,
   };
 }

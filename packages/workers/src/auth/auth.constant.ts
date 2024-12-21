@@ -15,22 +15,27 @@ export const githubRepo = {
 export const APP_DOMAIN = "semhub.dev";
 const APP_STG_DOMAIN = `stg.${APP_DOMAIN}`;
 
-function getCookieDomain(stage: string): string {
+function getCookieDomain(stage: string) {
   switch (stage) {
     case "prod":
       return APP_DOMAIN;
     case "stg":
       return APP_STG_DOMAIN;
     default:
-      return ".semhub.dev"; // default to available across all domains, but might screw up your stg/prod
+      return undefined;
   }
 }
 
+function isLocalDev(stage: string): boolean {
+  return stage !== "prod" && stage !== "stg";
+}
+
 export function getCookieOptions(stage: string): CookieOptions {
+  const isLocal = isLocalDev(stage);
   return {
     httpOnly: true,
-    secure: true,
-    sameSite: "Strict",
+    secure: !isLocal,
+    sameSite: isLocal ? "None" : "Strict",
     path: "/",
     domain: getCookieDomain(stage),
     maxAge: 60 * 60,
@@ -38,10 +43,9 @@ export function getCookieOptions(stage: string): CookieOptions {
 }
 
 export function getAuthServerCORS(stage: string) {
-  const isLocalDev = stage !== "prod" && stage !== "stg";
   // can use wildcard if CORS "credentials: include" is not used
   const origins = [`https://*.${APP_DOMAIN}`];
-  if (isLocalDev) {
+  if (isLocalDev(stage)) {
     origins.push(`http://localhost:3001`);
   }
   return {
@@ -55,14 +59,13 @@ export function getAuthServerCORS(stage: string) {
 }
 
 export function getApiServerCORS(stage: string) {
-  const isLocalDev = stage !== "prod" && stage !== "stg";
   // cannot use wildcard if CORS "credentials: include" is used
   const origins = [
     `https://${APP_DOMAIN}`,
     `https://${APP_STG_DOMAIN}`,
     `https://www.${APP_DOMAIN}`,
   ];
-  if (isLocalDev) {
+  if (isLocalDev(stage)) {
     origins.push(`http://localhost:3001`);
   }
   return {

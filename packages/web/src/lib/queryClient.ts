@@ -1,6 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 
-import { SearchParams } from "@/routes/search";
+import type { SearchParams } from "@/routes/search";
 
 export const queryKeys = {
   session: ["session"] as const,

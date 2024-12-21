@@ -20,6 +20,10 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "Keys": {
+      "hmacSecretKey": string
+      "type": "sst.sst.Linkable"
+    }
     "OPENAI_API_KEY": {
       "type": "sst.sst.Secret"
       "value": string
@@ -34,10 +38,6 @@ declare module "sst" {
     }
     "SEMHUB_GITHUB_APP_CLIENT_SECRET": {
       "type": "sst.sst.Secret"
-      "value": string
-    }
-    "SecretKey": {
-      "type": "sst.sst.Linkable"
       "value": string
     }
     "Web": {

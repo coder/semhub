@@ -2,19 +2,10 @@ import { authKv } from "./Auth";
 import { domain } from "./Dns";
 import { allSecrets } from "./Secret";
 
-const secretKeyString = new random.RandomString("SecretKey", {
-  special: false,
-  length: 64,
-});
-const secretKey = new sst.Linkable("SecretKey", {
-  properties: {
-    value: secretKeyString.result,
-  },
-});
 const hono = new sst.cloudflare.Worker("Hono", {
   url: true,
   handler: "./packages/workers/src/api.ts",
-  link: [authKv, ...allSecrets, secretKey],
+  link: [authKv, ...allSecrets],
   domain: "api." + domain,
   transform: {
     worker: {
