@@ -78,7 +78,7 @@ export const authRouter = new Hono<Context>()
     const { hmacSecretKey } = getDeps();
     const client = getAuthClient();
     const url = new URL(c.req.url);
-    const returnTo = c.req.query("returnTo") || "/"; // TODO: send user back to frontend on "/"
+    const returnTo = c.req.query("returnTo") || "/";
     const redirectURI = `${url.origin}/api/auth/callback`;
     try {
       const {

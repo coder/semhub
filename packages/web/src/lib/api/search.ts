@@ -6,7 +6,9 @@ import type { IssuesSearchSchema } from "@/workers/server/router/schema";
 
 import { client } from "./client";
 
-export type SearchIssuesResponse = InferResponseType<typeof client.search.$get>;
+export type SearchIssuesResponse = InferResponseType<
+  typeof client.public.search.$get
+>;
 
 export const searchIssues = async ({
   query,
@@ -17,7 +19,7 @@ export const searchIssues = async ({
   pageParam?: IssuesSearchSchema["page"];
   lucky: IssuesSearchSchema["lucky"];
 }) => {
-  const res = await client.search.$get({
+  const res = await client.public.search.$get({
     query: {
       q: query,
       page: pageParam?.toString() ?? "1",
