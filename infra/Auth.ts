@@ -3,7 +3,7 @@ import { allSecrets } from "./Secret";
 
 export const authKv = new sst.cloudflare.Kv("AuthKv", {});
 
-const auth = new sst.cloudflare.Auth("Auth", {
+export const auth = new sst.cloudflare.Auth("Auth", {
   authenticator: {
     handler: "packages/workers/src/auth/authenticator.ts",
     link: [authKv, ...allSecrets],

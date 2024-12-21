@@ -1,9 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
+import type { InferResponseType } from "hono/client";
 import { useEffect, useState } from "react";
 
 import { client } from "../api/client";
 import { queryKeys } from "../queryClient";
 import { storage } from "../storage";
+
+type SessionResponse = InferResponseType<typeof client.auth.$get>;
+type NullableUserData = Extract<
+  SessionResponse,
+  { authenticated: true }
+>["user"];
+export type UserData = NonNullable<NullableUserData>;
 
 export function useSession() {
   // Initialize with cached values
