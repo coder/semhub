@@ -6,6 +6,7 @@ import { Resource } from "sst";
 
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
+import { getApiServerCORS } from "@/auth/auth.constant";
 import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
 import type { RepoInitParams } from "@/wrangler/workflows/sync/repo-init/init.workflow";
@@ -13,12 +14,14 @@ import { initNextRepos } from "@/wrangler/workflows/sync/repo-init/init.workflow
 import type { WorkflowRPC } from "@/wrangler/workflows/workflow.util";
 
 import type { ErrorResponse } from "./response";
+import { authRouter } from "./router/auth.router";
 import { searchRouter } from "./router/search.router";
 
 export interface Context extends Env {
   Bindings: {
     RATE_LIMITER: Service<RateLimiterWorker>;
     REPO_INIT_WORKFLOW: WorkflowRPC<RepoInitParams>;
+    Auth: Service;
   };
   Variables: {
     // user: User | null;
@@ -28,10 +31,12 @@ export interface Context extends Env {
 
 export const app = new Hono<Context>();
 
-// TODO: set up auth
-app.use("*", cors());
+app.use("*", async (c, next) => {
+  const { currStage } = getDeps();
+  return cors(getApiServerCORS(currStage))(c, next);
+});
 
-// TODO: remove before merging/deploying
+// TODO: move this into a protected endpoint with middleware
 app.post("/create-repo", async (c) => {
   const { owner, name } = await c.req.json<{ owner: string; name: string }>();
 
@@ -48,7 +53,10 @@ app.post("/create-repo", async (c) => {
   return c.json(res);
 });
 
-const _routes = app.basePath("/api").route("/search", searchRouter);
+const _routes = app
+  .basePath("/api")
+  .route("/auth", authRouter)
+  .route("/search", searchRouter);
 
 export type ApiRoutes = typeof _routes;
 

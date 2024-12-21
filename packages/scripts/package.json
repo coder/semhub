@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "type": "module",
   "dependencies": {
-    "@semhub/core": "*"
+    "@semhub/core": "workspace:*"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

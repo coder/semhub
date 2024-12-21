@@ -20,7 +20,7 @@
   "dependencies": {
     "@semhub/core": "workspace:*",
     "p-map": "^7.0.2",
-    "zod": "^3.23.8"
+    "zod": "*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241022.0",

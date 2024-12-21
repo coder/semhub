@@ -4,6 +4,7 @@ import { domain } from "./Dns";
 const web = new sst.aws.StaticSite("Web", {
   path: "packages/web",
   environment: {
+    // when adding new env vars, you may have to rm -rf node_modules
     VITE_API_URL: apiUrl.apply((url) => {
       if (typeof url !== "string") {
         throw new Error("API URL must be a string");
@@ -49,5 +50,5 @@ const web = new sst.aws.StaticSite("Web", {
 // });
 
 export const outputs = {
-  url: web.url,
+  web: web.url,
 };
