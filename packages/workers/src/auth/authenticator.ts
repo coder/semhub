@@ -16,8 +16,7 @@ import { APP_DOMAIN, getAuthServerCORS, githubLogin } from "./auth.constant";
 const app = new Hono();
 
 app.use("*", async (c, next) => {
-  const { currStage } = getDeps();
-  return cors(getAuthServerCORS(currStage))(c, next);
+  return cors(getAuthServerCORS())(c, next);
 });
 
 app.all("*", async (c) => {

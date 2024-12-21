@@ -14,6 +14,7 @@ export const githubRepo = {
 
 export const APP_DOMAIN = "semhub.dev";
 const APP_STG_DOMAIN = `stg.${APP_DOMAIN}`;
+const LOCAL_DEV_DOMAIN = `local.${APP_DOMAIN}`;
 
 function getCookieDomain(stage: string) {
   switch (stage) {
@@ -22,7 +23,12 @@ function getCookieDomain(stage: string) {
     case "stg":
       return APP_STG_DOMAIN;
     default:
-      return ".semhub.dev";
+      // For local development, we set the cookie on the parent domain (.semhub.dev) because:
+      // 1. The auth server runs on api.{stage}.stg.semhub.dev and the frontend runs on local.semhub.dev
+      // 2. Cookies are only accessible within the exact domain and its subdomains, they cannot be accessed across "sibling" domains
+      // 3. Using .semhub.dev allows the frontend to access the cookie
+      // BUT: this might interfere with stg and prod, so be careful
+      return `.${APP_DOMAIN}`;
   }
 }
 
@@ -31,27 +37,22 @@ function isLocalDev(stage: string): boolean {
 }
 
 export function getCookieOptions(stage: string): CookieOptions {
-  const isLocal = isLocalDev(stage);
   // see this: https://stackoverflow.com/a/46412839
   return {
     httpOnly: true,
     secure: true,
-    sameSite: isLocal ? "Lax" : "Strict",
+    sameSite: "Strict",
     path: "/",
     domain: getCookieDomain(stage),
     maxAge: 60 * 60,
   };
 }
 
-export function getAuthServerCORS(stage: string) {
-  // can use wildcard if CORS "credentials: include" is not used
-  const origins = [`https://*.${APP_DOMAIN}`];
-  if (isLocalDev(stage)) {
-    origins.push(`https://local.${APP_DOMAIN}`);
-  }
+export function getAuthServerCORS() {
   return {
     credentials: false,
-    origin: origins,
+    // can use wildcard if credentials: false is used
+    origin: `https://*.${APP_DOMAIN}`,
     allowHeaders: ["Content-Type"],
     allowMethods: ["POST", "GET", "OPTIONS"],
     exposeHeaders: ["Content-Length", "Access-Control-Allow-Origin"],
@@ -67,7 +68,7 @@ export function getApiServerCORS(stage: string) {
     `https://www.${APP_DOMAIN}`,
   ];
   if (isLocalDev(stage)) {
-    origins.push(`https://local.${APP_DOMAIN}:3001`); // port number is required for CORS
+    origins.push(`https://${LOCAL_DEV_DOMAIN}:3001`); // port number is required for CORS
   }
   return {
     credentials: true,

@@ -8,7 +8,7 @@ export default defineConfig({
   dialect: "postgresql",
   dbCredentials: {
     // @ts-ignore Resource will be available during runtime
-    url: Resource.Supabase.databaseUrl,
+    url: Resource.DATABASE_URL.value,
   },
   schema: "src/**/*.sql.ts",
   out: "migrations",

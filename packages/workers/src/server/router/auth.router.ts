@@ -62,7 +62,8 @@ export const authRouter = new Hono<Context>()
         user:
           verified.subject.type === "user" ? verified.subject.properties : null,
       } as const);
-    } catch (_error) {
+    } catch (error: any) {
+      console.error("Error authorizing", error.toString());
       return c.json(
         {
           authenticated: false,
@@ -154,18 +155,9 @@ export const authRouter = new Hono<Context>()
       const exchanged = await client.exchange(code, redirectURI);
       if (exchanged.err)
         throw new HTTPException(400, { message: "Invalid code" });
-      setCookie(
-        c,
-        "access_token",
-        exchanged.tokens.access,
-        getCookieOptions(currStage),
-      );
-      setCookie(
-        c,
-        "refresh_token",
-        exchanged.tokens.refresh,
-        getCookieOptions(currStage),
-      );
+      const cookieOptions = getCookieOptions(currStage);
+      setCookie(c, "access_token", exchanged.tokens.access, cookieOptions);
+      setCookie(c, "refresh_token", exchanged.tokens.refresh, cookieOptions);
       return c.redirect(returnTo);
     } catch (e: any) {
       console.error("Error authorizing", e.toString());

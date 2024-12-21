@@ -1,13 +1,9 @@
+import { type UserData } from "./hooks/useSession";
+
 const STORAGE_KEYS = {
   AUTH_STATUS: "auth_status",
   USER_DATA: "user_data",
 } as const;
-
-// todo: inherit typing
-type UserData = {
-  id: string;
-  email: string;
-};
 
 export const storage = {
   getAuthStatus: () =>

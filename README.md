@@ -73,7 +73,25 @@ ngrok http 3001
 
 ### Auth and cookies on local development
 
-For auth to work on local development, there is a bit of rigmarole because we are running the frontend locally but the API server is on a `.semhub.dev` domain. So in order to set cookies, you need to edit your `/etc/hosts` file to add a new entry for `local.semhub.dev` that points to `127.0.0.1`.  If you look at `vite.config.ts`, you will see that we have added two certificates, `local.semhub.dev-key.pem` and `local.semhub.dev.pem`, that are used to provide HTTPS to the local dev.
+For auth to work on local development, there is a bit of rigmarole because we are running the frontend locally but the API server is on a `.semhub.dev` domain. So in order to set cookies, you need to:
+
+1. Edit your `/etc/hosts` file to add a new entry for `local.semhub.dev` that points to `127.0.0.1`
+2. Install and set up mkcert:
+
+   ```bash
+   brew install mkcert
+   mkcert -install
+   ```
+
+3. Generate the local certificates:
+
+   ```bash
+   mkcert local.semhub.dev
+   ```
+
+   This will create two files: `local.semhub.dev-key.pem` and `local.semhub.dev.pem`
+
+If you look at `vite.config.ts`, you will see that we reference these certificates to provide HTTPS for local development.
 
 ### OAuth
 
