@@ -71,6 +71,10 @@ To test on mobile, use Ngrok to create a tunnel to your local frontend:
 ngrok http 3001
 ```
 
+### Auth and cookies on local development
+
+For auth to work on local development, there is a bit of rigmarole because we are running the frontend locally but the API server is on a `.semhub.dev` domain. So in order to set cookies, you need to edit your `/etc/hosts` file to add a new entry for `local.semhub.dev` that points to `127.0.0.1`.  If you look at `vite.config.ts`, you will see that we have added two certificates, `local.semhub.dev-key.pem` and `local.semhub.dev.pem`, that are used to provide HTTPS to the local dev.
+
 ### OAuth
 
 We choose to use GitHub App (instead of OAuth App) because of [these reasons](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/differences-between-github-apps-and-oauth-apps) (more granular control, scale with number of users, etc.). For dev vs prod, we use separate GitHub Apps (the production one is sited within the `coder` organization).

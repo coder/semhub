@@ -1,13 +1,12 @@
 import { Hono } from "hono";
 import type { Env } from "hono";
-import { setCookie } from "hono/cookie";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { Resource } from "sst";
 
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
-import { getApiServerCORS, getCookieOptions } from "@/auth/auth.constant";
+import { getApiServerCORS } from "@/auth/auth.constant";
 import { getDeps } from "@/deps";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
 import type { RepoInitParams } from "@/wrangler/workflows/sync/repo-init/init.workflow";
@@ -37,14 +36,14 @@ app.use("*", async (c, next) => {
   return cors(getApiServerCORS(currStage))(c, next);
 });
 
-app.get("/test", async (c) => {
-  const { currStage } = getDeps();
-  setCookie(c, "access_token", "123", getCookieOptions(currStage));
-  setCookie(c, "refresh_token", "123", getCookieOptions(currStage));
-  return c.json({
-    message: "Hello Worlds",
-  });
-});
+// app.get("/test", async (c) => {
+//   const { currStage } = getDeps();
+//   setCookie(c, "access_token", "123", getCookieOptions(currStage));
+//   setCookie(c, "refresh_token", "123", getCookieOptions(currStage));
+//   return c.json({
+//     message: "Hello Worlds",
+//   });
+// });
 // TODO: move this into a protected endpoint with middleware
 app.post("/create-repo", async (c) => {
   const { owner, name } = await c.req.json<{ owner: string; name: string }>();
