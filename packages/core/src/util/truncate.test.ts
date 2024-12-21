@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { truncateCodeBlocks } from "./util";
+import { truncateCodeBlocks } from "./truncate";
 
 const CODE_BLOCK_PREVIEW_LINES = 10;
 

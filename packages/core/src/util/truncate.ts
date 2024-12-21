@@ -1,9 +1,3 @@
-export function sleep(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
 export function truncateToByteSize(text: string, maxBytes: number): string {
   const encoder = new TextEncoder();
   let encoded = encoder.encode(text);

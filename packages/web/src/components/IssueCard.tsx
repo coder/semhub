@@ -6,7 +6,7 @@ import {
   MessageSquareIcon,
 } from "lucide-react";
 
-import type { SearchIssuesResponse } from "@/lib/api";
+import type { SearchIssuesResponse } from "@/lib/api/search";
 import { formatLocalDateTime, getTimeAgo } from "@/lib/time";
 import { Badge } from "@/components/ui/badge";
 import {

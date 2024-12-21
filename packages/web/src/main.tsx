@@ -1,18 +1,18 @@
 import "./globals.css";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { Loader2Icon } from "lucide-react";
 import { ThemeProvider } from "next-themes";
 import ReactDOM from "react-dom/client";
 
+import { queryClient } from "@/lib/queryClient";
 import { Layout } from "@/components/Layout";
 
 import { Error } from "./components/Error";
 import { NotFound } from "./components/NotFound";
 import { routeTree } from "./routeTree.gen";
 
-const queryClient = new QueryClient();
 const router = createRouter({
   routeTree,
   defaultPreload: "intent",

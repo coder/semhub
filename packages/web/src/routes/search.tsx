@@ -6,20 +6,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Loader2Icon } from "lucide-react";
 import type { z } from "zod";
 
-import { searchIssues } from "@/lib/api";
+import { searchIssues } from "@/lib/api/search";
+import { queryKeys } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IssueCard } from "@/components/IssueCard";
 import { SearchBar } from "@/components/SearchBars";
 import { issuesSearchSchema } from "@/workers/server/router/schema";
 
-const issuesInfiniteQueryOptions = ({
-  q,
-  page,
-  lucky,
-}: z.infer<typeof issuesSearchSchema>) => {
+export type SearchParams = z.infer<typeof issuesSearchSchema>;
+
+const issuesInfiniteQueryOptions = ({ q, page, lucky }: SearchParams) => {
   return infiniteQueryOptions({
-    queryKey: ["issues", q, page, lucky],
+    queryKey: queryKeys.issues.search({ q, page, lucky }),
     queryFn: () => searchIssues({ query: q, pageParam: page, lucky }),
     initialPageParam: 1,
     staleTime: Infinity, // only re-fetch when query changes

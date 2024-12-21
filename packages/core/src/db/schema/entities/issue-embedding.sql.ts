@@ -1,10 +1,14 @@
-import { index, pgEnum, pgTable, text, uniqueIndex, vector } from "drizzle-orm/pg-core";
-
-
+import {
+  index,
+  pgEnum,
+  pgTable,
+  text,
+  uniqueIndex,
+  vector,
+} from "drizzle-orm/pg-core";
 
 import { getBaseColumns, timestamptz } from "../base.sql";
 import { issueTable } from "./issue.sql";
-
 
 export const issueEmbeddingSyncStatusEnum = pgEnum(
   "issue_embedding_sync_status",

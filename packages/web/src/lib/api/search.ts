@@ -1,27 +1,13 @@
-import { hc, type InferResponseType } from "hono/client";
+import type { InferResponseType } from "hono/client";
 
-import type { ApiRoutes } from "@/workers/server";
 import type { ErrorResponse } from "@/workers/server/response";
 import { isErrorResponse } from "@/workers/server/response";
 import type { IssuesSearchSchema } from "@/workers/server/router/schema";
 
-const apiUrl = import.meta.env.VITE_API_URL;
-// needed for CI to pass
-if (!apiUrl) {
-  throw new Error("VITE_API_URL is not set");
-}
-
-const client = hc<ApiRoutes>(apiUrl, {
-  // TODO: auth
-  fetch: (input: RequestInfo | URL, init?: RequestInit) =>
-    fetch(input, {
-      ...init,
-      // credentials: "include",
-      // redirect: "follow",
-    }),
-}).api;
+import { client } from "./client";
 
 export type SearchIssuesResponse = InferResponseType<typeof client.search.$get>;
+
 export const searchIssues = async ({
   query,
   pageParam,
@@ -47,6 +33,5 @@ export const searchIssues = async ({
   }
 
   const data = await res.json();
-
   return data;
 };
