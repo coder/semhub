@@ -3,6 +3,7 @@ const STORAGE_KEYS = {
   USER_DATA: "user_data",
 } as const;
 
+// todo: inherit typing
 type UserData = {
   id: string;
   email: string;

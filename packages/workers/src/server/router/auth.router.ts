@@ -154,7 +154,6 @@ export const authRouter = new Hono<Context>()
       const exchanged = await client.exchange(code, redirectURI);
       if (exchanged.err)
         throw new HTTPException(400, { message: "Invalid code" });
-      console.log("cookie options", getCookieOptions(currStage));
       setCookie(
         c,
         "access_token",

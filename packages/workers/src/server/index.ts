@@ -36,14 +36,6 @@ app.use("*", async (c, next) => {
   return cors(getApiServerCORS(currStage))(c, next);
 });
 
-// app.get("/test", async (c) => {
-//   const { currStage } = getDeps();
-//   setCookie(c, "access_token", "123", getCookieOptions(currStage));
-//   setCookie(c, "refresh_token", "123", getCookieOptions(currStage));
-//   return c.json({
-//     message: "Hello Worlds",
-//   });
-// });
 // TODO: move this into a protected endpoint with middleware
 app.post("/create-repo", async (c) => {
   const { owner, name } = await c.req.json<{ owner: string; name: string }>();
