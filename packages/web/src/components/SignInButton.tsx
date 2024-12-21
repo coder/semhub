@@ -7,7 +7,7 @@ import { GithubIcon } from "./icons/GithubIcon";
 import { Button } from "./ui/button";
 
 export function SignInButton() {
-  const { isAuthenticated, isLoading } = useSession();
+  const { isAuthenticated } = useSession();
 
   const handleLogin = async () => {
     try {
@@ -24,14 +24,6 @@ export function SignInButton() {
       console.error("Logout failed:", error);
     }
   };
-
-  if (isLoading) {
-    return (
-      <Button variant="outline" disabled>
-        Loading...
-      </Button>
-    );
-  }
 
   return (
     <>

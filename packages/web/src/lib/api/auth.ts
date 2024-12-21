@@ -1,4 +1,5 @@
 import { queryClient, queryKeys } from "@/lib/queryClient";
+import { storage } from "@/lib/storage";
 
 import { client } from "./client";
 
@@ -16,11 +17,15 @@ export async function login() {
 }
 
 export async function logout() {
+  // Clear storage first for immediate UI update
+  storage.clearAuthStatus();
+  storage.clearUserData();
+
   const response = await client.auth.logout.$get({
     query: {
       returnTo: window.location.origin + "/",
     },
   });
-  await queryClient.invalidateQueries({ queryKey: queryKeys.session });
+  await queryClient.invalidateQueries({ queryKey: [queryKeys.session] });
   return response;
 }
