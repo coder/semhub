@@ -1,13 +1,13 @@
 export async function createHmacDigest({
-  secret,
+  secretKey,
   data,
 }: {
-  secret: string;
+  secretKey: string;
   data: string;
 }) {
   const encoder = new TextEncoder();
 
-  const secretKeyData = encoder.encode(secret);
+  const secretKeyData = encoder.encode(secretKey);
 
   const key = await crypto.subtle.importKey(
     "raw",
@@ -25,14 +25,14 @@ export async function createHmacDigest({
 }
 
 export async function verifyHmacDigest({
-  secret,
+  secretKey,
   data,
   digest,
 }: {
-  secret: string;
+  secretKey: string;
   data: string;
   digest: string;
 }) {
-  const computedDigest = await createHmacDigest({ secret, data });
+  const computedDigest = await createHmacDigest({ secretKey, data });
   return computedDigest === digest;
 }
