@@ -14,8 +14,8 @@ import type { WorkflowRPC } from "@/wrangler/workflows/workflow.util";
 import { authMiddleware } from "./middleware/auth.middleware";
 import type { ErrorResponse } from "./response";
 import { authRouter } from "./router/auth.router";
-import { meRouter } from "./router/me.router";
-import { publicRouter } from "./router/public.router";
+import { meRouter } from "./router/me/me.router";
+import { publicRouter } from "./router/public/public.router";
 
 export interface Context extends Env {
   Bindings: {

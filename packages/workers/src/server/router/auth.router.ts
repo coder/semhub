@@ -132,7 +132,7 @@ export const authRouter = new Hono<Context>()
       if (!challengeState || !returnTo)
         throw new HTTPException(400, { message: "Invalid state data" });
 
-      // retrieve  and delete challengeState from KV to prevent replay
+      // retrieve and delete challengeState from KV to prevent replay
       const challengeStateFromKV = await Resource.AuthKv.get(
         `oauth:challenge ${challengeState}`,
       );

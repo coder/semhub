@@ -3,10 +3,9 @@ import { Hono } from "hono";
 
 import { SemanticSearch } from "@/core/semsearch";
 import { getDeps } from "@/deps";
-
-import type { Context } from "..";
-import type { PaginatedResponse } from "../response";
-import { issuesSearchSchema } from "./schema";
+import type { Context } from "@/server";
+import type { PaginatedResponse } from "@/server/response";
+import { issuesSearchSchema } from "@/server/router/schema";
 
 export const searchRouter = new Hono<Context>().get(
   "/",

@@ -4,8 +4,7 @@ import { Hono } from "hono";
 import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
-
-import type { Context } from "..";
+import type { Context } from "@/server";
 
 export const meRouter = new Hono<Context>().post("/repos/add", async (c) => {
   const { owner, name } = await c.req.json<{ owner: string; name: string }>();
