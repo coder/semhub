@@ -1,6 +1,8 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import type { DbClient } from "@/db";
+import { repos } from "@/db/schema/entities/repo.sql";
+import { usersToRepos } from "@/db/schema/entities/user-to-repo.sql";
 import type { GithubScopes, UserMetadata } from "@/db/schema/entities/user.sql";
 import { users } from "@/db/schema/entities/user.sql";
 import { conflictUpdateOnly } from "@/db/utils/conflict";
@@ -12,6 +14,24 @@ export namespace User {
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user ?? null;
   }
+
+  export async function getSubscribedRepos(userId: string, db: DbClient) {
+    return db
+      .select({
+        id: repos.id,
+        owner: repos.owner,
+        name: repos.name,
+        htmlUrl: repos.htmlUrl,
+        isPrivate: repos.isPrivate,
+        lastSyncedAt: repos.lastSyncedAt,
+      })
+      .from(repos)
+      .innerJoin(usersToRepos, eq(repos.id, usersToRepos.repoId))
+      .where(
+        and(eq(usersToRepos.userId, userId), eq(usersToRepos.status, "active")),
+      );
+  }
+
   export async function upsert({
     accessToken,
     db,
