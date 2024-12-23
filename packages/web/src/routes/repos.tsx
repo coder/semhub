@@ -1,14 +1,18 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ExternalLinkIcon, GitForkIcon } from "lucide-react";
+import { InfoIcon, PlusIcon } from "lucide-react";
 
-import { Skeleton } from "../components/ui/skeleton";
-import { client } from "../lib/api/client";
-import { cn } from "../lib/utils";
+import { client } from "@/lib/api/client";
+import { queryKeys } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { RepoCard } from "@/components/RepoCard";
 
 function useReposQuery() {
   return useSuspenseQuery({
-    queryKey: ["repos", "list"],
+    queryKey: queryKeys.repos.list,
     queryFn: async () => {
       const response = await client.me.repos.list.$get();
       const res = await response.json();
@@ -20,56 +24,18 @@ function useReposQuery() {
   });
 }
 
-type Repo = NonNullable<ReturnType<typeof useReposQuery>["data"]>[number];
+export type Repo = NonNullable<
+  ReturnType<typeof useReposQuery>["data"]
+>[number];
 
 function SubscribeButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
+      className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground hover:bg-primary/90"
     >
-      Subscribe +
+      Subscribe <PlusIcon className="size-4" />
     </button>
-  );
-}
-
-function RepoCard({ repo }: { repo: Repo }) {
-  return (
-    <div className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50">
-      <div className="space-y-1">
-        <div className="flex items-center gap-2">
-          <h3 className="font-medium">
-            {repo.owner}/{repo.name}
-          </h3>
-          {repo.isPrivate && (
-            <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs text-yellow-800">
-              Private
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span>
-            Last synced:{" "}
-            {repo.lastSyncedAt
-              ? new Date(repo.lastSyncedAt).toLocaleString()
-              : "Never"}
-          </span>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <a
-          href={repo.htmlUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-md p-2 hover:bg-muted"
-        >
-          <ExternalLinkIcon className="size-4" />
-        </a>
-        <button className="rounded-md p-2 hover:bg-muted">
-          <GitForkIcon className="size-4" />
-        </button>
-      </div>
-    </div>
   );
 }
 
@@ -103,49 +69,50 @@ function RepoSection({
   );
 }
 
-function RepoSkeleton() {
+function EmptyState() {
   return (
-    <div className="flex items-center justify-between rounded-lg border p-4">
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-5 w-48" />
-          <Skeleton className="h-5 w-16" />
-        </div>
-        <Skeleton className="h-4 w-32" />
-      </div>
-      <div className="flex items-center gap-2">
-        <Skeleton className="size-8 rounded-md" />
-        <Skeleton className="size-8 rounded-md" />
-      </div>
-    </div>
+    <Alert variant="default" className="mb-8">
+      <InfoIcon className="size-4" />
+      <AlertTitle>No repositories</AlertTitle>
+      <AlertDescription>
+        Subscribe to your first repository to get started with SemHub.
+      </AlertDescription>
+    </Alert>
   );
 }
 
 function ReposSkeleton() {
   return (
-    <div className="space-y-8">
-      <section>
-        <div className="mb-4 flex items-center justify-between">
-          <Skeleton className="h-7 w-48" />
-          <Skeleton className="h-10 w-24" />
+    <div className="container mx-auto px-4 py-8">
+      <div className="mx-auto max-w-3xl">
+        <h1 className="mb-8 text-center text-2xl font-bold">My Repositories</h1>
+        <div className="space-y-8">
+          {/* Public Repos Section */}
+          <section>
+            <div className="mb-4 flex items-center justify-between">
+              <Skeleton className="h-7 w-40" />
+              <Skeleton className="h-10 w-28 rounded-md" />
+            </div>
+            <div className="space-y-2">
+              <div className="text-sm">
+                <Skeleton className="h-5 w-48" />
+              </div>
+            </div>
+          </section>
+          {/* Private Repos Section */}
+          <section>
+            <div className="mb-4 flex items-center justify-between">
+              <Skeleton className="h-7 w-40" />
+              <Skeleton className="h-10 w-28 rounded-md" />
+            </div>
+            <div className="space-y-2">
+              <div className="text-sm">
+                <Skeleton className="h-5 w-48" />
+              </div>
+            </div>
+          </section>
         </div>
-        <div className="space-y-2">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <RepoSkeleton key={i} />
-          ))}
-        </div>
-      </section>
-      <section>
-        <div className="mb-4 flex items-center justify-between">
-          <Skeleton className="h-7 w-48" />
-          <Skeleton className="h-10 w-24" />
-        </div>
-        <div className="space-y-2">
-          {Array.from({ length: 2 }).map((_, i) => (
-            <RepoSkeleton key={i} />
-          ))}
-        </div>
-      </section>
+      </div>
     </div>
   );
 }
@@ -175,18 +142,20 @@ function ReposPage() {
         <>
           {!hasRepos && <EmptyState />}
           <div className="space-y-8">
-            <RepoSection
-              title="Public Repositories"
-              type="public"
-              repos={publicRepos}
-              onSubscribe={handleSubscribeRepo}
-            />
-            <RepoSection
-              title="Private Repositories"
-              type="private"
-              repos={privateRepos}
-              onSubscribe={handleSubscribeRepo}
-            />
+            <TooltipProvider>
+              <RepoSection
+                title="Public Repositories"
+                type="public"
+                repos={publicRepos}
+                onSubscribe={handleSubscribeRepo}
+              />
+              <RepoSection
+                title="Private Repositories"
+                type="private"
+                repos={privateRepos}
+                onSubscribe={handleSubscribeRepo}
+              />
+            </TooltipProvider>
           </div>
         </>
       </div>
@@ -194,25 +163,7 @@ function ReposPage() {
   );
 }
 
-function EmptyState() {
-  return (
-    <div className="mb-8 rounded-lg border-2 border-dashed p-8 text-center text-gray-500">
-      <p className="mb-2">No repositories subscribed yet</p>
-      <p className="text-sm">
-        Subscribe to your first repository to get started
-      </p>
-    </div>
-  );
-}
-
 export const Route = createFileRoute("/repos")({
   component: ReposPage,
-  pendingComponent: () => (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mx-auto max-w-3xl">
-        <h1 className="mb-8 text-center text-2xl font-bold">My Repositories</h1>
-        <ReposSkeleton />
-      </div>
-    </div>
-  ),
+  pendingComponent: ReposSkeleton,
 });

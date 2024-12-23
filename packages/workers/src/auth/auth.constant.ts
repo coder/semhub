@@ -55,7 +55,8 @@ export function getCookieOptions(stage: string): CookieOptions {
     sameSite: "Strict",
     path: "/",
     domain: getCookieDomain(stage),
-    maxAge: 60 * 60,
+    // TODO: nice flow for prompting user to re-login
+    maxAge: 60 * 60 * 24 * 7, // 7 days
   };
 }
 

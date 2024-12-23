@@ -17,7 +17,7 @@ export namespace Repo {
     db: DbClient,
   ) {
     const {
-      owner: { login: owner },
+      owner: { login: ownerLogin, avatar_url: ownerAvatarUrl },
       name,
       node_id: nodeId,
       html_url: htmlUrl,
@@ -26,7 +26,8 @@ export namespace Repo {
     const [result] = await db
       .insert(repos)
       .values({
-        owner,
+        ownerLogin,
+        ownerAvatarUrl,
         name,
         nodeId,
         htmlUrl,
@@ -35,7 +36,8 @@ export namespace Repo {
       .onConflictDoUpdate({
         target: [repos.nodeId],
         set: conflictUpdateOnly(repos, [
-          "owner",
+          "ownerLogin",
+          "ownerAvatarUrl",
           "name",
           "htmlUrl",
           "isPrivate",
@@ -46,7 +48,7 @@ export namespace Repo {
         repoId: repos.id,
         initStatus: repos.initStatus,
         repoName: repos.name,
-        repoOwner: repos.owner,
+        repoOwner: repos.ownerLogin,
       });
     if (!result) {
       throw new Error("Failed to create repo");
@@ -59,7 +61,7 @@ export namespace Repo {
         .select({
           repoId: repos.id,
           repoName: repos.name,
-          repoOwner: repos.owner,
+          repoOwner: repos.ownerLogin,
           issuesLastEndCursor: repos.issuesLastEndCursor,
           repoIssuesLastUpdatedAt: sql<
             string | null
@@ -247,7 +249,7 @@ export namespace Repo {
       .select({
         repoId: repos.id,
         repoName: repos.name,
-        repoOwner: repos.owner,
+        repoOwner: repos.ownerLogin,
       })
       .from(repos)
       .where(eq(repos.initStatus, "ready"))

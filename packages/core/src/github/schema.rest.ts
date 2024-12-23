@@ -15,6 +15,7 @@ export const repoSchema = z
     owner: z
       .object({
         login: z.string(),
+        avatar_url: z.string().url(),
       })
       .strip(),
     name: z.string(),

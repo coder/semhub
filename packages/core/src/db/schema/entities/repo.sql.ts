@@ -22,7 +22,8 @@ export const repos = pgTable(
   "repos",
   {
     ...getBaseColumns("repos"),
-    owner: text("owner").notNull(),
+    ownerLogin: text("owner_login").notNull(),
+    ownerAvatarUrl: text("owner_avatar_url").notNull(),
     name: text("name").notNull(),
     nodeId: text("node_id").notNull().unique(),
     htmlUrl: text("html_url").notNull(),
@@ -35,8 +36,8 @@ export const repos = pgTable(
   },
   (table) => ({
     // probably could be unique index, but small chance that org / repo names can change
-    ownerNameIdx: index("owner_name_idx").on(table.owner, table.name),
-    ownerIdx: index("owner_idx").on(table.owner),
+    ownerNameIdx: index("owner_name_idx").on(table.ownerLogin, table.name),
+    ownerIdx: index("owner_idx").on(table.ownerLogin),
     createdAtIdx: index("created_at_idx").on(table.createdAt),
     repoSyncIdx: index("repo_sync_idx").on(
       table.initStatus,
