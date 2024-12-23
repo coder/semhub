@@ -157,6 +157,11 @@ export function RepoCard({ repo }: { repo: Repo }) {
     <div className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50">
       <div className="space-y-1">
         <div className="flex items-center gap-2">
+          <img
+            src={repo.ownerAvatarUrl}
+            alt={`${repo.ownerName}'s avatar`}
+            className="size-6 rounded-full"
+          />
           <h3 className="font-medium">
             {repo.ownerName}/{repo.name}
           </h3>
