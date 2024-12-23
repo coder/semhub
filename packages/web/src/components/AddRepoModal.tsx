@@ -1,3 +1,5 @@
+import { useForm, ValidationError } from "@tanstack/react-form";
+import { zodValidator } from "@tanstack/zod-form-adapter";
 import { AlertCircleIcon, LoaderIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
@@ -21,9 +23,29 @@ import {
   repoResponseSchema,
 } from "@/components/RepoPreview";
 
-const githubUrlSchema = z.object({
-  owner: z.string(),
-  repo: z.string(),
+const githubUrlSchema = z
+  .object({
+    url: z.string().url("Please enter a valid URL"),
+  })
+  .refine(({ url }) => {
+    try {
+      const parsed = new URL(url);
+      return (
+        parsed.hostname === "github.com" &&
+        parsed.pathname.split("/").filter(Boolean).length === 2
+      );
+    } catch {
+      return false;
+    }
+  }, "Please enter a valid GitHub repository URL");
+
+const githubUrlSchemaExtended = githubUrlSchema.transform(({ url }) => {
+  const parsed = new URL(url);
+  const parts = parsed.pathname.split("/").filter(Boolean);
+  return {
+    owner: parts[0]!,
+    repo: parts[1]!,
+  };
 });
 
 type RepoType = "public" | "private";
@@ -35,48 +57,39 @@ interface AddRepoModalProps {
 
 export function AddRepoModal({ type, onSubscribe }: AddRepoModalProps) {
   const [open, setOpen] = useState(false);
-  const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [preview, setPreview] = useState<RepoPreviewData | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsSubmitting(true);
-
-    try {
-      const parsed = new URL(url);
-      if (parsed.hostname !== "github.com") {
-        throw new Error("Please enter a valid GitHub repository URL");
+  const form = useForm({
+    defaultValues: {
+      url: "",
+    },
+    validatorAdapter: zodValidator(),
+    validators: {
+      onChange: githubUrlSchema,
+    },
+    onSubmit: async ({ value }) => {
+      console.log("Form submitted with value:", value);
+      try {
+        const { owner, repo } = githubUrlSchemaExtended.parse(value);
+        await onSubscribe(type, owner, repo);
+        setOpen(false);
+        setPreview(null);
+        return null;
+      } catch (error) {
+        return {
+          onSubmit:
+            error instanceof Error
+              ? error.message
+              : "Failed to subscribe to repository",
+        };
       }
+    },
+  });
 
-      const parts = parsed.pathname.split("/").filter(Boolean);
-      if (parts.length !== 2) {
-        throw new Error("Invalid repository URL format");
-      }
-
-      const { owner, repo } = githubUrlSchema.parse({
-        owner: parts[0],
-        repo: parts[1],
-      });
-
-      await onSubscribe(type, owner, repo);
-      setOpen(false);
-      setUrl("");
-      setPreview(null);
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to subscribe to repository",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
+  // can fetch preview from frontend for public repo
+  // for private repo, must fetch from backend...
   const fetchPreview = async (owner: string, repo: string) => {
     try {
       setIsLoadingPreview(true);
@@ -85,18 +98,16 @@ export function AddRepoModal({ type, onSubscribe }: AddRepoModalProps) {
       );
 
       if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error("Repository not found");
-        }
-        if (response.status === 403) {
-          throw new Error("Rate limit exceeded. Please try again later.");
-        }
-        throw new Error("Failed to fetch repository");
+        throw new Error(
+          response.status === 404
+            ? "Repository not found"
+            : response.status === 403
+              ? "Rate limit exceeded. Please try again later."
+              : "Failed to fetch repository",
+        );
       }
 
-      const data = await response.json();
-      const validatedData = repoResponseSchema.parse(data);
-      setPreview(validatedData);
+      setPreview(repoResponseSchema.parse(await response.json()));
       setError(null);
     } catch (error) {
       setError(
@@ -109,27 +120,12 @@ export function AddRepoModal({ type, onSubscribe }: AddRepoModalProps) {
   };
 
   const debouncedValidateAndPreview = useDebounce((url: string) => {
+    console.log("debouncedValidateAndPreview", url);
     setError(null);
-    try {
-      const parsed = new URL(url);
-      if (parsed.hostname !== "github.com") {
-        return;
-      }
-
-      const parts = parsed.pathname.split("/").filter(Boolean);
-      if (parts.length !== 2) {
-        return;
-      }
-
-      const result = githubUrlSchema.safeParse({
-        owner: parts[0],
-        repo: parts[1],
-      });
-
-      if (result.success) {
-        void fetchPreview(result.data.owner, result.data.repo);
-      }
-    } catch {
+    const { success, data } = githubUrlSchemaExtended.safeParse({ url });
+    if (success) {
+      void fetchPreview(data.owner, data.repo);
+    } else {
       setPreview(null);
     }
   }, 500);
@@ -151,43 +147,127 @@ export function AddRepoModal({ type, onSubscribe }: AddRepoModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="grid gap-4">
-          <div className="grid gap-2">
-            <Input
-              placeholder="Enter GitHub repository URL"
-              value={url}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                setUrl(newValue);
-                debouncedValidateAndPreview(newValue);
-              }}
-            />
-            {error && (
-              <div className="flex items-center gap-2 text-sm text-red-500">
-                <AlertCircleIcon className="size-4" />
-                <span>{error}</span>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void form.handleSubmit();
+          }}
+          className="grid gap-4"
+        >
+          <form.Field
+            name="url"
+            children={(field) => (
+              <div className="grid gap-2">
+                <Input
+                  placeholder="Enter GitHub repository URL"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    field.handleChange(newValue);
+                    debouncedValidateAndPreview(newValue);
+                  }}
+                />
+                <ValidationErrors
+                  fieldErrors={field.state.meta.errors}
+                  isTouched={field.state.meta.isTouched}
+                  error={error}
+                />
               </div>
             )}
-          </div>
+          />
 
           {isLoadingPreview && <RepoPreviewSkeleton />}
 
           {preview && !isLoadingPreview && <RepoPreview data={preview} />}
 
+          <form.Subscribe
+            selector={(state) => [
+              state.canSubmit,
+              state.isSubmitting,
+              state.isValidating,
+              state.errors,
+              state.values,
+            ]}
+            children={([
+              canSubmit,
+              isSubmitting,
+              isValidating,
+              errors,
+              values,
+              meta,
+            ]) => {
+              console.log("Detailed form state:", {
+                canSubmit,
+                isSubmitting,
+                isValidating,
+                errors,
+                values,
+                meta,
+              });
+              return null;
+            }}
+          />
+
           <DialogFooter>
-            <Button
-              type="submit"
-              disabled={!url || isSubmitting || isLoadingPreview}
-              className="w-full sm:w-auto"
-            >
-              {isSubmitting && (
-                <LoaderIcon className="mr-2 size-4 animate-spin" />
-              )}
-              Add Repository
-            </Button>
+            <form.Subscribe
+              selector={(state) => [state.canSubmit, state.isSubmitting]}
+              children={([canSubmit, isSubmitting]) => {
+                console.log("Form state:", { canSubmit, isSubmitting });
+                return (
+                  <Button
+                    type="submit"
+                    disabled={!canSubmit || isLoadingPreview || !preview}
+                    className="w-full sm:w-auto"
+                  >
+                    {isSubmitting && (
+                      <LoaderIcon className="mr-2 size-4 animate-spin" />
+                    )}
+                    Add Repository
+                  </Button>
+                );
+              }}
+            />
           </DialogFooter>
+
+          <form.Subscribe
+            selector={(state) => [state.errorMap]}
+            children={([errorMap]) =>
+              errorMap?.onSubmit ? (
+                <p className="text-sm text-destructive">
+                  {errorMap.onSubmit?.toString()}
+                </p>
+              ) : null
+            }
+          />
         </form>
       </DialogContent>
     </Dialog>
   );
+}
+
+function ValidationErrors({
+  fieldErrors,
+  isTouched,
+  error,
+}: {
+  fieldErrors: ValidationError[];
+  isTouched: boolean;
+  error: string | null;
+}) {
+  const validationError = isTouched
+    ? fieldErrors
+        .filter((err): err is string => typeof err === "string")
+        .join(", ")
+    : null;
+
+  const displayError = validationError || error;
+
+  return displayError ? (
+    <div className="flex items-center gap-2 text-sm text-red-500">
+      <AlertCircleIcon className="size-4" />
+      <span>{displayError}</span>
+    </div>
+  ) : null;
 }

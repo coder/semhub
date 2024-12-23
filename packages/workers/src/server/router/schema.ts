@@ -11,3 +11,10 @@ export const issuesSearchSchema = paginationSchema.extend({
 });
 
 export type IssuesSearchSchema = z.infer<typeof issuesSearchSchema>;
+
+export const repoSubscribeSchema = z.object({
+  owner: z.string().min(1).max(39),
+  repo: z.string().min(1).max(100),
+});
+
+export type RepoSubscribeSchema = z.infer<typeof repoSubscribeSchema>;

@@ -1,9 +1,12 @@
+import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 
 import type { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import type { AuthedContext } from "@/server";
 import type { ErrorResponse, SuccessResponse } from "@/server/response";
+
+import { repoSubscribeSchema } from "../schema";
 
 // Mock data for development
 const MOCK_REPOS = [
@@ -126,24 +129,34 @@ export const repoRouter = new Hono<AuthedContext>()
   })
 
   // Subscribe to a public repository
-  .post("/subscribe/public", async (c) => {
-    const user = c.get("user");
-    // TODO: Implement public repository subscription logic
-    return c.json<SuccessResponse>({
-      success: true,
-      message: "Public repository subscription will be implemented",
-    });
-  })
+  .post(
+    "/subscribe/public",
+    zValidator("json", repoSubscribeSchema),
+    async (c) => {
+      const user = c.get("user");
+      const { owner, repo } = c.req.valid("json");
+      // TODO: Implement public repository subscription logic
+      return c.json<SuccessResponse>({
+        success: true,
+        message: "Public repository subscription will be implemented",
+      });
+    },
+  )
 
   // Subscribe to a private repository
-  .post("/subscribe/private", async (c) => {
-    const user = c.get("user");
-    // TODO: Implement private repository subscription logic
-    return c.json<SuccessResponse>({
-      success: true,
-      message: "Private repository subscription will be implemented",
-    });
-  })
+  .post(
+    "/subscribe/private",
+    zValidator("json", repoSubscribeSchema),
+    async (c) => {
+      const user = c.get("user");
+      const { owner, repo } = c.req.valid("json");
+      // TODO: Implement private repository subscription logic
+      return c.json<SuccessResponse>({
+        success: true,
+        message: "Private repository subscription will be implemented",
+      });
+    },
+  )
 
   // Unsubscribe from a repository
   .post("/unsubscribe/:repoId", async (c) => {
