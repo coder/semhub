@@ -28,6 +28,12 @@ export interface Context extends Env {
   };
 }
 
+export interface AuthedContext extends Context {
+  Variables: {
+    user: User;
+  };
+}
+
 export const app = new Hono<Context>();
 
 app.use("*", async (c, next) => {
