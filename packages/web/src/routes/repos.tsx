@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { InfoIcon, PlusIcon } from "lucide-react";
+import { InfoIcon } from "lucide-react";
 
 import { client } from "@/lib/api/client";
 import { queryKeys } from "@/lib/queryClient";
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AddRepoModal } from "@/components/AddRepoModal";
 import { RepoCard } from "@/components/RepoCard";
 
 function useReposQuery() {
@@ -28,33 +29,21 @@ export type Repo = NonNullable<
   ReturnType<typeof useReposQuery>["data"]
 >[number];
 
-function SubscribeButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground hover:bg-primary/90"
-    >
-      Subscribe <PlusIcon className="size-4" />
-    </button>
-  );
+type RepoType = "public" | "private";
+
+interface RepoSectionProps {
+  title: string;
+  type: RepoType;
+  repos: Repo[];
+  onSubscribe: (type: RepoType, owner: string, repo: string) => Promise<void>;
 }
 
-function RepoSection({
-  title,
-  type,
-  repos,
-  onSubscribe,
-}: {
-  title: string;
-  type: "public" | "private";
-  repos: Repo[];
-  onSubscribe: (type: "public" | "private") => Promise<void>;
-}) {
+function RepoSection({ title, type, repos, onSubscribe }: RepoSectionProps) {
   return (
     <section>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold">{title}</h2>
-        <SubscribeButton onClick={() => onSubscribe(type)} />
+        <AddRepoModal type={type} onSubscribe={onSubscribe} />
       </div>
       <div
         className={cn("space-y-2", !repos.length && "text-sm text-gray-500")}
@@ -120,9 +109,15 @@ function ReposSkeleton() {
 function ReposPage() {
   const { data: reposData } = useReposQuery();
 
-  const handleSubscribeRepo = async (type: "public" | "private") => {
+  const handleSubscribeRepo = async (
+    type: RepoType,
+    owner: string,
+    repo: string,
+  ) => {
     try {
-      const response = await client.me.repos.subscribe[type].$post();
+      const response = await client.me.repos.subscribe[type].$post({
+        json: { owner, repo },
+      });
       const data = await response.json();
       console.log("Response:", data);
       // You can add a toast notification here to show success/error
