@@ -1,4 +1,4 @@
-import { useForm, ValidationError } from "@tanstack/react-form";
+import { useForm, type FieldApi } from "@tanstack/react-form";
 import { zodValidator } from "@tanstack/zod-form-adapter";
 import { AlertCircleIcon, LoaderIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
@@ -16,9 +16,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import type { RepoPreviewData } from "@/components/RepoPreview";
 import {
   RepoPreview,
-  RepoPreviewData,
   RepoPreviewSkeleton,
   repoResponseSchema,
 } from "@/components/RepoPreview";
@@ -123,7 +123,6 @@ export function SubscribeRepoDialog({
   };
 
   const debouncedValidateAndPreview = useDebounce((url: string) => {
-    console.log("debouncedValidateAndPreview", url);
     setError(null);
     const { success, data } = githubUrlSchemaExtended.safeParse({ url });
     if (success) {
@@ -172,11 +171,7 @@ export function SubscribeRepoDialog({
                     debouncedValidateAndPreview(newValue);
                   }}
                 />
-                <ValidationErrors
-                  fieldErrors={field.state.meta.errors}
-                  isTouched={field.state.meta.isTouched}
-                  error={error}
-                />
+                <ValidationErrors field={field} error={error} />
               </div>
             )}
           />
@@ -250,22 +245,22 @@ export function SubscribeRepoDialog({
   );
 }
 
-function ValidationErrors({
-  fieldErrors,
-  isTouched,
-  error,
-}: {
-  fieldErrors: ValidationError[];
-  isTouched: boolean;
+interface ValidationErrorsProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  field: FieldApi<any, any, any, any, any>;
   error: string | null;
-}) {
-  const validationError = isTouched
-    ? fieldErrors
-        .filter((err): err is string => typeof err === "string")
-        .join(", ")
-    : null;
+}
 
-  const displayError = validationError || error;
+function ValidationErrors({ field, error }: ValidationErrorsProps) {
+  const validationError =
+    field.state.meta.isTouched && field.state.meta.errors.length
+      ? field.state.meta.errors
+          .filter((err: unknown): err is string => typeof err === "string")
+          .join(", ")
+      : null;
+
+  const errors = [validationError, error].filter(Boolean);
+  const displayError = errors.length > 0 ? errors.join(", ") : null;
 
   return displayError ? (
     <div className="flex items-center gap-2 text-sm text-red-500">

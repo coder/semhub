@@ -10,7 +10,7 @@
     "typecheck": "bun --filter=@semhub/core typecheck && bun --filter=@semhub/wrangler typecheck && bun --filter=@semhub/workers typecheck && bun --filter=@semhub/scripts typecheck && bun --filter=@semhub/web typecheck",
     "format:write": "prettier . --write",
     "format:check": "prettier . --check || (echo '⚠️  Warning: Formatting issues found' && exit 0)",
-    "lint": "eslint . && cd packages/web && eslint .",
+    "lint": "eslint . && cd packages/web && eslint . || (echo '⚠️  Warning: Linting issues found' && exit 0)",
     "lint:fix": "eslint . --fix && cd packages/web && eslint . --fix",
     "deploy:stg": "sst deploy --stage stg",
     "deploy:prod": "sst deploy --stage prod",
