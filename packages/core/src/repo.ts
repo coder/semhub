@@ -289,7 +289,8 @@ export namespace Repo {
       .innerJoin(usersToRepos, eq(repos.id, usersToRepos.repoId))
       .where(
         and(eq(usersToRepos.userId, userId), eq(usersToRepos.status, "active")),
-      );
+      )
+      .orderBy(desc(usersToRepos.subscribedAt));
   }
 }
 

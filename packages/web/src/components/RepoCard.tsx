@@ -25,7 +25,7 @@ function getAbnormalSyncState(
       const badge = (
         <Badge
           variant={state.variant}
-          className={cn("flex items-center gap-1.5", state.className)}
+          className={cn("flex items-center gap-1 px-1 py-0.5", state.className)}
         >
           <state.icon className="size-3.5" />
           <span>{state.text}</span>
@@ -111,32 +111,38 @@ function getAbnormalSyncState(
 //   );
 // }
 
-function Separator() {
-  return <span className="px-1 text-muted-foreground">|</span>;
-}
-
 function TimestampInfo({ repo }: { repo: Repo }) {
+  function TimeDisplay({
+    label,
+    date,
+  }: {
+    label: string;
+    date: Date | string;
+  }) {
+    const dateObj = date instanceof Date ? date : new Date(date);
+
+    return (
+      <FastTooltip content={formatLocalDateTime(dateObj)}>
+        <span>
+          {label}: {getTimeAgo(dateObj)}
+        </span>
+      </FastTooltip>
+    );
+  }
+
+  function Separator() {
+    return <span className="px-1 text-muted-foreground">|</span>;
+  }
+
   if (!repo.lastSyncedAt || !repo.issueLastUpdatedAt) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-0.5 text-sm text-muted-foreground">
-      <FastTooltip content={formatLocalDateTime(new Date(repo.lastSyncedAt))}>
-        <span>Last synced: {getTimeAgo(new Date(repo.lastSyncedAt))}</span>
-      </FastTooltip>
+      <TimeDisplay label="Last synced" date={repo.lastSyncedAt} />
       <Separator />
-      <FastTooltip
-        content={formatLocalDateTime(new Date(repo.issueLastUpdatedAt))}
-      >
-        <span>
-          Issues updated: {getTimeAgo(new Date(repo.issueLastUpdatedAt))}
-        </span>
-      </FastTooltip>
+      <TimeDisplay label="Issues updated" date={repo.issueLastUpdatedAt} />
       <Separator />
-      <FastTooltip
-        content={formatLocalDateTime(new Date(repo.repoSubscribedAt))}
-      >
-        <span>Subscribed: {getTimeAgo(new Date(repo.repoSubscribedAt))}</span>
-      </FastTooltip>
+      <TimeDisplay label="Subscribed" date={repo.repoSubscribedAt} />
     </div>
   );
 }
