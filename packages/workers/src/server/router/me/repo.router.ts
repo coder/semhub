@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 
-import type { User } from "@/core/user";
+import type { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import type { AuthedContext } from "@/server";
 import type { ErrorResponse, SuccessResponse } from "@/server/response";
@@ -17,6 +17,7 @@ const MOCK_REPOS = [
     syncStatus: "ready",
     lastSyncedAt: "2024-01-22T10:00:00Z", // recent
     issueLastUpdatedAt: "2024-01-22T22:00:00Z", // more recent
+    repoSubscribedAt: "2024-01-20T08:00:00Z",
   },
   {
     id: "2",
@@ -28,6 +29,7 @@ const MOCK_REPOS = [
     syncStatus: "error",
     lastSyncedAt: "2024-01-20T15:30:00Z", // few days ago
     issueLastUpdatedAt: "2024-01-19T12:00:00Z", // older
+    repoSubscribedAt: "2024-01-18T14:30:00Z",
   },
   {
     id: "3",
@@ -39,6 +41,7 @@ const MOCK_REPOS = [
     syncStatus: "ready",
     lastSyncedAt: null,
     issueLastUpdatedAt: null,
+    repoSubscribedAt: "2024-01-21T16:45:00Z",
   },
   {
     id: "4",
@@ -50,6 +53,7 @@ const MOCK_REPOS = [
     syncStatus: "ready",
     lastSyncedAt: null,
     issueLastUpdatedAt: null,
+    repoSubscribedAt: "2024-01-22T09:15:00Z",
   },
   {
     id: "5",
@@ -61,6 +65,7 @@ const MOCK_REPOS = [
     syncStatus: "error",
     lastSyncedAt: "2024-01-21T23:59:59Z",
     issueLastUpdatedAt: "2024-01-21T18:30:00Z",
+    repoSubscribedAt: "2024-01-19T11:20:00Z",
   },
   {
     id: "6",
@@ -72,6 +77,7 @@ const MOCK_REPOS = [
     syncStatus: "in_progress",
     lastSyncedAt: "2024-01-22T11:30:00Z",
     issueLastUpdatedAt: "2024-01-22T11:25:00Z",
+    repoSubscribedAt: "2024-01-20T13:40:00Z",
   },
   {
     id: "7",
@@ -83,6 +89,7 @@ const MOCK_REPOS = [
     syncStatus: "queued",
     lastSyncedAt: "2024-01-22T11:45:00Z",
     issueLastUpdatedAt: "2024-01-22T11:40:00Z",
+    repoSubscribedAt: "2024-01-21T15:10:00Z",
   },
 ];
 
@@ -96,7 +103,7 @@ export const repoRouter = new Hono<AuthedContext>()
       // const subscribedRepos = await User.getSubscribedRepos(user.id, db);
 
       return c.json<
-        SuccessResponse<Awaited<ReturnType<typeof User.getSubscribedRepos>>>
+        SuccessResponse<Awaited<ReturnType<typeof Repo.getSubscribedRepos>>>
       >({
         success: true,
         message: "Successfully retrieved subscribed repositories",

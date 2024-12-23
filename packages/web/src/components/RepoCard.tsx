@@ -111,14 +111,19 @@ function getAbnormalSyncState(
 //   );
 // }
 
+function Separator() {
+  return <span className="px-1 text-muted-foreground">|</span>;
+}
+
 function TimestampInfo({ repo }: { repo: Repo }) {
   if (!repo.lastSyncedAt || !repo.issueLastUpdatedAt) return null;
 
   return (
-    <>
+    <div className="flex flex-wrap items-center gap-0.5 text-sm text-muted-foreground">
       <FastTooltip content={formatLocalDateTime(new Date(repo.lastSyncedAt))}>
         <span>Last synced: {getTimeAgo(new Date(repo.lastSyncedAt))}</span>
       </FastTooltip>
+      <Separator />
       <FastTooltip
         content={formatLocalDateTime(new Date(repo.issueLastUpdatedAt))}
       >
@@ -126,7 +131,13 @@ function TimestampInfo({ repo }: { repo: Repo }) {
           Issues updated: {getTimeAgo(new Date(repo.issueLastUpdatedAt))}
         </span>
       </FastTooltip>
-    </>
+      <Separator />
+      <FastTooltip
+        content={formatLocalDateTime(new Date(repo.repoSubscribedAt))}
+      >
+        <span>Subscribed: {getTimeAgo(new Date(repo.repoSubscribedAt))}</span>
+      </FastTooltip>
+    </div>
   );
 }
 
@@ -146,11 +157,9 @@ export function RepoCard({ repo }: { repo: Repo }) {
           {abnormalSyncState && abnormalSyncState.render()}
           {/* <PrivacyBadge isPrivate={repo.isPrivate} /> */}
         </div>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          {repo.initStatus === "completed" && repo.syncStatus !== "error" && (
-            <TimestampInfo repo={repo} />
-          )}
-        </div>
+        {repo.initStatus === "completed" && repo.syncStatus !== "error" && (
+          <TimestampInfo repo={repo} />
+        )}
       </div>
       <div className="flex items-center gap-2">
         <a

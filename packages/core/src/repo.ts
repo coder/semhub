@@ -5,6 +5,7 @@ import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
 import { labels as labelTable } from "@/db/schema/entities/label.sql";
 import { repos } from "@/db/schema/entities/repo.sql";
+import { usersToRepos } from "@/db/schema/entities/user-to-repo.sql";
 import { conflictUpdateOnly } from "@/db/utils/conflict";
 import { sanitizeForPg } from "@/db/utils/string";
 import type { Github } from "@/github";
@@ -265,6 +266,30 @@ export namespace Repo {
       .update(repos)
       .set({ initStatus: "in_progress" })
       .where(inArray(repos.id, repoIds));
+  }
+
+  export async function getSubscribedRepos(userId: string, db: DbClient) {
+    return db
+      .select({
+        id: repos.id,
+        ownerName: repos.ownerLogin,
+        ownerAvatarUrl: repos.ownerAvatarUrl,
+        name: repos.name,
+        htmlUrl: repos.htmlUrl,
+        isPrivate: repos.isPrivate,
+        initStatus: repos.initStatus,
+        syncStatus: repos.syncStatus,
+        lastSyncedAt: repos.lastSyncedAt,
+        issueLastUpdatedAt: sql<
+          string | null
+        >`(${repoIssuesLastUpdatedSql(repos, db)})`,
+        repoSubscribedAt: usersToRepos.subscribedAt,
+      })
+      .from(repos)
+      .innerJoin(usersToRepos, eq(repos.id, usersToRepos.repoId))
+      .where(
+        and(eq(usersToRepos.userId, userId), eq(usersToRepos.status, "active")),
+      );
   }
 }
 
