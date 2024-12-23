@@ -14,6 +14,7 @@ export const authMiddleware: MiddlewareHandler<Context> = async (c, next) => {
   const refreshToken = getCookie(c, "refresh_token");
 
   if (!accessToken && !refreshToken) {
+    console.error("No access token or refresh token");
     throw new HTTPException(401, { message: "Unauthorized" });
   }
 
@@ -28,12 +29,14 @@ export const authMiddleware: MiddlewareHandler<Context> = async (c, next) => {
     });
 
     if (verified.err) {
+      console.error("Authentication failed", verified.err.message);
       throw new HTTPException(401, { message: verified.err.message });
     }
 
     const user =
       verified.subject.type === "user" ? verified.subject.properties : null;
     if (!user) {
+      console.error("Something went wrong in verified.subject.type", verified);
       throw new HTTPException(401, {
         message: "Something went wrong in verified.subject.type",
       });
@@ -42,6 +45,7 @@ export const authMiddleware: MiddlewareHandler<Context> = async (c, next) => {
     c.set("user", user);
     await next();
   } catch (_error: any) {
-    throw new HTTPException(401, { message: "Authentication failed" });
+    console.error("Error in authMiddleware", _error.toString());
+    return c.redirect("/");
   }
 };

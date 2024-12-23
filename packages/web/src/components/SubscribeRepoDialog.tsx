@@ -50,12 +50,15 @@ const githubUrlSchemaExtended = githubUrlSchema.transform(({ url }) => {
 
 type RepoType = "public" | "private";
 
-interface AddRepoModalProps {
+interface SubscribeRepoDialogProps {
   type: RepoType;
   onSubscribe: (type: RepoType, owner: string, repo: string) => Promise<void>;
 }
 
-export function AddRepoModal({ type, onSubscribe }: AddRepoModalProps) {
+export function SubscribeRepoDialog({
+  type,
+  onSubscribe,
+}: SubscribeRepoDialogProps) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<RepoPreviewData | null>(null);

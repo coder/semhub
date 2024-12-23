@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AddRepoModal } from "@/components/AddRepoModal";
 import { RepoCard } from "@/components/RepoCard";
+import { SubscribeRepoDialog } from "@/components/SubscribeRepoDialog";
 
 function useReposQuery() {
   return useSuspenseQuery({
@@ -43,7 +43,7 @@ function RepoSection({ title, type, repos, onSubscribe }: RepoSectionProps) {
     <section>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold">{title}</h2>
-        <AddRepoModal type={type} onSubscribe={onSubscribe} />
+        <SubscribeRepoDialog type={type} onSubscribe={onSubscribe} />
       </div>
       <div
         className={cn("space-y-2", !repos.length && "text-sm text-gray-500")}
