@@ -1,7 +1,36 @@
+import { InferResponseType } from "hono/client";
+
 import { queryClient, queryKeys } from "@/lib/queryClient";
 import { storage } from "@/lib/storage";
 
 import { client } from "./client";
+
+// Add these type definitions
+type SessionResponse = InferResponseType<typeof client.auth.$get>;
+type NullableUserData = Extract<
+  SessionResponse,
+  { authenticated: true }
+>["user"];
+export type UserData = NonNullable<NullableUserData>;
+
+// Add new function to handle session fetching
+export async function fetchSession() {
+  const res = await client.auth.$get();
+  if (!res.ok) {
+    throw new Error("Failed to fetch session");
+  }
+  const data = await res.json();
+
+  // Update localStorage with fresh data
+  storage.setAuthStatus(data.authenticated);
+  if (data.authenticated && data.user) {
+    storage.setUserData(data.user);
+  } else {
+    storage.clearUserData();
+  }
+
+  return data;
+}
 
 export async function login() {
   const res = await client.auth.authorize.$get({

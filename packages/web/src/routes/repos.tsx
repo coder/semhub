@@ -1,35 +1,18 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { InfoIcon } from "lucide-react";
 
-import { client } from "@/lib/api/client";
-import { queryKeys } from "@/lib/queryClient";
+import {
+  Repo,
+  RepoType,
+  useReposQuery,
+  useSubscribeRepo,
+} from "@/lib/hooks/useRepo";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { RepoCard } from "@/components/RepoCard";
 import { SubscribeRepoDialog } from "@/components/SubscribeRepoDialog";
-
-function useReposQuery() {
-  return useSuspenseQuery({
-    queryKey: queryKeys.repos.list,
-    queryFn: async () => {
-      const response = await client.me.repos.list.$get();
-      const res = await response.json();
-      if (!res.success) {
-        throw new Error(res.error);
-      }
-      return res.data;
-    },
-  });
-}
-
-export type Repo = NonNullable<
-  ReturnType<typeof useReposQuery>["data"]
->[number];
-
-type RepoType = "public" | "private";
 
 interface RepoSectionProps {
   title: string;
@@ -70,44 +53,9 @@ function EmptyState() {
   );
 }
 
-function ReposSkeleton() {
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mx-auto max-w-3xl">
-        <h1 className="mb-8 text-center text-2xl font-bold">My Repositories</h1>
-        <div className="space-y-8">
-          {/* Public Repos Section */}
-          <section>
-            <div className="mb-4 flex items-center justify-between">
-              <Skeleton className="h-7 w-40" />
-              <Skeleton className="h-10 w-28 rounded-md" />
-            </div>
-            <div className="space-y-2">
-              <div className="text-sm">
-                <Skeleton className="h-5 w-48" />
-              </div>
-            </div>
-          </section>
-          {/* Private Repos Section */}
-          <section>
-            <div className="mb-4 flex items-center justify-between">
-              <Skeleton className="h-7 w-40" />
-              <Skeleton className="h-10 w-28 rounded-md" />
-            </div>
-            <div className="space-y-2">
-              <div className="text-sm">
-                <Skeleton className="h-5 w-48" />
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function ReposPage() {
   const { data: reposData } = useReposQuery();
+  const subscribeRepoMutation = useSubscribeRepo();
 
   const handleSubscribeRepo = async (
     type: RepoType,
@@ -115,12 +63,7 @@ function ReposPage() {
     repo: string,
   ) => {
     try {
-      const response = await client.me.repos.subscribe[type].$post({
-        json: { owner, repo },
-      });
-      const data = await response.json();
-      console.log("Response:", data);
-      // You can add a toast notification here to show success/error
+      await subscribeRepoMutation.mutateAsync({ type, owner, repo });
     } catch (error) {
       console.error("Error subscribing to repo:", error);
     }
@@ -162,3 +105,39 @@ export const Route = createFileRoute("/repos")({
   component: ReposPage,
   pendingComponent: ReposSkeleton,
 });
+
+function ReposSkeleton() {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mx-auto max-w-3xl">
+        <h1 className="mb-8 text-center text-2xl font-bold">My Repositories</h1>
+        <div className="space-y-8">
+          {/* Public Repos Section */}
+          <section>
+            <div className="mb-4 flex items-center justify-between">
+              <Skeleton className="h-7 w-40" />
+              <Skeleton className="h-10 w-28 rounded-md" />
+            </div>
+            <div className="space-y-2">
+              <div className="text-sm">
+                <Skeleton className="h-5 w-48" />
+              </div>
+            </div>
+          </section>
+          {/* Private Repos Section */}
+          <section>
+            <div className="mb-4 flex items-center justify-between">
+              <Skeleton className="h-7 w-40" />
+              <Skeleton className="h-10 w-28 rounded-md" />
+            </div>
+            <div className="space-y-2">
+              <div className="text-sm">
+                <Skeleton className="h-5 w-48" />
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
