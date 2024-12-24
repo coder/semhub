@@ -4,7 +4,7 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query";
 
-import { listRepos, subscribeRepo } from "@/lib/api/repo";
+import { listRepos, subscribeRepo, unsubscribeRepo } from "@/lib/api/repo";
 import { queryKeys } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -45,6 +45,29 @@ export const useSubscribeRepo = () => {
       console.error("Failed to subscribe to repository:", error);
       toast({
         title: "Failed to subscribe to repository",
+        variant: "destructive",
+        description: error.message,
+      });
+    },
+  });
+};
+
+export const useUnsubscribeRepo = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: (repoId: string) => unsubscribeRepo(repoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.repos.list });
+      toast({
+        title: "Repository unsubscribed successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to unsubscribe from repository:", error);
+      toast({
+        title: "Failed to unsubscribe from repository",
         variant: "destructive",
         description: error.message,
       });

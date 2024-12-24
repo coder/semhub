@@ -1,5 +1,3 @@
-import type { InferResponseType } from "hono/client";
-
 import { client, handleResponse } from "./client";
 
 export const listRepos = async () => {
@@ -10,10 +8,6 @@ export const listRepos = async () => {
   );
   return data;
 };
-
-export type ListReposResponse = InferResponseType<
-  typeof client.me.repos.list.$get
->;
 
 export const subscribeRepo = async (
   type: "public" | "private",
@@ -26,6 +20,9 @@ export const subscribeRepo = async (
   return handleResponse(response, `Failed to subscribe to ${owner}/${repo}`);
 };
 
-export type SubscribeRepoResponse = InferResponseType<
-  typeof client.me.repos.subscribe.public.$post
->;
+export const unsubscribeRepo = async (repoId: string) => {
+  const response = await client.me.repos.unsubscribe[":repoId"].$post({
+    param: { repoId },
+  });
+  return handleResponse(response, "Failed to unsubscribe from repository");
+};
