@@ -169,6 +169,13 @@
       "when": 1735003834935,
       "tag": "0023_whole_warbird",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1735013615374,
+      "tag": "0024_neat_nemesis",
+      "breakpoints": true
     }
   ]
 }
