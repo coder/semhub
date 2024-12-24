@@ -19,17 +19,6 @@ export const APP_DOMAIN = "semhub.dev";
 const APP_STG_DOMAIN = `stg.${APP_DOMAIN}`;
 const LOCAL_DEV_DOMAIN = `local.${APP_DOMAIN}`;
 
-export function getFrontendHomepage(stage: string) {
-  switch (stage) {
-    case "prod":
-      return `https://${APP_DOMAIN}`;
-    case "stg":
-      return `https://${APP_STG_DOMAIN}`;
-    default:
-      return `https://${LOCAL_DEV_DOMAIN}:3001`;
-  }
-}
-
 function getCookieDomain(stage: string) {
   switch (stage) {
     case "prod":

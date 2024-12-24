@@ -4,7 +4,7 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { Resource } from "sst";
 
-import { getApiServerCORS, getFrontendHomepage } from "@/auth/auth.constant";
+import { getApiServerCORS } from "@/auth/auth.constant";
 import { getDeps } from "@/deps";
 import type { User } from "@/subjects";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
@@ -42,8 +42,7 @@ app.use("*", async (c, next) => {
 });
 
 app.get("/", async (c) => {
-  const { currStage } = getDeps();
-  return c.redirect(getFrontendHomepage(currStage));
+  return c.redirect("/");
 });
 
 // something about the ordering has implications for the ApiRoutes type, not super sure
