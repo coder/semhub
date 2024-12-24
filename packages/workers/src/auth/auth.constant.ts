@@ -6,13 +6,8 @@ export const githubLogin = {
   provider: "github-login" as const,
   scopes: [
     GITHUB_SCOPES_PERMISSION.userEmail,
-    GITHUB_SCOPES_PERMISSION.readUser,
-  ], // actually I suspect read:user is not necessary
-};
-
-export const githubRepo = {
-  provider: "github-repo" as const,
-  scopes: [GITHUB_SCOPES_PERMISSION.repo],
+    GITHUB_SCOPES_PERMISSION.readUser, // actually I suspect read:user is not necessary
+  ],
 };
 
 export const APP_DOMAIN = "semhub.dev";

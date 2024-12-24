@@ -1,14 +1,13 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 
 import type { DbClient } from "@/db";
+import { installations } from "@/db/schema/entities/installation.sql";
 import { usersToRepos } from "@/db/schema/entities/user-to-repo.sql";
 import { users } from "@/db/schema/entities/user.sql";
 import type { GithubScopes, UserMetadata } from "@/db/schema/entities/user.sql";
 import { conflictUpdateOnly } from "@/db/utils/conflict";
 import { githubUserSchema, userEmailsSchema } from "@/github/schema.rest";
 import { getRestOctokit } from "@/github/shared";
-
-import { GITHUB_SCOPES_PERMISSION } from "./github/permission";
 
 export namespace User {
   export async function getByEmail(email: string, db: DbClient) {
@@ -131,16 +130,27 @@ export namespace User {
     userId: string,
     db: DbClient,
   ): Promise<boolean> {
-    const repoScope = GITHUB_SCOPES_PERMISSION.repo;
-    const [user] = await db
-      .select({ githubScopes: users.githubScopes })
-      .from(users)
-      .where(eq(users.id, userId));
+    // Check for valid app installations
+    const [hasValidInstallation] = await db
+      .select({ id: installations.id })
+      .from(installations)
+      .where(
+        and(
+          // Installation is not uninstalled
+          isNull(installations.uninstalledAt),
+          or(
+            // User has directly installed the app
+            and(
+              eq(installations.targetType, "user"),
+              eq(installations.targetId, userId),
+            ),
+            // Or user installed it for their org
+            eq(installations.installedByUserId, userId),
+          ),
+        ),
+      )
+      .limit(1);
 
-    if (!user?.githubScopes) {
-      return false;
-    }
-
-    return user.githubScopes.includes(repoScope);
+    return !!hasValidInstallation;
   }
 }

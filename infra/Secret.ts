@@ -21,6 +21,7 @@ export const secret = {
   githubAppName: new sst.Secret("SEMHUB_GITHUB_APP_NAME"),
   githubAppClientId: new sst.Secret("SEMHUB_GITHUB_APP_CLIENT_ID"),
   githubAppClientSecret: new sst.Secret("SEMHUB_GITHUB_APP_CLIENT_SECRET"),
+  githubAppPrivateKey: new sst.Secret("SEMHUB_GITHUB_APP_PRIVATE_KEY"),
   keys,
 };
 
