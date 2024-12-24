@@ -5,6 +5,7 @@ import { useState } from "react";
 import { z } from "zod";
 
 import { repoSchema } from "@/core/github/schema.rest";
+import { repoValidationSchema } from "@/core/github/schema.validation";
 import { useSubscribeRepo } from "@/lib/hooks/useRepo";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,6 @@ import {
   RepoPreviewSkeleton,
   type RepoPreviewProps,
 } from "@/components/RepoPreview";
-import { repoSubscribeSchema } from "@/workers/server/router/schema/repo.schema";
 
 const githubUrlSchema = z
   .object({
@@ -47,7 +47,7 @@ const githubUrlSchema = z
       owner: parts[0]!,
       repo: parts[1]!,
     };
-    return repoSubscribeSchema.parse(repoSubscribe);
+    return repoValidationSchema.parse(repoSubscribe);
   });
 
 type RepoType = "public" | "private";

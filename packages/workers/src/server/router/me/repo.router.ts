@@ -2,15 +2,16 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 
+import { and, eq } from "@/core/db";
+import { usersToRepos } from "@/core/db/schema/entities/user-to-repo.sql";
 import { Github } from "@/core/github";
+import { repoValidationSchema } from "@/core/github/schema.validation";
 import { Repo } from "@/core/repo";
 import { User } from "@/core/user";
 import { getDeps } from "@/deps";
 import type { AuthedContext } from "@/server";
 import { createSuccessResponse } from "@/server/response";
 import { initNextRepos } from "@/wrangler/workflows/sync/repo-init/init.workflow.util";
-
-import { repoSubscribeSchema } from "../schema/repo.schema";
 
 export const repoRouter = new Hono<AuthedContext>()
   // Get all actively subscribed repos for the user
@@ -29,7 +30,7 @@ export const repoRouter = new Hono<AuthedContext>()
   // Subscribe to a public repository
   .post(
     "/subscribe/public",
-    zValidator("json", repoSubscribeSchema),
+    zValidator("json", repoValidationSchema),
     async (c) => {
       const user = c.get("user");
       const { db, restOctokit, emailClient } = getDeps();
@@ -71,7 +72,7 @@ export const repoRouter = new Hono<AuthedContext>()
   // Subscribe to a private repository
   .post(
     "/subscribe/private",
-    zValidator("json", repoSubscribeSchema),
+    zValidator("json", repoValidationSchema),
     async (c) => {
       const user = c.get("user");
       const { owner, repo } = c.req.valid("json");
@@ -88,8 +89,33 @@ export const repoRouter = new Hono<AuthedContext>()
   .post("/unsubscribe/:repoId", async (c) => {
     const user = c.get("user");
     const repoId = c.req.param("repoId");
-    // TODO: Implement repository unsubscription logic
+    const { db } = getDeps();
+
+    // Check if user is subscribed to the repo
+    const [subscription] = await db
+      .select()
+      .from(usersToRepos)
+      .where(
+        and(
+          eq(usersToRepos.userId, user.id),
+          eq(usersToRepos.repoId, repoId),
+          eq(usersToRepos.status, "active"),
+        ),
+      );
+
+    if (!subscription) {
+      throw new HTTPException(404, {
+        message: "You are not subscribed to this repository",
+      });
+    }
+
+    await User.unsubscribeRepo({
+      repoId,
+      userId: user.id,
+      db,
+    });
+
     return c.json(
-      createSuccessResponse("Repository unsubscription will be implemented"),
+      createSuccessResponse("Successfully unsubscribed from repository"),
     );
   });

@@ -1,10 +1,52 @@
 import { ExternalLinkIcon, HourglassIcon, XCircleIcon } from "lucide-react";
+import React from "react";
 
 import { Repo } from "@/lib/hooks/useRepo";
 import { formatLocalDateTime, getTimeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { FastTooltip } from "@/components/ui/fast-tooltip";
+
+import { UnsubscribeRepoDialog } from "./UnsubscribeRepoDialog";
+
+export function RepoCard({ repo }: { repo: Repo }) {
+  const abnormalSyncState = getAbnormalSyncState(
+    repo.initStatus,
+    repo.syncStatus,
+  );
+
+  return (
+    <div className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50">
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <img
+            src={repo.ownerAvatarUrl}
+            alt={`${repo.ownerName}'s avatar`}
+            className="size-6 rounded-full"
+          />
+          <h3 className="font-medium">
+            {repo.ownerName}/{repo.name}
+          </h3>
+          {abnormalSyncState && abnormalSyncState.render()}
+        </div>
+        {repo.initStatus === "completed" && repo.syncStatus !== "error" && (
+          <TimestampInfo repo={repo} />
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <UnsubscribeRepoDialog repo={repo} />
+        <a
+          href={repo.htmlUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-md p-2 hover:bg-muted"
+        >
+          <ExternalLinkIcon className="size-4" />
+        </a>
+      </div>
+    </div>
+  );
+}
 
 type SyncState = {
   text: string;
@@ -97,29 +139,9 @@ function getAbnormalSyncState(
   initStatus satisfies never;
 }
 
-// function PrivacyBadge({ isPrivate }: { isPrivate: boolean }) {
-//   return (
-//     <Badge
-//       variant="secondary"
-//       className={cn(
-//         "rounded-full px-2 py-0.5",
-//         isPrivate ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800",
-//       )}
-//     >
-//       {isPrivate ? "Private" : "Public"}
-//     </Badge>
-//   );
-// }
-
 function TimestampInfo({ repo }: { repo: Repo }) {
-  function TimeDisplay({
-    label,
-    date,
-  }: {
-    label: string;
-    date: Date | string;
-  }) {
-    const dateObj = date instanceof Date ? date : new Date(date);
+  function TimeDisplay({ label, date }: { label: string; date: string }) {
+    const dateObj = new Date(date);
 
     return (
       <FastTooltip content={formatLocalDateTime(dateObj)}>
@@ -134,54 +156,24 @@ function TimestampInfo({ repo }: { repo: Repo }) {
     return <span className="px-1 text-muted-foreground">|</span>;
   }
 
-  if (!repo.lastSyncedAt || !repo.issueLastUpdatedAt) return null;
+  const timestamps = [
+    { label: "Last synced", date: repo.lastSyncedAt },
+    { label: "Issues updated", date: repo.issueLastUpdatedAt },
+    { label: "Subscribed", date: repo.repoSubscribedAt },
+  ].filter(
+    (item): item is { label: string; date: string } => item.date !== null,
+  );
+
+  if (timestamps.length === 0) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-0.5 text-sm text-muted-foreground">
-      <TimeDisplay label="Last synced" date={repo.lastSyncedAt} />
-      <Separator />
-      <TimeDisplay label="Issues updated" date={repo.issueLastUpdatedAt} />
-      <Separator />
-      <TimeDisplay label="Subscribed" date={repo.repoSubscribedAt} />
-    </div>
-  );
-}
-
-export function RepoCard({ repo }: { repo: Repo }) {
-  const abnormalSyncState = getAbnormalSyncState(
-    repo.initStatus,
-    repo.syncStatus,
-  );
-
-  return (
-    <div className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50">
-      <div className="space-y-1">
-        <div className="flex items-center gap-2">
-          <img
-            src={repo.ownerAvatarUrl}
-            alt={`${repo.ownerName}'s avatar`}
-            className="size-6 rounded-full"
-          />
-          <h3 className="font-medium">
-            {repo.ownerName}/{repo.name}
-          </h3>
-          {abnormalSyncState && abnormalSyncState.render()}
-          {/* <PrivacyBadge isPrivate={repo.isPrivate} /> */}
-        </div>
-        {repo.initStatus === "completed" && repo.syncStatus !== "error" && (
-          <TimestampInfo repo={repo} />
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <a
-          href={repo.htmlUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-md p-2 hover:bg-muted"
-        >
-          <ExternalLinkIcon className="size-4" />
-        </a>
-      </div>
+      {timestamps.map((item, index) => (
+        <React.Fragment key={item.label}>
+          <TimeDisplay label={item.label} date={item.date} />
+          {index < timestamps.length - 1 && <Separator />}
+        </React.Fragment>
+      ))}
     </div>
   );
 }
