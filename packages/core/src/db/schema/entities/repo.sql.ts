@@ -23,7 +23,7 @@ export const repos = pgTable(
   {
     ...getBaseColumns("repos"),
     ownerLogin: text("owner_login").notNull(),
-    ownerAvatarUrl: text("owner_avatar_url"),
+    ownerAvatarUrl: text("owner_avatar_url").notNull(),
     name: text("name").notNull(),
     nodeId: text("node_id").notNull().unique(),
     htmlUrl: text("html_url").notNull(),
