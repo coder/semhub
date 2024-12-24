@@ -1,4 +1,5 @@
 import { ExternalLinkIcon, HourglassIcon, XCircleIcon } from "lucide-react";
+import React from "react";
 
 import { Repo } from "@/lib/hooks/useRepo";
 import { formatLocalDateTime, getTimeAgo } from "@/lib/time";
@@ -139,14 +140,8 @@ function getAbnormalSyncState(
 }
 
 function TimestampInfo({ repo }: { repo: Repo }) {
-  function TimeDisplay({
-    label,
-    date,
-  }: {
-    label: string;
-    date: Date | string;
-  }) {
-    const dateObj = date instanceof Date ? date : new Date(date);
+  function TimeDisplay({ label, date }: { label: string; date: string }) {
+    const dateObj = new Date(date);
 
     return (
       <FastTooltip content={formatLocalDateTime(dateObj)}>
@@ -161,15 +156,24 @@ function TimestampInfo({ repo }: { repo: Repo }) {
     return <span className="px-1 text-muted-foreground">|</span>;
   }
 
-  if (!repo.lastSyncedAt || !repo.issueLastUpdatedAt) return null;
+  const timestamps = [
+    { label: "Last synced", date: repo.lastSyncedAt },
+    { label: "Issues updated", date: repo.issueLastUpdatedAt },
+    { label: "Subscribed", date: repo.repoSubscribedAt },
+  ].filter(
+    (item): item is { label: string; date: string } => item.date !== null,
+  );
+
+  if (timestamps.length === 0) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-0.5 text-sm text-muted-foreground">
-      <TimeDisplay label="Last synced" date={repo.lastSyncedAt} />
-      <Separator />
-      <TimeDisplay label="Issues updated" date={repo.issueLastUpdatedAt} />
-      <Separator />
-      <TimeDisplay label="Subscribed" date={repo.repoSubscribedAt} />
+      {timestamps.map((item, index) => (
+        <React.Fragment key={item.label}>
+          <TimeDisplay label={item.label} date={item.date} />
+          {index < timestamps.length - 1 && <Separator />}
+        </React.Fragment>
+      ))}
     </div>
   );
 }
