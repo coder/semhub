@@ -9,6 +9,42 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { RepoCard } from "@/components/RepoCard";
 import { SubscribeRepoDialog } from "@/components/SubscribeRepoDialog";
 
+export const Route = createFileRoute("/repos")({
+  component: ReposPage,
+  pendingComponent: ReposSkeleton,
+});
+
+function ReposPage() {
+  const { data: reposData } = useReposQuery();
+
+  const publicRepos = reposData?.filter((repo) => !repo.isPrivate) ?? [];
+  const privateRepos = reposData?.filter((repo) => repo.isPrivate) ?? [];
+  const hasRepos = publicRepos.length > 0 || privateRepos.length > 0;
+
+  return (
+    <div className="container mx-auto max-w-3xl px-4 py-8">
+      <h1 className="mb-8 text-center text-2xl font-bold">My Repositories</h1>
+      <>
+        {!hasRepos && <EmptyState />}
+        <div className="space-y-8">
+          <TooltipProvider>
+            <RepoSection
+              title="Public Repositories"
+              type="public"
+              repos={publicRepos}
+            />
+            <RepoSection
+              title="Private Repositories"
+              type="private"
+              repos={privateRepos}
+            />
+          </TooltipProvider>
+        </div>
+      </>
+    </div>
+  );
+}
+
 interface RepoSectionProps {
   title: string;
   type: RepoType;
@@ -46,42 +82,6 @@ function EmptyState() {
     </Alert>
   );
 }
-
-function ReposPage() {
-  const { data: reposData } = useReposQuery();
-
-  const publicRepos = reposData?.filter((repo) => !repo.isPrivate) ?? [];
-  const privateRepos = reposData?.filter((repo) => repo.isPrivate) ?? [];
-  const hasRepos = publicRepos.length > 0 || privateRepos.length > 0;
-
-  return (
-    <div className="container mx-auto max-w-3xl px-4 py-8">
-      <h1 className="mb-8 text-center text-2xl font-bold">My Repositories</h1>
-      <>
-        {!hasRepos && <EmptyState />}
-        <div className="space-y-8">
-          <TooltipProvider>
-            <RepoSection
-              title="Public Repositories"
-              type="public"
-              repos={publicRepos}
-            />
-            <RepoSection
-              title="Private Repositories"
-              type="private"
-              repos={privateRepos}
-            />
-          </TooltipProvider>
-        </div>
-      </>
-    </div>
-  );
-}
-
-export const Route = createFileRoute("/repos")({
-  component: ReposPage,
-  pendingComponent: ReposSkeleton,
-});
 
 function ReposSkeleton() {
   return (
