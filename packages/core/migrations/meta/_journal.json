@@ -155,6 +155,13 @@
       "when": 1734515828121,
       "tag": "0021_jazzy_wallow",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1735003780833,
+      "tag": "0022_thin_sersi",
+      "breakpoints": true
     }
   ]
 }
