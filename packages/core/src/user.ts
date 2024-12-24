@@ -8,6 +8,8 @@ import { conflictUpdateOnly } from "@/db/utils/conflict";
 import { githubUserSchema, userEmailsSchema } from "@/github/schema.rest";
 import { getRestOctokit } from "@/github/shared";
 
+import { GITHUB_SCOPES_PERMISSION } from "./github/permission";
+
 export namespace User {
   export async function getByEmail(email: string, db: DbClient) {
     const [user] = await db.select().from(users).where(eq(users.email, email));
@@ -124,5 +126,21 @@ export namespace User {
       .where(
         and(eq(usersToRepos.userId, userId), eq(usersToRepos.repoId, repoId)),
       );
+  }
+  export async function checkAuthorizedRepo(
+    userId: string,
+    db: DbClient,
+  ): Promise<boolean> {
+    const repoScope = GITHUB_SCOPES_PERMISSION.repo;
+    const [user] = await db
+      .select({ githubScopes: users.githubScopes })
+      .from(users)
+      .where(eq(users.id, userId));
+
+    if (!user?.githubScopes) {
+      return false;
+    }
+
+    return user.githubScopes.includes(repoScope);
   }
 }

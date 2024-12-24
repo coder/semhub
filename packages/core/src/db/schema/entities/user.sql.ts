@@ -1,8 +1,10 @@
 import { jsonb, pgTable, text } from "drizzle-orm/pg-core";
 
+import { type GithubScope } from "@/github/permission";
+
 import { getBaseColumns, timestamptz } from "../base.sql";
 
-export type GithubScopes = string[];
+export type GithubScopes = Array<GithubScope>;
 
 export type UserMetadata = {
   company: string | null;
