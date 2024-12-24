@@ -4,6 +4,7 @@ import { AlertCircleIcon, LoaderIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 
+import { useSubscribeRepo } from "@/lib/hooks/useRepo";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,18 +54,14 @@ type RepoType = "public" | "private";
 
 interface SubscribeRepoDialogProps {
   type: RepoType;
-  onSubscribe: (type: RepoType, owner: string, repo: string) => Promise<void>;
 }
 
-export function SubscribeRepoDialog({
-  type,
-  onSubscribe,
-}: SubscribeRepoDialogProps) {
+export function SubscribeRepoDialog({ type }: SubscribeRepoDialogProps) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<RepoPreviewData | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-
+  const subscribeRepoMutation = useSubscribeRepo();
   const form = useForm({
     defaultValues: {
       url: "",
@@ -76,9 +73,10 @@ export function SubscribeRepoDialog({
     onSubmit: async ({ value }) => {
       try {
         const { owner, repo } = githubUrlSchema.parse(value);
-        await onSubscribe(type, owner, repo);
+        await subscribeRepoMutation.mutateAsync({ type, owner, repo });
         setOpen(false);
         setPreview(null);
+        form.reset();
         return null;
       } catch (error) {
         return {

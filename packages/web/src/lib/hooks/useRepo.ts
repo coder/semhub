@@ -3,10 +3,10 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
-import { toast } from "sonner";
 
 import { listRepos, subscribeRepo } from "@/lib/api/repo";
 import { queryKeys } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export function useReposQuery() {
   return useSuspenseQuery({
@@ -22,6 +22,7 @@ export type RepoType = "public" | "private";
 
 export const useSubscribeRepo = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   return useMutation({
     mutationFn: ({
@@ -35,11 +36,16 @@ export const useSubscribeRepo = () => {
     }) => subscribeRepo(type, owner, repo),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.repos.list });
-      toast.success("Repository subscribed successfully");
+      toast({
+        title: "Repository subscribed successfully",
+      });
     },
     onError: (error) => {
       console.error("Failed to subscribe to repository:", error);
-      toast.error("Failed to subscribe to repository");
+      toast({
+        title: "Failed to subscribe to repository",
+        variant: "destructive",
+      });
     },
   });
 };
