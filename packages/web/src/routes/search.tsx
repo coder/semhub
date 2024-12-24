@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IssueCard } from "@/components/IssueCard";
 import { SearchBar } from "@/components/SearchBars";
-import { issuesSearchSchema } from "@/workers/server/router/schema";
+import { issuesSearchSchema } from "@/workers/server/router/schema/issue.schema";
 
 export type SearchParams = z.infer<typeof issuesSearchSchema>;
 

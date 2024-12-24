@@ -10,6 +10,7 @@ import { getDeps } from "@/deps";
 import type { Context } from "..";
 import { getCookieOptions, githubLogin } from "../../auth/auth.constant";
 import { subjects } from "../../subjects";
+import { createSuccessResponse } from "../response";
 
 export const authRouter = new Hono<Context>()
   // slightly idiosyncratic implementation to get session data on frontend
@@ -23,6 +24,7 @@ export const authRouter = new Hono<Context>()
       // If no tokens exist, return unauthorized immediately
       if (!accessToken && !refreshToken) {
         return c.json({
+          success: true,
           authenticated: false,
           message: "No tokens",
         } as const);
@@ -33,6 +35,7 @@ export const authRouter = new Hono<Context>()
       if (verified.err) {
         return c.json(
           {
+            success: true,
             authenticated: false,
             message: verified.err.message,
           } as const,
@@ -58,6 +61,7 @@ export const authRouter = new Hono<Context>()
       }
       // Return the session data
       return c.json({
+        success: true,
         authenticated: true,
         user:
           verified.subject.type === "user" ? verified.subject.properties : null,
@@ -66,6 +70,7 @@ export const authRouter = new Hono<Context>()
       console.error("Error authorizing", error.toString());
       return c.json(
         {
+          success: false,
           authenticated: false,
           message: "Server error",
         } as const,
@@ -77,35 +82,35 @@ export const authRouter = new Hono<Context>()
   .get("/authorize", async (c) => {
     const { hmacSecretKey } = getDeps();
     const client = getAuthClient();
-    const url = new URL(c.req.url);
-    const returnTo = c.req.query("returnTo") || "/"; // TODO: send user back to frontend on "/"
-    const redirectURI = `${url.origin}/api/auth/callback`;
-    try {
-      const {
-        // challengeState is a UUID
-        challenge: { state: challengeState },
-        url: authUrl,
-      } = await client.authorize(redirectURI, "code");
+    const rawUrl = new URL(c.req.url);
+    const returnTo = c.req.query("returnTo") || "/";
+    const redirectURI = `${rawUrl.origin}/api/auth/callback`;
+    const {
+      // challengeState is a UUID
+      challenge: { state: challengeState },
+      url: authUrl,
+    } = await client.authorize(redirectURI, "code");
 
-      // store challengeState in KV to prevent replay
-      await Resource.AuthKv.put(`oauth:challenge ${challengeState}`, "1", {
-        expirationTtl: 60, // in seconds
-      });
-      // Sign the returnTo URL directly
-      const signature = await createHmacDigest({
-        secretKey: hmacSecretKey,
-        data: `${challengeState}:${returnTo}`,
-      });
-      const state = `${signature}.${challengeState}:${returnTo}`;
-      const url = new URL(authUrl);
-      // this overrides the state in the authResponse.url, but it's OK
-      // since the signature + the returnTo ensures the same
-      url.searchParams.set("state", encodeURIComponent(state));
-      return c.json({ authUrl: url.toString() });
-    } catch (e: any) {
-      console.error("Error authorizing", e.toString());
-      return c.text("Error authorizing", e.toString());
-    }
+    // store challengeState in KV to prevent replay
+    await Resource.AuthKv.put(`oauth:challenge ${challengeState}`, "1", {
+      expirationTtl: 60, // in seconds
+    });
+    // Sign the returnTo URL directly
+    const signature = await createHmacDigest({
+      secretKey: hmacSecretKey,
+      data: `${challengeState}:${returnTo}`,
+    });
+    const state = `${signature}.${challengeState}:${returnTo}`;
+    const newUrl = new URL(authUrl);
+    // this overrides the state in the authResponse.url, but it's OK
+    // since the signature + the returnTo ensures the same
+    newUrl.searchParams.set("state", encodeURIComponent(state));
+    return c.json(
+      createSuccessResponse({
+        data: { url: newUrl.toString() },
+        message: "Successfully started authentication",
+      }),
+    );
   })
   // used in OAuth
   .get("/callback", async (c) => {
@@ -132,7 +137,7 @@ export const authRouter = new Hono<Context>()
       if (!challengeState || !returnTo)
         throw new HTTPException(400, { message: "Invalid state data" });
 
-      // retrieve  and delete challengeState from KV to prevent replay
+      // retrieve and delete challengeState from KV to prevent replay
       const challengeStateFromKV = await Resource.AuthKv.get(
         `oauth:challenge ${challengeState}`,
       );

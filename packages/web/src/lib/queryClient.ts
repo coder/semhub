@@ -4,6 +4,9 @@ import type { SearchParams } from "@/routes/search";
 
 export const queryKeys = {
   session: ["session"] as const,
+  repos: {
+    list: ["repos", "list"] as const,
+  },
   issues: {
     search: (params: SearchParams) =>
       [

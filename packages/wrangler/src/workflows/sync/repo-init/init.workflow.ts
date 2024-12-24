@@ -56,7 +56,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           .select({
             initStatus: repos.initStatus,
             repoName: repos.name,
-            repoOwner: repos.owner,
+            repoOwner: repos.ownerLogin,
             issuesLastEndCursor: repos.issuesLastEndCursor,
             issueLastUpdatedAt: sql<
               string | null

@@ -1,8 +1,7 @@
 import { z } from "zod";
 
-import { paginationSchema } from "../response";
+import { paginationSchema } from "../../response";
 
-// need to be in separate file for use in web, to avoid importing server-only dependencies
 export const issuesSearchSchema = paginationSchema.extend({
   q: z.string(),
   // don't use boolean because it will be serialized to string when passed to worker

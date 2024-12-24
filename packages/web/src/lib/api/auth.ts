@@ -1,7 +1,32 @@
+import { InferResponseType } from "hono/client";
+
 import { queryClient, queryKeys } from "@/lib/queryClient";
 import { storage } from "@/lib/storage";
 
-import { client } from "./client";
+import { client, handleResponse } from "./client";
+
+// Add these type definitions
+type SessionResponse = InferResponseType<typeof client.auth.$get>;
+type NullableUserData = Extract<
+  SessionResponse,
+  { authenticated: true }
+>["user"];
+export type UserData = NonNullable<NullableUserData>;
+
+// Add new function to handle session fetching
+export async function fetchSession() {
+  const res = await client.auth.$get();
+  const data = await res.json();
+  // Update localStorage with fresh data
+  storage.setAuthStatus(data.authenticated);
+  if (data.authenticated && data.user) {
+    storage.setUserData(data.user);
+  } else {
+    storage.clearUserData();
+  }
+
+  return data;
+}
 
 export async function login() {
   const res = await client.auth.authorize.$get({
@@ -9,11 +34,10 @@ export async function login() {
       returnTo: window.location.origin + "/",
     },
   });
-  if (!res.ok) {
-    throw new Error("Failed to start auth flow");
-  }
-  const { authUrl } = await res.json();
-  window.location.href = authUrl;
+  const {
+    data: { url },
+  } = await handleResponse(res, "Failed to start authentication");
+  window.location.href = url;
 }
 
 export async function logout() {
@@ -35,5 +59,5 @@ export async function logout() {
 
   // Still invalidate to ensure fresh state
   await queryClient.invalidateQueries({ queryKey: [queryKeys.session] });
-  return response;
+  return handleResponse(response, "Failed to logout");
 }

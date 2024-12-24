@@ -4,28 +4,33 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { Resource } from "sst";
 
-import { Github } from "@/core/github";
-import { Repo } from "@/core/repo";
-import { getApiServerCORS } from "@/auth/auth.constant";
+import { getApiServerCORS, getFrontendHomepage } from "@/auth/auth.constant";
 import { getDeps } from "@/deps";
+import type { User } from "@/subjects";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
 import type { RepoInitParams } from "@/wrangler/workflows/sync/repo-init/init.workflow";
-import { initNextRepos } from "@/wrangler/workflows/sync/repo-init/init.workflow.util";
 import type { WorkflowRPC } from "@/wrangler/workflows/workflow.util";
 
+import { authMiddleware } from "./middleware/auth.middleware";
 import type { ErrorResponse } from "./response";
 import { authRouter } from "./router/auth.router";
-import { searchRouter } from "./router/search.router";
+import { meRouter } from "./router/me/me.router";
+import { publicRouter } from "./router/public/public.router";
 
 export interface Context extends Env {
   Bindings: {
     RATE_LIMITER: Service<RateLimiterWorker>;
     REPO_INIT_WORKFLOW: WorkflowRPC<RepoInitParams>;
-    Auth: Service;
+    Auth: Service; // bind via SST, just for the URL, else not used
   };
   Variables: {
-    // user: User | null;
-    // session: Session | null;
+    user: User | null;
+  };
+}
+
+export interface AuthedContext extends Context {
+  Variables: {
+    user: User;
   };
 }
 
@@ -36,28 +41,24 @@ app.use("*", async (c, next) => {
   return cors(getApiServerCORS(currStage))(c, next);
 });
 
-// TODO: move this into a protected endpoint with middleware
-app.post("/create-repo", async (c) => {
-  const { owner, name } = await c.req.json<{ owner: string; name: string }>();
-
-  const { db, restOctokit, emailClient } = getDeps();
-  const data = await Github.getRepo(name, owner, restOctokit);
-  const createdRepo = await Repo.createRepo(data, db);
-  if (createdRepo.initStatus !== "ready") {
-    return c.json({
-      success: true,
-      message: "did not trigger workflow",
-    });
-  }
-  const res = await initNextRepos(db, c.env.REPO_INIT_WORKFLOW, emailClient);
-  return c.json(res);
+app.get("/", async (c) => {
+  const { currStage } = getDeps();
+  return c.redirect(getFrontendHomepage(currStage));
 });
 
+// something about the ordering has implications for the ApiRoutes type, not super sure
 const _routes = app
+  // Create the base app with /api prefix
   .basePath("/api")
+  // Protected user-specific routes
+  .use("/me/*", authMiddleware) // Apply middleware to all /me routes
+  .route("/me", meRouter) // Mount the me router
+  // Auth routes (no middleware needed)
   .route("/auth", authRouter)
-  .route("/search", searchRouter);
+  // Public routes (no middleware needed)
+  .route("/public", publicRouter);
 
+// Export the type for client usage
 export type ApiRoutes = typeof _routes;
 
 app.onError((err, c) => {

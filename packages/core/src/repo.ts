@@ -5,6 +5,7 @@ import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
 import { labels as labelTable } from "@/db/schema/entities/label.sql";
 import { repos } from "@/db/schema/entities/repo.sql";
+import { usersToRepos } from "@/db/schema/entities/user-to-repo.sql";
 import { conflictUpdateOnly } from "@/db/utils/conflict";
 import { sanitizeForPg } from "@/db/utils/string";
 import type { Github } from "@/github";
@@ -12,12 +13,37 @@ import type { Github } from "@/github";
 import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
 
 export namespace Repo {
+  export async function exists({
+    owner,
+    name,
+    db,
+  }: {
+    owner: string;
+    name: string;
+    db: DbClient;
+  }) {
+    const [result] = await db
+      .select({
+        id: repos.id,
+      })
+      .from(repos)
+      .where(and(eq(repos.ownerLogin, owner), eq(repos.name, name)));
+    if (!result) {
+      return {
+        exists: false,
+      } as const;
+    }
+    return {
+      exists: true,
+      id: result.id,
+    } as const;
+  }
   export async function createRepo(
-    data: Awaited<ReturnType<typeof Github.getRepo>>,
+    data: NonNullable<Awaited<ReturnType<typeof Github.getRepo>>["data"]>,
     db: DbClient,
   ) {
     const {
-      owner: { login: owner },
+      owner: { login: ownerLogin, avatar_url: ownerAvatarUrl },
       name,
       node_id: nodeId,
       html_url: htmlUrl,
@@ -26,7 +52,8 @@ export namespace Repo {
     const [result] = await db
       .insert(repos)
       .values({
-        owner,
+        ownerLogin,
+        ownerAvatarUrl,
         name,
         nodeId,
         htmlUrl,
@@ -35,7 +62,8 @@ export namespace Repo {
       .onConflictDoUpdate({
         target: [repos.nodeId],
         set: conflictUpdateOnly(repos, [
-          "owner",
+          "ownerLogin",
+          "ownerAvatarUrl",
           "name",
           "htmlUrl",
           "isPrivate",
@@ -43,10 +71,10 @@ export namespace Repo {
         ]),
       })
       .returning({
-        repoId: repos.id,
+        id: repos.id,
         initStatus: repos.initStatus,
         repoName: repos.name,
-        repoOwner: repos.owner,
+        repoOwner: repos.ownerLogin,
       });
     if (!result) {
       throw new Error("Failed to create repo");
@@ -59,7 +87,7 @@ export namespace Repo {
         .select({
           repoId: repos.id,
           repoName: repos.name,
-          repoOwner: repos.owner,
+          repoOwner: repos.ownerLogin,
           issuesLastEndCursor: repos.issuesLastEndCursor,
           repoIssuesLastUpdatedAt: sql<
             string | null
@@ -247,7 +275,7 @@ export namespace Repo {
       .select({
         repoId: repos.id,
         repoName: repos.name,
-        repoOwner: repos.owner,
+        repoOwner: repos.ownerLogin,
       })
       .from(repos)
       .where(eq(repos.initStatus, "ready"))
@@ -263,6 +291,31 @@ export namespace Repo {
       .update(repos)
       .set({ initStatus: "in_progress" })
       .where(inArray(repos.id, repoIds));
+  }
+
+  export async function getSubscribedRepos(userId: string, db: DbClient) {
+    return db
+      .select({
+        id: repos.id,
+        ownerName: repos.ownerLogin,
+        ownerAvatarUrl: repos.ownerAvatarUrl,
+        name: repos.name,
+        htmlUrl: repos.htmlUrl,
+        isPrivate: repos.isPrivate,
+        initStatus: repos.initStatus,
+        syncStatus: repos.syncStatus,
+        lastSyncedAt: repos.lastSyncedAt,
+        issueLastUpdatedAt: sql<
+          string | null
+        >`(${repoIssuesLastUpdatedSql(repos, db)})`,
+        repoSubscribedAt: usersToRepos.subscribedAt,
+      })
+      .from(repos)
+      .innerJoin(usersToRepos, eq(repos.id, usersToRepos.repoId))
+      .where(
+        and(eq(usersToRepos.userId, userId), eq(usersToRepos.status, "active")),
+      )
+      .orderBy(desc(usersToRepos.subscribedAt));
   }
 }
 

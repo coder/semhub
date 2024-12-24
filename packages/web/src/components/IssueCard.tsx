@@ -9,6 +9,7 @@ import {
 import type { SearchIssuesResponse } from "@/lib/api/search";
 import { formatLocalDateTime, getTimeAgo } from "@/lib/time";
 import { Badge } from "@/components/ui/badge";
+import { FastTooltip } from "@/components/ui/fast-tooltip";
 import {
   Tooltip,
   TooltipContent,
@@ -243,20 +244,5 @@ function IssueMetadata({ issue }: { issue: Issue }) {
       {showLastUpdated && " | "}
       {showLastUpdated && lastUpdatedElement} {commentElement}
     </>
-  );
-}
-
-function FastTooltip({
-  children,
-  content,
-}: {
-  children: React.ReactNode;
-  content: React.ReactNode;
-}) {
-  return (
-    <Tooltip delayDuration={100}>
-      <TooltipTrigger className="cursor-default">{children}</TooltipTrigger>
-      <TooltipContent>{content}</TooltipContent>
-    </Tooltip>
   );
 }

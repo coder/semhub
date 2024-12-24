@@ -1,0 +1,1 @@
+ALTER TABLE "repos" ALTER COLUMN "owner_avatar_url" SET NOT NULL;

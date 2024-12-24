@@ -1,20 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import type { InferResponseType } from "hono/client";
 import { useEffect, useState } from "react";
 
-import { client } from "../api/client";
+import { fetchSession } from "../api/auth";
 import { queryKeys } from "../queryClient";
 import { storage } from "../storage";
 
-type SessionResponse = InferResponseType<typeof client.auth.$get>;
-type NullableUserData = Extract<
-  SessionResponse,
-  { authenticated: true }
->["user"];
-export type UserData = NonNullable<NullableUserData>;
-
 export function useSession() {
-  // Initialize with cached values
   const [localAuth, setLocalAuth] = useState(() => ({
     isAuthenticated: storage.getAuthStatus(),
     user: storage.getUserData(),
@@ -22,23 +13,7 @@ export function useSession() {
 
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: [queryKeys.session],
-    queryFn: async () => {
-      const res = await client.auth.$get();
-      if (!res.ok) {
-        throw new Error("Failed to fetch session");
-      }
-      const data = await res.json();
-
-      // Update localStorage with fresh data
-      storage.setAuthStatus(data.authenticated);
-      if (data.authenticated && data.user) {
-        storage.setUserData(data.user);
-      } else {
-        storage.clearUserData();
-      }
-
-      return data;
-    },
+    queryFn: fetchSession,
     retry: false,
     staleTime: 5 * 60 * 1000,
   });

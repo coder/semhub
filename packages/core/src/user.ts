@@ -1,8 +1,9 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import type { DbClient } from "@/db";
-import type { GithubScopes, UserMetadata } from "@/db/schema/entities/user.sql";
+import { usersToRepos } from "@/db/schema/entities/user-to-repo.sql";
 import { users } from "@/db/schema/entities/user.sql";
+import type { GithubScopes, UserMetadata } from "@/db/schema/entities/user.sql";
 import { conflictUpdateOnly } from "@/db/utils/conflict";
 import { githubUserSchema, userEmailsSchema } from "@/github/schema.rest";
 import { getRestOctokit } from "@/github/shared";
@@ -12,6 +13,7 @@ export namespace User {
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user ?? null;
   }
+
   export async function upsert({
     accessToken,
     db,
@@ -85,5 +87,42 @@ export namespace User {
       avatarUrl,
       name,
     };
+  }
+  export async function subscribeRepo({
+    repoId,
+    userId,
+    db,
+  }: {
+    repoId: string;
+    userId: string;
+    db: DbClient;
+  }) {
+    await db
+      .insert(usersToRepos)
+      .values({
+        repoId,
+        userId,
+        status: "active",
+      })
+      .onConflictDoUpdate({
+        target: [usersToRepos.userId, usersToRepos.repoId],
+        set: conflictUpdateOnly(usersToRepos, ["status", "subscribedAt"]),
+      });
+  }
+  export async function unsubscribeRepo({
+    repoId,
+    userId,
+    db,
+  }: {
+    repoId: string;
+    userId: string;
+    db: DbClient;
+  }) {
+    await db
+      .update(usersToRepos)
+      .set({ status: "inactive", unsubscribedAt: new Date() })
+      .where(
+        and(eq(usersToRepos.userId, userId), eq(usersToRepos.repoId, repoId)),
+      );
   }
 }

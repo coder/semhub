@@ -121,11 +121,15 @@
   body {
     @apply bg-background text-foreground;
   }
-}
-
-/* By making scroll bar always present, prevents x-axis layout shift when content exceeds viewport */
-html {
-  overflow-y: scroll;
+  /* Prevent layout shift from scrollbar */
+  html {
+    margin-left: calc(100vw - 100%);
+  }
+  /* Remove Radix UI's scroll lock styles */
+  body[data-scroll-locked] {
+    overflow: auto !important;
+    position: static !important;
+  }
 }
 
 /* Prevents mobile browsers from auto-zooming on input fields */

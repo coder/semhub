@@ -8,4 +8,4 @@ export const subjects = createSubjects({
   }),
 });
 
-export type Subject = z.infer<typeof subjects.user>;
+export type User = z.infer<typeof subjects.user>;

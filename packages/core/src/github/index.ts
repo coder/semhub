@@ -15,17 +15,34 @@ import { repoSchema } from "./schema.rest";
 import type { GraphqlOctokit, RestOctokit } from "./shared";
 
 export namespace Github {
-  export async function getRepo(
-    repoName: string,
-    repoOwner: string,
-    octokit: RestOctokit,
-  ) {
-    const { data: repoData } = await octokit.rest.repos.get({
-      owner: repoOwner,
-      repo: repoName,
-    });
-    const repoDataParsed = repoSchema.parse(repoData);
-    return repoDataParsed;
+  export async function getRepo({
+    repoName,
+    repoOwner,
+    octokit,
+  }: {
+    repoName: string;
+    repoOwner: string;
+    octokit: RestOctokit;
+  }) {
+    try {
+      const { data: repoData } = await octokit.rest.repos.get({
+        owner: repoOwner,
+        repo: repoName,
+      });
+      const repoDataParsed = repoSchema.parse(repoData);
+      return {
+        exists: true,
+        data: repoDataParsed,
+      } as const;
+    } catch (error) {
+      if (error instanceof Error && "status" in error && error.status === 404) {
+        return {
+          exists: false,
+          data: null,
+        } as const;
+      }
+      throw error;
+    }
   }
   export async function getLatestRepoIssues({
     repoId,

@@ -1,4 +1,4 @@
-import { type UserData } from "./hooks/useSession";
+import { type UserData } from "@/lib/api/auth";
 
 const STORAGE_KEYS = {
   AUTH_STATUS: "auth_status",

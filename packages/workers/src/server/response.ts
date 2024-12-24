@@ -37,10 +37,51 @@ export const paginationSchema = z.object({
   // author: z.optional(z.string()),
 });
 
-export type PaginatedResponse<T> = {
+type PaginatedResponse<T> = {
   pagination: {
     page: number;
     totalPages: number;
   };
   data: T;
 } & Omit<SuccessResponse, "data">;
+
+export function createPaginatedResponse<T>(
+  data: T,
+  page: number,
+  totalPages: number,
+  message: string = "Success",
+): PaginatedResponse<T> {
+  return {
+    data,
+    success: true,
+    message,
+    pagination: {
+      page,
+      totalPages,
+    },
+  };
+}
+
+export function createSuccessResponse(message: string): SuccessResponse;
+export function createSuccessResponse<T>({
+  data,
+  message,
+}: {
+  data: T;
+  message: string;
+}): SuccessResponse<T>;
+export function createSuccessResponse<T = void>(
+  args:
+    | string
+    | { data?: T extends void ? never : T; message: string },
+): SuccessResponse<T> {
+  if (typeof args === "string") {
+    return { success: true, message: args } as SuccessResponse<T>;
+  }
+  const { data, message } = args;
+  return (
+    data === undefined
+      ? { success: true, message }
+      : { success: true, message, data }
+  ) as SuccessResponse<T>;
+}

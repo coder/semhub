@@ -9,18 +9,23 @@ import { z } from "zod";
 - hooked up GitHub GraphQL schema for type inference
 */
 
+export type Repo = z.infer<typeof repoSchema>;
+
 // shapes from REST API
 export const repoSchema = z
   .object({
     owner: z
       .object({
         login: z.string(),
+        avatar_url: z.string().url(),
       })
       .strip(),
     name: z.string(),
+    description: z.string().nullable(),
     node_id: z.string(),
     html_url: z.string().url(),
     private: z.boolean(),
+    stargazers_count: z.number(),
   })
   .strip();
 
