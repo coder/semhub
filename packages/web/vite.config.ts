@@ -46,6 +46,19 @@ export default defineConfig(() => {
             ],
           },
         },
+        onwarn(warning, warn) {
+          // Suppress warnings about Node.js module externalization
+          if (
+            warning.code === "PLUGIN_WARNING" &&
+            warning.plugin === "vite:resolve" &&
+            warning.message.includes(
+              "has been externalized for browser compatibility",
+            )
+          ) {
+            return;
+          }
+          warn(warning);
+        },
       },
     },
     server: {
