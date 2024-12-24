@@ -2,9 +2,14 @@ const hmacSecretKey = new random.RandomString("HmacSecretKey", {
   special: false,
   length: 64,
 });
+const githubWebhookSecret = new random.RandomString("GithubWebhookSecret", {
+  special: false,
+  length: 20,
+});
 const keys = new sst.Linkable("Keys", {
   properties: {
     hmacSecretKey: hmacSecretKey.result,
+    githubWebhookSecret: githubWebhookSecret.result,
   },
 });
 
@@ -20,3 +25,7 @@ export const secret = {
 };
 
 export const allSecrets = Object.values(secret);
+
+export const outputs = {
+  // githubWebhookSecret: githubWebhookSecret.result,
+};

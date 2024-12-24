@@ -34,6 +34,7 @@ declare module "sst" {
       "type": "sst.cloudflare.Worker"
     }
     "Keys": {
+      "githubWebhookSecret": string
       "hmacSecretKey": string
       "type": "sst.sst.Linkable"
     }

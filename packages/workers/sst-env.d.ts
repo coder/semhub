@@ -21,6 +21,7 @@ declare module "sst" {
       "value": string
     }
     "Keys": {
+      "githubWebhookSecret": string
       "hmacSecretKey": string
       "type": "sst.sst.Linkable"
     }

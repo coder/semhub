@@ -1,11 +1,13 @@
-const githubAppName = import.meta.env.VITE_GITHUB_APP_NAME;
-
-if (!githubAppName) {
-  throw new Error("VITE_GITHUB_APP_NAME is not set");
-}
+import { client, handleResponse } from "./client";
 
 export const authorizePrivateRepos = async () => {
-  // TODO: add redirect url in state
-  const url = `https://github.com/apps/${githubAppName}/installations/new`;
+  const res = await client.authz.authorize.$get({
+    query: {
+      returnTo: window.location.href,
+    },
+  });
+  const {
+    data: { url },
+  } = await handleResponse(res, "Failed to start GitHub App installation");
   window.open(url, "_blank");
 };

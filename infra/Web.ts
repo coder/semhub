@@ -1,6 +1,5 @@
 import { apiUrl } from "./Api";
 import { domain } from "./Dns";
-import { secret } from "./Secret";
 
 const web = new sst.aws.StaticSite("Web", {
   path: "packages/web",
@@ -12,8 +11,6 @@ const web = new sst.aws.StaticSite("Web", {
       }
       return url;
     }),
-    // this is not a secret
-    VITE_GITHUB_APP_NAME: secret.githubAppName.value,
   },
   build: {
     command: "vite build",

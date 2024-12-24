@@ -25,6 +25,8 @@ export function getDeps() {
   const emailClient = getEmailClient(Resource.RESEND_API_KEY.value);
 
   const hmacSecretKey = Resource.Keys.hmacSecretKey;
+  const githubAppName = Resource.SEMHUB_GITHUB_APP_NAME.value;
+  const githubWebhookSecret = Resource.Keys.githubWebhookSecret;
   return {
     db,
     emailClient,
@@ -33,5 +35,7 @@ export function getDeps() {
     restOctokit,
     currStage,
     hmacSecretKey,
+    githubAppName,
+    githubWebhookSecret,
   };
 }
