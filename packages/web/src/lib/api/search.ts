@@ -1,6 +1,6 @@
 import type { InferResponseType } from "hono/client";
 
-import type { IssuesSearchSchema } from "@/workers/server/router/schema";
+import type { IssuesSearchSchema } from "@/workers/server/router/schema/issue.schema";
 
 import { client, handleResponse } from "./client";
 

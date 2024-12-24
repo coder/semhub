@@ -4,6 +4,7 @@ import { AlertCircleIcon, LoaderIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 
+import { repoSchema } from "@/core/github/schema.rest";
 import { useSubscribeRepo } from "@/lib/hooks/useRepo";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Button } from "@/components/ui/button";
@@ -17,13 +18,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import type { RepoPreviewData } from "@/components/RepoPreview";
 import {
   RepoPreview,
   RepoPreviewSkeleton,
-  repoResponseSchema,
+  type RepoPreviewProps,
 } from "@/components/RepoPreview";
-import { repoSubscribeSchema } from "@/workers/server/router/schema";
+import { repoSubscribeSchema } from "@/workers/server/router/schema/repo.schema";
 
 const githubUrlSchema = z
   .object({
@@ -59,7 +59,7 @@ interface SubscribeRepoDialogProps {
 export function SubscribeRepoDialog({ type }: SubscribeRepoDialogProps) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<RepoPreviewData | null>(null);
+  const [preview, setPreview] = useState<RepoPreviewProps | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const subscribeRepoMutation = useSubscribeRepo();
   const form = useForm({
@@ -108,7 +108,17 @@ export function SubscribeRepoDialog({ type }: SubscribeRepoDialogProps) {
         );
       }
 
-      setPreview(repoResponseSchema.parse(await response.json()));
+      const data = repoSchema.parse(await response.json());
+      setPreview({
+        name: data.name,
+        description: data.description,
+        owner: {
+          login: data.owner.login,
+          avatarUrl: data.owner.avatar_url,
+        },
+        private: data.private,
+        stargazersCount: data.stargazers_count,
+      });
       setError(null);
     } catch (error) {
       setError(
@@ -176,7 +186,15 @@ export function SubscribeRepoDialog({ type }: SubscribeRepoDialogProps) {
 
           {isLoadingPreview && <RepoPreviewSkeleton />}
 
-          {preview && !isLoadingPreview && <RepoPreview data={preview} />}
+          {preview && !isLoadingPreview && (
+            <RepoPreview
+              name={preview.name}
+              description={preview.description}
+              owner={preview.owner}
+              private={preview.private}
+              stargazersCount={preview.stargazersCount}
+            />
+          )}
 
           <form.Subscribe
             selector={(state) => [state.errorMap]}

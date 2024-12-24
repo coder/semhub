@@ -1,42 +1,41 @@
 import { LoaderIcon } from "lucide-react";
-import { z } from "zod";
 
-const repoResponseSchema = z.object({
-  name: z.string(),
-  description: z.string().nullable(),
-  owner: z.object({
-    login: z.string(),
-    avatar_url: z.string(),
-  }),
-  private: z.boolean(),
-  stargazers_count: z.number(),
-});
-
-export type RepoPreviewData = z.infer<typeof repoResponseSchema>;
-
-interface RepoPreviewProps {
-  data: RepoPreviewData;
+export interface RepoPreviewProps {
+  name: string;
+  description: string | null;
+  owner: {
+    login: string;
+    avatarUrl: string;
+  };
+  private: boolean;
+  stargazersCount: number;
 }
 
-export function RepoPreview({ data }: RepoPreviewProps) {
+export function RepoPreview({
+  name,
+  description,
+  owner,
+  private: isPrivate,
+  stargazersCount,
+}: RepoPreviewProps) {
   return (
     <div className="rounded-lg border p-4">
       <div className="flex items-start gap-3">
         <img
-          src={data.owner.avatar_url}
-          alt={data.owner.login}
+          src={owner.avatarUrl}
+          alt={owner.login}
           className="size-10 rounded-full"
         />
         <div className="grid gap-1">
           <h3 className="font-medium">
-            {data.owner.login}/{data.name}
+            {owner.login}/{name}
           </h3>
-          {data.description && (
-            <p className="text-sm text-muted-foreground">{data.description}</p>
+          {description && (
+            <p className="text-sm text-muted-foreground">{description}</p>
           )}
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>{data.stargazers_count.toLocaleString()} stars</span>
-            <span>{data.private ? "Private" : "Public"}</span>
+            <span>{stargazersCount.toLocaleString()} stars</span>
+            <span>{isPrivate ? "Private" : "Public"}</span>
           </div>
         </div>
       </div>
@@ -51,5 +50,3 @@ export function RepoPreviewSkeleton() {
     </div>
   );
 }
-
-export { repoResponseSchema };

@@ -6,7 +6,7 @@ import { getDeps } from "@/deps";
 import type { AuthedContext } from "@/server";
 import { createSuccessResponse } from "@/server/response";
 
-import { repoSubscribeSchema } from "../schema";
+import { repoSubscribeSchema } from "../schema/repo.schema";
 import { MOCK_REPOS } from "./repo.router.test";
 
 export const repoRouter = new Hono<AuthedContext>()
