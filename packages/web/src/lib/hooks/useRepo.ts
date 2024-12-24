@@ -34,10 +34,11 @@ export const useSubscribeRepo = () => {
       owner: string;
       repo: string;
     }) => subscribeRepo(type, owner, repo),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.repos.list });
       toast({
         title: "Repository subscribed successfully",
+        description: data.message,
       });
     },
     onError: (error) => {
@@ -45,6 +46,7 @@ export const useSubscribeRepo = () => {
       toast({
         title: "Failed to subscribe to repository",
         variant: "destructive",
+        description: error.message,
       });
     },
   });

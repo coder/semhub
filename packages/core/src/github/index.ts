@@ -24,12 +24,25 @@ export namespace Github {
     repoOwner: string;
     octokit: RestOctokit;
   }) {
-    const { data: repoData } = await octokit.rest.repos.get({
-      owner: repoOwner,
-      repo: repoName,
-    });
-    const repoDataParsed = repoSchema.parse(repoData);
-    return repoDataParsed;
+    try {
+      const { data: repoData } = await octokit.rest.repos.get({
+        owner: repoOwner,
+        repo: repoName,
+      });
+      const repoDataParsed = repoSchema.parse(repoData);
+      return {
+        exists: true,
+        data: repoDataParsed,
+      } as const;
+    } catch (error) {
+      if (error instanceof Error && "status" in error && error.status === 404) {
+        return {
+          exists: false,
+          data: null,
+        } as const;
+      }
+      throw error;
+    }
   }
   export async function getLatestRepoIssues({
     repoId,

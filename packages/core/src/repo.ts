@@ -39,7 +39,7 @@ export namespace Repo {
     } as const;
   }
   export async function createRepo(
-    data: Awaited<ReturnType<typeof Github.getRepo>>,
+    data: NonNullable<Awaited<ReturnType<typeof Github.getRepo>>["data"]>,
     db: DbClient,
   ) {
     const {
@@ -71,7 +71,7 @@ export namespace Repo {
         ]),
       })
       .returning({
-        repoId: repos.id,
+        id: repos.id,
         initStatus: repos.initStatus,
         repoName: repos.name,
         repoOwner: repos.ownerLogin,
