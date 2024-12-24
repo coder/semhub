@@ -1,34 +1,18 @@
-import {
-  ExternalLinkIcon,
-  HourglassIcon,
-  UserXIcon,
-  XCircleIcon,
-} from "lucide-react";
+import { ExternalLinkIcon, HourglassIcon, XCircleIcon } from "lucide-react";
 
-import { Repo, useUnsubscribeRepo } from "@/lib/hooks/useRepo";
+import { Repo } from "@/lib/hooks/useRepo";
 import { formatLocalDateTime, getTimeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { FastTooltip } from "@/components/ui/fast-tooltip";
+
+import { UnsubscribeRepoDialog } from "./UnsubscribeRepoDialog";
 
 export function RepoCard({ repo }: { repo: Repo }) {
   const abnormalSyncState = getAbnormalSyncState(
     repo.initStatus,
     repo.syncStatus,
   );
-  const unsubscribe = useUnsubscribeRepo();
 
   return (
     <div className="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50">
@@ -43,42 +27,13 @@ export function RepoCard({ repo }: { repo: Repo }) {
             {repo.ownerName}/{repo.name}
           </h3>
           {abnormalSyncState && abnormalSyncState.render()}
-          {/* <PrivacyBadge isPrivate={repo.isPrivate} /> */}
         </div>
         {repo.initStatus === "completed" && repo.syncStatus !== "error" && (
           <TimestampInfo repo={repo} />
         )}
       </div>
       <div className="flex items-center gap-2">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:bg-destructive/10 hover:text-destructive"
-            >
-              <UserXIcon className="size-4" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Unsubscribe from repository?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to unsubscribe from {repo.ownerName}/
-                {repo.name}? You can always subscribe again later.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={() => unsubscribe.mutate(repo.id)}
-              >
-                Unsubscribe
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <UnsubscribeRepoDialog repo={repo} />
         <a
           href={repo.htmlUrl}
           target="_blank"
@@ -182,20 +137,6 @@ function getAbnormalSyncState(
   }
   initStatus satisfies never;
 }
-
-// function PrivacyBadge({ isPrivate }: { isPrivate: boolean }) {
-//   return (
-//     <Badge
-//       variant="secondary"
-//       className={cn(
-//         "rounded-full px-2 py-0.5",
-//         isPrivate ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800",
-//       )}
-//     >
-//       {isPrivate ? "Private" : "Public"}
-//     </Badge>
-//   );
-// }
 
 function TimestampInfo({ repo }: { repo: Repo }) {
   function TimeDisplay({

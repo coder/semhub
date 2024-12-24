@@ -3,6 +3,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
+import { produce } from "immer";
 
 import { listRepos, subscribeRepo, unsubscribeRepo } from "@/lib/api/repo";
 import { queryKeys } from "@/lib/queryClient";
@@ -58,19 +59,44 @@ export const useUnsubscribeRepo = () => {
 
   return useMutation({
     mutationFn: (repoId: string) => unsubscribeRepo(repoId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.repos.list });
-      toast({
-        title: "Repository unsubscribed successfully",
-      });
+    onMutate: async (repoId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.repos.list });
+
+      // Snapshot the previous value
+      const previousRepos = queryClient.getQueryData<Repo[]>(
+        queryKeys.repos.list,
+      );
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<Repo[]>(
+        queryKeys.repos.list,
+        produce((old) => {
+          if (!old) return [];
+          return old.filter((repo) => repo.id !== repoId);
+        }),
+      );
+
+      return { previousRepos };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      // Rollback to the previous value on error
+      queryClient.setQueryData(queryKeys.repos.list, context?.previousRepos);
       console.error("Failed to unsubscribe from repository:", error);
       toast({
         title: "Failed to unsubscribe from repository",
         variant: "destructive",
         description: error.message,
       });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Repository unsubscribed successfully",
+      });
+    },
+    // Always refetch after error or success
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.repos.list });
     },
   });
 };
