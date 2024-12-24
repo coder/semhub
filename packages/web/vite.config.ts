@@ -15,6 +15,52 @@ export default defineConfig(() => {
         "@": path.resolve(__dirname, "./src"),
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            "react-core": ["react", "react-dom"],
+            tanstack: [
+              "@tanstack/react-router",
+              "@tanstack/react-query",
+              "@tanstack/react-form",
+              "@tanstack/router-zod-adapter",
+              "@tanstack/zod-form-adapter",
+            ],
+            "ui-components": [
+              "@radix-ui/react-accordion",
+              "@radix-ui/react-dialog",
+              "@radix-ui/react-icons",
+              "@radix-ui/react-slot",
+              "@radix-ui/react-toast",
+              "@radix-ui/react-tooltip",
+              "lucide-react",
+              "cmdk",
+            ],
+            styling: [
+              "tailwindcss",
+              "tailwind-merge",
+              "tailwindcss-animate",
+              "class-variance-authority",
+              "clsx",
+            ],
+          },
+        },
+        onwarn(warning, warn) {
+          // Suppress warnings about Node.js module externalization
+          if (
+            warning.code === "PLUGIN_WARNING" &&
+            warning.plugin === "vite:resolve" &&
+            warning.message.includes(
+              "has been externalized for browser compatibility",
+            )
+          ) {
+            return;
+          }
+          warn(warning);
+        },
+      },
+    },
     server: {
       host: "local.semhub.dev",
       port: 3001,
