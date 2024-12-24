@@ -46,8 +46,9 @@ export const getNumIssues = (attempt: number, name?: string) => {
 // a limit that is too low will (1) result in lower throughput (2) if a single issue is too large, it will fail
 const DEFAULT_RESPONSE_SIZE_LIMIT_IN_BYTES = 800000;
 const SIZE_LIMITS_MAP: Record<string, number> = {
-  // special handling for golang, which seems to cause many errors
-  "golang/go": 700000,
+  // special handling for golang, source of many errors
+  // will figure out how to properly size return value
+  "golang/go": 500000,
 };
 export const getSizeLimit = (repoName: string) => {
   return SIZE_LIMITS_MAP[repoName] ?? DEFAULT_RESPONSE_SIZE_LIMIT_IN_BYTES;
