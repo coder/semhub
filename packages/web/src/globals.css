@@ -46,6 +46,11 @@
     --destructive-dark-foreground: 0 0% 100%;
     --accent-dark: 220 9% 46%;
     --accent-dark-foreground: 0 0% 100%;
+
+    --authorize: 142 76% 36%;
+    --authorize-foreground: 0 0% 100%;
+    --authorize-hover: 142 76% 42%;
+    --authorize-hover-foreground: 0 0% 100%;
   }
 
   .dark {
@@ -89,6 +94,11 @@
     --destructive-dark-foreground: 0 0% 100%;
     --accent-dark: 220 9% 46%;
     --accent-dark-foreground: 0 0% 100%;
+
+    --authorize: 142 76% 42%;
+    --authorize-foreground: 0 0% 100%;
+    --authorize-hover: 142 76% 48%;
+    --authorize-hover-foreground: 0 0% 100%;
   }
 
   /* Mobile-first responsive design */
