@@ -165,9 +165,9 @@ export const authRouter = new Hono<Context>()
       return c.text(e.toString());
     }
   })
-  .get("/logout", (c) => {
+  .post("/logout", (c) => {
     const { currStage } = getDeps();
-    const returnTo = c.req.query("returnTo") || "/";
+    const { returnTo = "/" } = c.req.query();
     deleteCookie(c, "access_token", getCookieOptions(currStage));
     deleteCookie(c, "refresh_token", getCookieOptions(currStage));
     return c.redirect(returnTo);

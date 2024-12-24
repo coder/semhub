@@ -51,7 +51,7 @@ export async function logout() {
     user: null,
   });
 
-  const response = await client.auth.logout.$get({
+  const response = await client.auth.logout.$post({
     query: {
       returnTo: window.location.origin + "/",
     },
