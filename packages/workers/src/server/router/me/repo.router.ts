@@ -5,14 +5,13 @@ import { HTTPException } from "hono/http-exception";
 import { and, eq } from "@/core/db";
 import { usersToRepos } from "@/core/db/schema/entities/user-to-repo.sql";
 import { Github } from "@/core/github";
+import { repoValidationSchema } from "@/core/github/schema.validation";
 import { Repo } from "@/core/repo";
 import { User } from "@/core/user";
 import { getDeps } from "@/deps";
 import type { AuthedContext } from "@/server";
 import { createSuccessResponse } from "@/server/response";
 import { initNextRepos } from "@/wrangler/workflows/sync/repo-init/init.workflow.util";
-
-import { repoSubscribeSchema } from "../schema/repo.schema";
 
 export const repoRouter = new Hono<AuthedContext>()
   // Get all actively subscribed repos for the user
@@ -31,7 +30,7 @@ export const repoRouter = new Hono<AuthedContext>()
   // Subscribe to a public repository
   .post(
     "/subscribe/public",
-    zValidator("json", repoSubscribeSchema),
+    zValidator("json", repoValidationSchema),
     async (c) => {
       const user = c.get("user");
       const { db, restOctokit, emailClient } = getDeps();
@@ -73,7 +72,7 @@ export const repoRouter = new Hono<AuthedContext>()
   // Subscribe to a private repository
   .post(
     "/subscribe/private",
-    zValidator("json", repoSubscribeSchema),
+    zValidator("json", repoValidationSchema),
     async (c) => {
       const user = c.get("user");
       const { owner, repo } = c.req.valid("json");

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const repoSubscribeSchema = z.object({
+export const repoValidationSchema = z.object({
   owner: z
     .string()
     .min(1)
@@ -22,5 +22,3 @@ export const repoSubscribeSchema = z.object({
       "Repository name cannot end with .git",
     ),
 });
-
-export type RepoSubscribeSchema = z.infer<typeof repoSubscribeSchema>;
