@@ -16,6 +16,17 @@ export const APP_DOMAIN = "semhub.dev";
 const APP_STG_DOMAIN = `stg.${APP_DOMAIN}`;
 const LOCAL_DEV_DOMAIN = `local.${APP_DOMAIN}`;
 
+export function getFrontendHomepage(stage: string) {
+  switch (stage) {
+    case "prod":
+      return `https://${APP_DOMAIN}`;
+    case "stg":
+      return `https://${APP_STG_DOMAIN}`;
+    default:
+      return `https://${LOCAL_DEV_DOMAIN}:3001`;
+  }
+}
+
 function getCookieDomain(stage: string) {
   switch (stage) {
     case "prod":
@@ -44,7 +55,8 @@ export function getCookieOptions(stage: string): CookieOptions {
     sameSite: "Strict",
     path: "/",
     domain: getCookieDomain(stage),
-    maxAge: 60 * 60,
+    // TODO: nice flow for prompting user to re-login
+    maxAge: 60 * 60 * 24 * 7, // 7 days
   };
 }
 

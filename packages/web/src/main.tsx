@@ -7,7 +7,6 @@ import { ThemeProvider } from "next-themes";
 import ReactDOM from "react-dom/client";
 
 import { queryClient } from "@/lib/queryClient";
-import { Layout } from "@/components/Layout";
 
 import { Error } from "./components/Error";
 import { NotFound } from "./components/NotFound";
@@ -41,9 +40,7 @@ if (!rootElement.innerHTML) {
   root.render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <Layout>
-          <RouterProvider router={router} />
-        </Layout>
+        <RouterProvider router={router} />
       </ThemeProvider>
     </QueryClientProvider>,
   );

@@ -134,7 +134,7 @@ export namespace SemanticSearch {
         issueUpdatedAt: issueTable.issueUpdatedAt,
         repoName: repos.name,
         repoUrl: repos.htmlUrl,
-        repoOwnerName: repos.owner,
+        repoOwnerName: repos.ownerLogin,
         repoLastSyncedAt: repos.lastSyncedAt,
         commentCount: count(comments.id).as("comment_count"),
         rankingScore,
@@ -147,13 +147,14 @@ export namespace SemanticSearch {
         issueTable.id, // primary key covers all issues column
         repos.htmlUrl,
         repos.name,
-        repos.owner,
+        repos.ownerLogin,
         repos.lastSyncedAt,
       )
       .orderBy(desc(rankingScore))
       .where(
         and(
           eq(repos.initStatus, "completed"),
+          eq(repos.isPrivate, false),
           // probably should switch to ranking score?
           gt(sql`(${similarityScore})`, SIMILARITY_THRESHOLD),
           // general substring queries match either title or body
@@ -177,7 +178,9 @@ export namespace SemanticSearch {
             ),
           ),
           ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
-          ...ownerQueries.map((subQuery) => ilike(repos.owner, `${subQuery}`)),
+          ...ownerQueries.map((subQuery) =>
+            ilike(repos.ownerLogin, `${subQuery}`),
+          ),
           ...stateQueries.map((state) => convertToIssueStateSql(state)),
           ...[hasAllLabels(issueTable.id, labelQueries)],
         ),

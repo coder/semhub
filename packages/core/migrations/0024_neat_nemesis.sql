@@ -1,0 +1,1 @@
+ALTER TABLE "users_to_repos" ADD COLUMN "unsubscribed_at" timestamp (6) with time zone;
