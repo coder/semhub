@@ -25,6 +25,7 @@ export const usersToRepos = pgTable(
       }),
     status: subscriptionStatusEnum("status").notNull().default("active"),
     subscribedAt: timestamptz("subscribed_at").notNull().defaultNow(),
+    unsubscribedAt: timestamptz("unsubscribed_at"),
     ...getTimestampColumns(),
   },
   (t) => ({

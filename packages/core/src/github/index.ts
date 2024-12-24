@@ -15,11 +15,15 @@ import { repoSchema } from "./schema.rest";
 import type { GraphqlOctokit, RestOctokit } from "./shared";
 
 export namespace Github {
-  export async function getRepo(
-    repoName: string,
-    repoOwner: string,
-    octokit: RestOctokit,
-  ) {
+  export async function getRepo({
+    repoName,
+    repoOwner,
+    octokit,
+  }: {
+    repoName: string;
+    repoOwner: string;
+    octokit: RestOctokit;
+  }) {
     const { data: repoData } = await octokit.rest.repos.get({
       owner: repoOwner,
       repo: repoName,

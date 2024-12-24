@@ -55,27 +55,25 @@ function ReposPage() {
   const hasRepos = publicRepos.length > 0 || privateRepos.length > 0;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mx-auto max-w-3xl">
-        <h1 className="mb-8 text-center text-2xl font-bold">My Repositories</h1>
-        <>
-          {!hasRepos && <EmptyState />}
-          <div className="space-y-8">
-            <TooltipProvider>
-              <RepoSection
-                title="Public Repositories"
-                type="public"
-                repos={publicRepos}
-              />
-              <RepoSection
-                title="Private Repositories"
-                type="private"
-                repos={privateRepos}
-              />
-            </TooltipProvider>
-          </div>
-        </>
-      </div>
+    <div className="container mx-auto max-w-3xl px-4 py-8">
+      <h1 className="mb-8 text-center text-2xl font-bold">My Repositories</h1>
+      <>
+        {!hasRepos && <EmptyState />}
+        <div className="space-y-8">
+          <TooltipProvider>
+            <RepoSection
+              title="Public Repositories"
+              type="public"
+              repos={publicRepos}
+            />
+            <RepoSection
+              title="Private Repositories"
+              type="private"
+              repos={privateRepos}
+            />
+          </TooltipProvider>
+        </div>
+      </>
     </div>
   );
 }
@@ -87,35 +85,33 @@ export const Route = createFileRoute("/repos")({
 
 function ReposSkeleton() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mx-auto max-w-3xl">
-        <h1 className="mb-8 text-center text-2xl font-bold">My Repositories</h1>
-        <div className="space-y-8">
-          {/* Public Repos Section */}
-          <section>
-            <div className="mb-4 flex items-center justify-between">
-              <Skeleton className="h-7 w-40" />
-              <Skeleton className="h-10 w-28 rounded-md" />
+    <div className="container mx-auto max-w-3xl px-4 py-8">
+      <h1 className="mb-8 text-center text-2xl font-bold">My Repositories</h1>
+      <div className="space-y-8">
+        {/* Public Repos Section */}
+        <section>
+          <div className="mb-4 flex items-center justify-between">
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-10 w-28 rounded-md" />
+          </div>
+          <div className="space-y-2">
+            <div className="text-sm">
+              <Skeleton className="h-5 w-48" />
             </div>
-            <div className="space-y-2">
-              <div className="text-sm">
-                <Skeleton className="h-5 w-48" />
-              </div>
+          </div>
+        </section>
+        {/* Private Repos Section */}
+        <section>
+          <div className="mb-4 flex items-center justify-between">
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-10 w-28 rounded-md" />
+          </div>
+          <div className="space-y-2">
+            <div className="text-sm">
+              <Skeleton className="h-5 w-48" />
             </div>
-          </section>
-          {/* Private Repos Section */}
-          <section>
-            <div className="mb-4 flex items-center justify-between">
-              <Skeleton className="h-7 w-40" />
-              <Skeleton className="h-10 w-28 rounded-md" />
-            </div>
-            <div className="space-y-2">
-              <div className="text-sm">
-                <Skeleton className="h-5 w-48" />
-              </div>
-            </div>
-          </section>
-        </div>
+          </div>
+        </section>
       </div>
     </div>
   );

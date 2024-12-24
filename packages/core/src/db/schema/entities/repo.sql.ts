@@ -22,6 +22,7 @@ export const repos = pgTable(
   "repos",
   {
     ...getBaseColumns("repos"),
+    // at some point, could normalise into its own table?
     ownerLogin: text("owner_login").notNull(),
     ownerAvatarUrl: text("owner_avatar_url").notNull(),
     name: text("name").notNull(),

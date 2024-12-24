@@ -13,6 +13,31 @@ import type { Github } from "@/github";
 import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
 
 export namespace Repo {
+  export async function exists({
+    owner,
+    name,
+    db,
+  }: {
+    owner: string;
+    name: string;
+    db: DbClient;
+  }) {
+    const [result] = await db
+      .select({
+        id: repos.id,
+      })
+      .from(repos)
+      .where(and(eq(repos.ownerLogin, owner), eq(repos.name, name)));
+    if (!result) {
+      return {
+        exists: false,
+      } as const;
+    }
+    return {
+      exists: true,
+      id: result.id,
+    } as const;
+  }
   export async function createRepo(
     data: Awaited<ReturnType<typeof Github.getRepo>>,
     db: DbClient,
