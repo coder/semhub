@@ -22,6 +22,7 @@ import {
   RepoPreviewSkeleton,
   repoResponseSchema,
 } from "@/components/RepoPreview";
+import { repoSubscribeSchema } from "@/workers/server/router/schema";
 
 const githubUrlSchema = z
   .object({
@@ -37,16 +38,16 @@ const githubUrlSchema = z
     } catch {
       return false;
     }
-  }, "Please enter a valid GitHub repository URL");
-
-const githubUrlSchemaExtended = githubUrlSchema.transform(({ url }) => {
-  const parsed = new URL(url);
-  const parts = parsed.pathname.split("/").filter(Boolean);
-  return {
-    owner: parts[0]!,
-    repo: parts[1]!,
-  };
-});
+  }, "Please enter a valid GitHub repository URL")
+  .transform(({ url }) => {
+    const parsedUrl = new URL(url);
+    const parts = parsedUrl.pathname.split("/").filter(Boolean);
+    const repoSubscribe = {
+      owner: parts[0]!,
+      repo: parts[1]!,
+    };
+    return repoSubscribeSchema.parse(repoSubscribe);
+  });
 
 type RepoType = "public" | "private";
 
@@ -73,9 +74,8 @@ export function SubscribeRepoDialog({
       onChange: githubUrlSchema,
     },
     onSubmit: async ({ value }) => {
-      console.log("Form submitted with value:", value);
       try {
-        const { owner, repo } = githubUrlSchemaExtended.parse(value);
+        const { owner, repo } = githubUrlSchema.parse(value);
         await onSubscribe(type, owner, repo);
         setOpen(false);
         setPreview(null);
@@ -124,7 +124,7 @@ export function SubscribeRepoDialog({
 
   const debouncedValidateAndPreview = useDebounce((url: string) => {
     setError(null);
-    const { success, data } = githubUrlSchemaExtended.safeParse({ url });
+    const { success, data } = githubUrlSchema.safeParse({ url });
     if (success) {
       void fetchPreview(data.owner, data.repo);
     } else {
@@ -181,38 +181,20 @@ export function SubscribeRepoDialog({
           {preview && !isLoadingPreview && <RepoPreview data={preview} />}
 
           <form.Subscribe
-            selector={(state) => [
-              state.canSubmit,
-              state.isSubmitting,
-              state.isValidating,
-              state.errors,
-              state.values,
-            ]}
-            children={([
-              canSubmit,
-              isSubmitting,
-              isValidating,
-              errors,
-              values,
-              meta,
-            ]) => {
-              console.log("Detailed form state:", {
-                canSubmit,
-                isSubmitting,
-                isValidating,
-                errors,
-                values,
-                meta,
-              });
-              return null;
-            }}
+            selector={(state) => [state.errorMap]}
+            children={([errorMap]) =>
+              errorMap?.onSubmit ? (
+                <p className="text-[0.8rem] font-medium text-destructive">
+                  {errorMap.onSubmit.toString()}
+                </p>
+              ) : null
+            }
           />
 
           <DialogFooter>
             <form.Subscribe
               selector={(state) => [state.canSubmit, state.isSubmitting]}
               children={([canSubmit, isSubmitting]) => {
-                console.log("Form state:", { canSubmit, isSubmitting });
                 return (
                   <Button
                     type="submit"

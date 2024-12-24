@@ -71,14 +71,14 @@ export function createSuccessResponse<T>({
   message: string;
 }): SuccessResponse<T>;
 export function createSuccessResponse<T = void>(
-  messageOrOptions:
+  args:
     | string
     | { data?: T extends void ? never : T; message: string },
 ): SuccessResponse<T> {
-  if (typeof messageOrOptions === "string") {
-    return { success: true, message: messageOrOptions } as SuccessResponse<T>;
+  if (typeof args === "string") {
+    return { success: true, message: args } as SuccessResponse<T>;
   }
-  const { data, message } = messageOrOptions;
+  const { data, message } = args;
   return (
     data === undefined
       ? { success: true, message }
