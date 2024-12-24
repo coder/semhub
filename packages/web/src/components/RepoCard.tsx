@@ -1,10 +1,10 @@
 import { ExternalLinkIcon, HourglassIcon, XCircleIcon } from "lucide-react";
 
+import { Repo } from "@/lib/hooks/useRepo";
 import { formatLocalDateTime, getTimeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { FastTooltip } from "@/components/ui/fast-tooltip";
-import type { Repo } from "@/routes/repos";
 
 type SyncState = {
   text: string;

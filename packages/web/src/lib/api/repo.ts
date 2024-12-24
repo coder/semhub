@@ -1,14 +1,14 @@
 import type { InferResponseType } from "hono/client";
 
-import { client } from "./client";
+import { client, handleResponse } from "./client";
 
 export const listRepos = async () => {
   const response = await client.me.repos.list.$get();
-  const res = await response.json();
-  if (!res.success) {
-    throw new Error(res.error);
-  }
-  return res.data;
+  const { data } = await handleResponse(
+    response,
+    "Failed to fetch repositories",
+  );
+  return data;
 };
 
 export type ListReposResponse = InferResponseType<
@@ -23,11 +23,7 @@ export const subscribeRepo = async (
   const response = await client.me.repos.subscribe[type].$post({
     json: { owner, repo },
   });
-  const data = await response.json();
-  if (!data.success) {
-    throw new Error(data.error);
-  }
-  return data;
+  return handleResponse(response, `Failed to subscribe to ${owner}/${repo}`);
 };
 
 export type SubscribeRepoResponse = InferResponseType<

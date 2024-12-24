@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import type { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import type { AuthedContext } from "@/server";
-import type { ErrorResponse, SuccessResponse } from "@/server/response";
+import { createSuccessResponse } from "@/server/response";
 
 import { repoSubscribeSchema } from "../schema";
 
@@ -19,9 +19,9 @@ const MOCK_REPOS = [
     isPrivate: false,
     initStatus: "completed",
     syncStatus: "ready",
-    lastSyncedAt: "2024-01-22T10:00:00Z", // recent
-    issueLastUpdatedAt: "2024-01-22T22:00:00Z", // more recent
-    repoSubscribedAt: "2024-01-20T08:00:00Z",
+    lastSyncedAt: new Date("2024-01-22T10:00:00Z"), // recent
+    issueLastUpdatedAt: new Date("2024-01-22T22:00:00Z"), // more recent
+    repoSubscribedAt: new Date("2024-01-20T08:00:00Z"),
   },
   {
     id: "2",
@@ -32,9 +32,9 @@ const MOCK_REPOS = [
     isPrivate: true,
     initStatus: "error",
     syncStatus: "error",
-    lastSyncedAt: "2024-01-20T15:30:00Z", // few days ago
-    issueLastUpdatedAt: "2024-01-19T12:00:00Z", // older
-    repoSubscribedAt: "2024-01-18T14:30:00Z",
+    lastSyncedAt: new Date("2024-01-20T15:30:00Z"), // few days ago
+    issueLastUpdatedAt: new Date("2024-01-19T12:00:00Z"), // older
+    repoSubscribedAt: new Date("2024-01-18T14:30:00Z"),
   },
   {
     id: "3",
@@ -47,7 +47,7 @@ const MOCK_REPOS = [
     syncStatus: "ready",
     lastSyncedAt: null,
     issueLastUpdatedAt: null,
-    repoSubscribedAt: "2024-01-21T16:45:00Z",
+    repoSubscribedAt: new Date("2024-01-21T16:45:00Z"),
   },
   {
     id: "4",
@@ -60,7 +60,7 @@ const MOCK_REPOS = [
     syncStatus: "ready",
     lastSyncedAt: null,
     issueLastUpdatedAt: null,
-    repoSubscribedAt: "2024-01-22T09:15:00Z",
+    repoSubscribedAt: new Date("2024-01-22T09:15:00Z"),
   },
   {
     id: "5",
@@ -71,9 +71,9 @@ const MOCK_REPOS = [
     isPrivate: false,
     initStatus: "completed",
     syncStatus: "error",
-    lastSyncedAt: "2024-01-21T23:59:59Z",
-    issueLastUpdatedAt: "2024-01-21T18:30:00Z",
-    repoSubscribedAt: "2024-01-19T11:20:00Z",
+    lastSyncedAt: new Date("2024-01-21T23:59:59Z"),
+    issueLastUpdatedAt: new Date("2024-01-21T18:30:00Z"),
+    repoSubscribedAt: new Date("2024-01-19T11:20:00Z"),
   },
   {
     id: "6",
@@ -84,9 +84,9 @@ const MOCK_REPOS = [
     isPrivate: false,
     initStatus: "completed",
     syncStatus: "in_progress",
-    lastSyncedAt: "2024-01-22T11:30:00Z",
-    issueLastUpdatedAt: "2024-01-22T11:25:00Z",
-    repoSubscribedAt: "2024-01-20T13:40:00Z",
+    lastSyncedAt: new Date("2024-01-22T11:30:00Z"),
+    issueLastUpdatedAt: new Date("2024-01-22T11:25:00Z"),
+    repoSubscribedAt: new Date("2024-01-20T13:40:00Z"),
   },
   {
     id: "7",
@@ -97,35 +97,25 @@ const MOCK_REPOS = [
     isPrivate: false,
     initStatus: "completed",
     syncStatus: "queued",
-    lastSyncedAt: "2024-01-22T11:45:00Z",
-    issueLastUpdatedAt: "2024-01-22T11:40:00Z",
-    repoSubscribedAt: "2024-01-21T15:10:00Z",
+    lastSyncedAt: new Date("2024-01-22T11:45:00Z"),
+    issueLastUpdatedAt: new Date("2024-01-22T11:40:00Z"),
+    repoSubscribedAt: new Date("2024-01-21T15:10:00Z"),
   },
 ];
 
 export const repoRouter = new Hono<AuthedContext>()
   // Get all actively subscribed repos for the user
   .get("/list", async (c) => {
-    try {
-      const user = c.get("user");
-      const { db } = getDeps();
+    const user = c.get("user");
+    const { db } = getDeps();
 
-      // const subscribedRepos = await User.getSubscribedRepos(user.id, db);
-
-      return c.json<
-        SuccessResponse<Awaited<ReturnType<typeof Repo.getSubscribedRepos>>>
-      >({
-        success: true,
+    type SubscribedRepo = Awaited<ReturnType<typeof Repo.getSubscribedRepos>>;
+    return c.json(
+      createSuccessResponse({
+        data: MOCK_REPOS as SubscribedRepo,
         message: "Successfully retrieved subscribed repositories",
-        data: MOCK_REPOS as any,
-      });
-    } catch (error: any) {
-      console.error("Error fetching subscribed repositories:", error);
-      return c.json<ErrorResponse>({
-        success: false,
-        error: error.toString(),
-      });
-    }
+      }),
+    );
   })
 
   // Subscribe to a public repository
@@ -136,10 +126,11 @@ export const repoRouter = new Hono<AuthedContext>()
       const user = c.get("user");
       const { owner, repo } = c.req.valid("json");
       // TODO: Implement public repository subscription logic
-      return c.json<SuccessResponse>({
-        success: true,
-        message: "Public repository subscription will be implemented",
-      });
+      return c.json(
+        createSuccessResponse(
+          "Public repository subscription will be implemented",
+        ),
+      );
     },
   )
 
@@ -151,10 +142,11 @@ export const repoRouter = new Hono<AuthedContext>()
       const user = c.get("user");
       const { owner, repo } = c.req.valid("json");
       // TODO: Implement private repository subscription logic
-      return c.json<SuccessResponse>({
-        success: true,
-        message: "Private repository subscription will be implemented",
-      });
+      return c.json(
+        createSuccessResponse(
+          "Private repository subscription will be implemented",
+        ),
+      );
     },
   )
 
@@ -163,8 +155,7 @@ export const repoRouter = new Hono<AuthedContext>()
     const user = c.get("user");
     const repoId = c.req.param("repoId");
     // TODO: Implement repository unsubscription logic
-    return c.json<SuccessResponse>({
-      success: true,
-      message: "Repository unsubscription will be implemented",
-    });
+    return c.json(
+      createSuccessResponse("Repository unsubscription will be implemented"),
+    );
   });
