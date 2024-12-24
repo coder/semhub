@@ -53,6 +53,10 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "SEMHUB_GITHUB_APP_NAME": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "SyncEmbeddingHandler": {
       "type": "sst.cloudflare.Worker"
     }

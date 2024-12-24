@@ -4,4 +4,5 @@ export const GITHUB_SCOPES_PERMISSION = {
   repo: "repo",
 } as const;
 
-export type GithubScope = keyof typeof GITHUB_SCOPES_PERMISSION;
+export type GithubScope =
+  (typeof GITHUB_SCOPES_PERMISSION)[keyof typeof GITHUB_SCOPES_PERMISSION];

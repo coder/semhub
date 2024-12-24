@@ -4,9 +4,9 @@ import { InfoIcon } from "lucide-react";
 import { Repo, RepoType, useReposQuery } from "@/lib/hooks/useRepo";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthorizeButton } from "@/components/AuthorizeButton";
 import { RepoCard } from "@/components/RepoCard";
 import { SubscribeRepoDialog } from "@/components/SubscribeRepoDialog";
 
@@ -58,7 +58,7 @@ function RepoSection({ title, type, repos }: RepoSectionProps) {
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold">{title}</h2>
         <div className="flex items-center gap-2">
-          {type === "private" && <Button variant="authorize">Authorize</Button>}
+          {type === "private" && <AuthorizeButton />}
           <SubscribeRepoDialog type={type} />
         </div>
       </div>

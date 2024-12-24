@@ -5,10 +5,10 @@ import { HTTPException } from "hono/http-exception";
 import { Resource } from "sst";
 
 import { createHmacDigest, verifyHmacDigest } from "@/core/util/crypto";
+import { getCookieOptions, githubLogin } from "@/auth/auth.constant";
 import { getDeps } from "@/deps";
+import type { Context } from "@/server";
 
-import type { Context } from "..";
-import { getCookieOptions, githubLogin } from "../../auth/auth.constant";
 import { subjects } from "../../subjects";
 import { createSuccessResponse } from "../response";
 

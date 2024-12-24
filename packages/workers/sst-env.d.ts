@@ -40,6 +40,10 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "SEMHUB_GITHUB_APP_NAME": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "Web": {
       "type": "sst.aws.StaticSite"
       "url": string
