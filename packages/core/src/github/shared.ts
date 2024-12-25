@@ -1,4 +1,3 @@
-import type { AppAuthentication, AppAuthOptions } from "@octokit/auth-app";
 import { createAppAuth } from "@octokit/auth-app";
 import { paginateGraphQL } from "@octokit/plugin-paginate-graphql";
 import { Octokit } from "octokit";
@@ -11,7 +10,7 @@ type OctokitAuthOptions =
       type: "app";
       appId: string | number;
       privateKey: string;
-      installationId: number;
+      githubInstallationId: number;
     };
 
 export function getRestOctokit(auth: OctokitAuthOptions) {
@@ -26,7 +25,7 @@ export function getRestOctokit(auth: OctokitAuthOptions) {
     auth: {
       appId: auth.appId,
       privateKey: auth.privateKey,
-      installationId: auth.installationId,
+      installationId: auth.githubInstallationId,
     },
   });
 }
@@ -45,35 +44,41 @@ export function getGraphqlOctokit(auth: OctokitAuthOptions) {
     auth: {
       appId: auth.appId,
       privateKey: auth.privateKey,
-      installationId: auth.installationId,
+      installationId: auth.githubInstallationId,
     },
   });
 }
 
 export type GraphqlOctokit = ReturnType<typeof getGraphqlOctokit>;
 
-export type AppAuth = AuthInterface;
-
-export const getAppAuth = ({
-  githubAppId,
-  githubAppPrivateKey,
-  githubAppClientId,
-  githubAppClientSecret,
-}: {
-  githubAppId: string;
-  githubAppPrivateKey: string;
-  githubAppClientId: string;
-  githubAppClientSecret: string;
-}): AppAuth => {
-  return createAppAuth({
-    appId: githubAppId,
-    privateKey: githubAppPrivateKey,
-    clientId: githubAppClientId,
-    clientSecret: githubAppClientSecret,
-  });
+export const createGraphqlOctokitAppFactory = (
+  appId: string | number,
+  privateKey: string,
+) => {
+  return (githubInstallationId: number) => {
+    return new OctokitWithGraphqlPaginate({
+      authStrategy: createAppAuth,
+      auth: {
+        appId,
+        privateKey,
+        installationId: githubInstallationId,
+      },
+    });
+  };
 };
 
-// need to re-export this type from @octokit/auth-app to quell type errors
-export interface AuthInterface {
-  (options: AppAuthOptions): Promise<AppAuthentication>;
-}
+export const createRestOctokitAppFactory = (
+  appId: string | number,
+  privateKey: string,
+) => {
+  return (githubInstallationId: number) => {
+    return new Octokit({
+      authStrategy: createAppAuth,
+      auth: {
+        appId,
+        privateKey,
+        installationId: githubInstallationId,
+      },
+    });
+  };
+};

@@ -2,7 +2,8 @@ import type { WranglerSecrets } from "@/core/constants/wrangler.constant";
 import { createDb } from "@/core/db";
 import { getEmailClient } from "@/core/email";
 import {
-  getAppAuth,
+  createGraphqlOctokitAppFactory,
+  createRestOctokitAppFactory,
   getGraphqlOctokit,
   getRestOctokit,
 } from "@/core/github/shared";
@@ -32,21 +33,22 @@ export function getDeps(secrets: WranglerSecrets) {
   const emailClient = getEmailClient(secrets.RESEND_API_KEY);
   const githubAppId = secrets.SEMHUB_GITHUB_APP_ID;
   const githubAppPrivateKey = secrets.SEMHUB_GITHUB_APP_PRIVATE_KEY;
-  const githubAppClientId = secrets.SEMHUB_GITHUB_APP_CLIENT_ID;
-  const githubAppClientSecret = secrets.SEMHUB_GITHUB_APP_CLIENT_SECRET;
-
-  const appAuthOctokit = getAppAuth({
+  const graphqlOctokitAppFactory = createGraphqlOctokitAppFactory(
     githubAppId,
     githubAppPrivateKey,
-    githubAppClientId,
-    githubAppClientSecret,
-  });
+  );
+  const restOctokitAppFactory = createRestOctokitAppFactory(
+    githubAppId,
+    githubAppPrivateKey,
+  );
+
   return {
     db,
     emailClient,
     graphqlOctokit,
     openai,
     restOctokit,
-    appAuthOctokit,
+    graphqlOctokitAppFactory,
+    restOctokitAppFactory,
   };
 }

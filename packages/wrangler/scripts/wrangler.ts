@@ -36,9 +36,6 @@ async function deploy() {
         SEMHUB_GITHUB_APP_PRIVATE_KEY:
           Resource.SEMHUB_GITHUB_APP_PRIVATE_KEY.value,
         SEMHUB_GITHUB_APP_ID: Resource.SEMHUB_GITHUB_APP_ID.value,
-        SEMHUB_GITHUB_APP_CLIENT_ID: Resource.SEMHUB_GITHUB_APP_CLIENT_ID.value,
-        SEMHUB_GITHUB_APP_CLIENT_SECRET:
-          Resource.SEMHUB_GITHUB_APP_CLIENT_SECRET.value,
       };
       for (const [key, value] of Object.entries(secrets)) {
         execSync(

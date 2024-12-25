@@ -3,7 +3,8 @@ import { Resource } from "sst";
 import { createDb } from "@/core/db";
 import { getEmailClient } from "@/core/email";
 import {
-  getAppAuth,
+  createGraphqlOctokitAppFactory,
+  createRestOctokitAppFactory,
   getGraphqlOctokit,
   getRestOctokit,
 } from "@/core/github/shared";
@@ -35,14 +36,14 @@ export function getDeps() {
   const githubWebhookSecret = Resource.Keys.githubWebhookSecret;
   const githubAppPrivateKey = Resource.SEMHUB_GITHUB_APP_PRIVATE_KEY.value;
   const githubAppId = Resource.SEMHUB_GITHUB_APP_ID.value;
-  const githubAppClientId = Resource.SEMHUB_GITHUB_APP_CLIENT_ID.value;
-  const githubAppClientSecret = Resource.SEMHUB_GITHUB_APP_CLIENT_SECRET.value;
-  const appAuthOctokit = getAppAuth({
+  const graphqlOctokitAppFactory = createGraphqlOctokitAppFactory(
     githubAppId,
     githubAppPrivateKey,
-    githubAppClientId,
-    githubAppClientSecret,
-  });
+  );
+  const restOctokitAppFactory = createRestOctokitAppFactory(
+    githubAppId,
+    githubAppPrivateKey,
+  );
   return {
     db,
     emailClient,
@@ -52,7 +53,8 @@ export function getDeps() {
     currStage,
     hmacSecretKey,
     githubAppPublicLink,
-    appAuthOctokit,
     githubWebhookSecret,
+    graphqlOctokitAppFactory,
+    restOctokitAppFactory,
   };
 }

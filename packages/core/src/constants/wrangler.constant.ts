@@ -5,8 +5,6 @@ export type WranglerSecrets = {
   RESEND_API_KEY: string;
   SEMHUB_GITHUB_APP_ID: string;
   SEMHUB_GITHUB_APP_PRIVATE_KEY: string;
-  SEMHUB_GITHUB_APP_CLIENT_ID: string;
-  SEMHUB_GITHUB_APP_CLIENT_SECRET: string;
 };
 
 export interface WranglerEnv extends WranglerSecrets {
