@@ -23,6 +23,7 @@ export namespace Github {
     octokit: RestOctokit;
   }) {
     try {
+      // see https://github.com/octokit/octokit.js/issues/163
       const { data } = await octokit.request("GET /repositories/:id", {
         id: githubRepoId,
       });

@@ -12,7 +12,6 @@ import { handleInstallationEvent } from "./github.handler";
 export const githubRouter = new Hono<Context>().post("/", async (c) => {
   try {
     const { db } = getDeps();
-
     // Validate headers
     const headers = Object.fromEntries(c.req.raw.headers.entries());
     const { "x-github-event": eventType } =

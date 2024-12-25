@@ -43,9 +43,6 @@ export const installations = pgTable(
     // Suspension fields - can be suspended by GitHub (TOS/billing), org admin, or user
     suspendedAt: timestamptz("suspended_at"),
     suspendedBy: text("suspended_by"),
-    // Installation token fields - expires after 1 hour
-    accessToken: text("access_token"),
-    accessTokenExpiresAt: timestamptz("access_token_expires_at"),
     // Permissions fields
     permissions: jsonb("permissions").$type<InstallationPermissions>(),
     permissionsUpdatedAt: timestamptz("permissions_updated_at"),
