@@ -9,7 +9,7 @@ import {
 import { getDeps } from "@/deps";
 import type { Context } from "@/server";
 
-import { handleInstallationEvent } from "./github.handler";
+import { handleInstallationEvent } from "./installation.handler";
 
 export const githubRouter = new Hono<Context>().post("/", async (c) => {
   try {
@@ -27,6 +27,8 @@ export const githubRouter = new Hono<Context>().post("/", async (c) => {
       secret: githubWebhookSecret,
     });
     if (!isValid) {
+      // GitHub does not automatically retry webhook deliveries:
+      // https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/redelivering-webhooks
       return c.json(
         { success: false, error: "Invalid webhook signature" },
         401,
