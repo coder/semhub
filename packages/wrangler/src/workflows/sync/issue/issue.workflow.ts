@@ -10,13 +10,13 @@ import { Github } from "@/core/github";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import { getEnvPrefix } from "@/util";
+import { getDbStepConfig } from "@/workflows/workflow.param";
 import {
   getApproximateSizeInBytes,
   type WorkflowRPC,
 } from "@/workflows/workflow.util";
 
 import {
-  getDbStepConfig,
   getNumIssues,
   getSizeLimit,
   REDUCE_ISSUES_MAX_ATTEMPTS,

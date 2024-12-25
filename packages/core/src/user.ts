@@ -1,7 +1,4 @@
-import { and, eq, isNull, or } from "drizzle-orm";
-
-import type { DbClient } from "@/db";
-import { installations } from "@/db/schema/entities/installation.sql";
+import { and, eq, type DbClient } from "@/db";
 import { usersToRepos } from "@/db/schema/entities/user-to-repo.sql";
 import { users } from "@/db/schema/entities/user.sql";
 import type { GithubScopes, UserMetadata } from "@/db/schema/entities/user.sql";
@@ -125,32 +122,5 @@ export namespace User {
       .where(
         and(eq(usersToRepos.userId, userId), eq(usersToRepos.repoId, repoId)),
       );
-  }
-  export async function checkAuthorizedRepo(
-    userId: string,
-    db: DbClient,
-  ): Promise<boolean> {
-    // Check for valid app installations
-    const [hasValidInstallation] = await db
-      .select({ id: installations.id })
-      .from(installations)
-      .where(
-        and(
-          // Installation is not uninstalled
-          isNull(installations.uninstalledAt),
-          or(
-            // User has directly installed the app
-            and(
-              eq(installations.targetType, "user"),
-              eq(installations.targetId, userId),
-            ),
-            // Or user installed it for their org
-            eq(installations.installedByUserId, userId),
-          ),
-        ),
-      )
-      .limit(1);
-
-    return !!hasValidInstallation;
   }
 }

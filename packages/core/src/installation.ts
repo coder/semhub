@@ -1,6 +1,11 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, or, sql } from "drizzle-orm";
 
 import type { DbClient } from "@/db";
+import { installationsToRepos } from "@/db/schema/entities/installation-to-repo.sql";
+import {
+  installations,
+  type InstallationPermissions,
+} from "@/db/schema/entities/installation.sql";
 import { organizations } from "@/db/schema/entities/organization.sql";
 import { users } from "@/db/schema/entities/user.sql";
 
@@ -72,5 +77,72 @@ export namespace Installation {
         installerType satisfies never;
         throw new Error(`Unexpected installer type: ${installerType}`);
     }
+  }
+
+  export async function hasValidInstallation({
+    userId,
+    requiredPermissions,
+    db,
+  }: {
+    userId: string;
+    requiredPermissions: InstallationPermissions;
+    db: DbClient;
+  }): Promise<boolean> {
+    // Build permission checks for the SQL query
+    const permissionChecks = Object.entries(requiredPermissions).map(
+      ([scope, requiredLevel]) => {
+        const validLevels = (() => {
+          switch (requiredLevel) {
+            case "read":
+              return ["read", "write", "admin"];
+            case "write":
+              return ["write", "admin"];
+            case "admin":
+              return ["admin"];
+            default:
+              return [];
+          }
+        })();
+        return and(
+          sql`${installations.permissions}->>${sql.raw(scope)} IS NOT NULL`,
+          sql`${installations.permissions}->>${sql.raw(scope)} = ANY(${validLevels})`,
+        );
+      },
+    );
+
+    // Find any installation that has required permissions and at least one accessible repo
+    const [validInstallation] = await db
+      .select({
+        id: installations.id,
+      })
+      .from(installations)
+      .innerJoin(
+        installationsToRepos,
+        and(
+          eq(installations.id, installationsToRepos.installationId),
+          isNull(installationsToRepos.removedAt),
+        ),
+      )
+      .where(
+        and(
+          // Installation is not uninstalled
+          isNull(installations.uninstalledAt),
+          // Installation is not suspended
+          isNull(installations.suspendedAt),
+          or(
+            // User has directly installed the app
+            and(
+              eq(installations.targetType, "user"),
+              eq(installations.targetId, userId),
+            ),
+            // Or user installed it for their org
+            eq(installations.installedByUserId, userId),
+          ),
+          ...permissionChecks,
+        ),
+      )
+      .limit(1);
+
+    return !!validInstallation;
   }
 }

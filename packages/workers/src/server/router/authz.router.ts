@@ -10,7 +10,7 @@ import { createSuccessResponse } from "../response";
 
 export const authzRouter = new Hono<Context>()
   .get("/authorize", async (c) => {
-    const { hmacSecretKey, githubAppName } = getDeps();
+    const { hmacSecretKey, githubAppPublicLink } = getDeps();
     const returnTo = c.req.query("returnTo") || "/";
     // Generate a UUID for challenge state
     const challengeState = crypto.randomUUID();
@@ -25,7 +25,7 @@ export const authzRouter = new Hono<Context>()
     });
     const state = `${signature}.${challengeState}:${returnTo}`;
 
-    const url = `https://github.com/apps/${githubAppName}/installations/new?state=${encodeURIComponent(state)}`;
+    const url = `${githubAppPublicLink}/installations/new?state=${encodeURIComponent(state)}`;
 
     return c.json(
       createSuccessResponse({

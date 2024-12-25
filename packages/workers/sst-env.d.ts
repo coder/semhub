@@ -41,7 +41,15 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
-    "SEMHUB_GITHUB_APP_NAME": {
+    "SEMHUB_GITHUB_APP_ID": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "SEMHUB_GITHUB_APP_PRIVATE_KEY": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "SEMHUB_GITHUB_PUBLIC_LINK": {
       "type": "sst.sst.Secret"
       "value": string
     }

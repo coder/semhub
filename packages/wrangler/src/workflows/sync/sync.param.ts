@@ -1,5 +1,3 @@
-import type { WorkflowStepConfig } from "cloudflare:workers";
-
 // See also bodySchema in core/src/github/schema.ts
 // where we truncate body size and code blocks
 
@@ -62,25 +60,3 @@ export const NUM_CONCURRENT_EMBEDDING_CRONS = 1;
 
 //* Parameters for issue sync workflow *//
 export const NUM_CONCURRENT_ISSUE_CRONS = 1;
-
-//* Parameters for database steps config *//
-
-export const getDbStepConfig = (
-  type: "short" | "medium" | "long",
-): WorkflowStepConfig => ({
-  timeout: (() => {
-    switch (type) {
-      case "short":
-        return "10 seconds";
-      case "medium":
-        return "20 seconds";
-      case "long":
-        return "120 seconds";
-    }
-  })(),
-  retries: {
-    limit: 5,
-    backoff: "constant",
-    delay: "10 seconds",
-  },
-});

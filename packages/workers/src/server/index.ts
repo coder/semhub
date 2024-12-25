@@ -8,6 +8,7 @@ import { getApiServerCORS } from "@/auth/auth.constant";
 import { getDeps } from "@/deps";
 import type { User } from "@/subjects";
 import type RateLimiterWorker from "@/wrangler/rate-limiter";
+import type { InstallationParams } from "@/wrangler/workflows/background/installation.workflow";
 import type { RepoInitParams } from "@/wrangler/workflows/sync/repo-init/init.workflow";
 import type { WorkflowRPC } from "@/wrangler/workflows/workflow.util";
 
@@ -21,9 +22,10 @@ import { webhookRouter } from "./router/webhook/webhook.router";
 
 export interface Context extends Env {
   Bindings: {
-    RATE_LIMITER: Service<RateLimiterWorker>;
-    REPO_INIT_WORKFLOW: WorkflowRPC<RepoInitParams>;
+    RATE_LIMITER: Service<RateLimiterWorker>; // unused at the moment
+    REPO_INIT_WORKFLOW: WorkflowRPC<RepoInitParams>; // used when user subscribes to a new repo
     Auth: Service; // bind via SST, just for the URL, else not used
+    INSTALLATION_WORKFLOW: WorkflowRPC<InstallationParams>; // used in webhook processing
   };
   Variables: {
     user: User | null;

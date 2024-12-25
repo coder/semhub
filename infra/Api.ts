@@ -19,6 +19,10 @@ const hono = new sst.cloudflare.Worker("Hono", {
           name: "REPO_INIT_WORKFLOW",
           service: `semhub-sync-repo-init-${$app.stage === "prod" ? "prod" : "dev"}`,
         },
+        {
+          name: "INSTALLATION_WORKFLOW",
+          service: `semhub-installation-${$app.stage === "prod" ? "prod" : "dev"}`,
+        },
       ],
     },
   },

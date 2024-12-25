@@ -1,11 +1,11 @@
 import { generateWorkflowId } from "../workflow.util";
 
-export function generateSyncWorkflowId(
+export function generateBackgroundWorkflowId(
   prefix: string,
   windowSizeInMs = 1,
 ): string {
   return generateWorkflowId({
-    prefix: `sync-${prefix}`,
+    prefix: `background-${prefix}`,
     windowSizeInMs,
   });
 }

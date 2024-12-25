@@ -1,4 +1,13 @@
-import { index, jsonb, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import {
+  bigint,
+  index,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+} from "drizzle-orm/pg-core";
+
+import type { Permissions } from "@/github/schema.webhook";
 
 import { getBaseColumns, timestamptz } from "../base.sql";
 import { users } from "./user.sql";
@@ -9,15 +18,15 @@ export const repositorySelectionEnum = pgEnum("repository_selection", [
   "selected",
 ]);
 
-export type InstallationPermissions = {
-  [key: string]: "read" | "write" | "admin";
-};
+export type InstallationPermissions = Permissions;
 
 export const installations = pgTable(
   "installations",
   {
     ...getBaseColumns("installations"),
-    githubInstallationId: text("github_installation_id").notNull().unique(),
+    githubInstallationId: bigint("github_installation_id", { mode: "number" })
+      .notNull()
+      .unique(),
     targetType: targetTypeEnum("target_type").notNull(),
     // References users.id when targetType is "user"
     // References organizations.id when targetType is "organization"

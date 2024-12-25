@@ -11,13 +11,13 @@ import { Repo, repoIssuesLastUpdatedSql } from "@/core/repo";
 import { getDeps } from "@/deps";
 import { getEnvPrefix } from "@/util";
 import {
-  getDbStepConfig,
   getNumIssues,
   getSizeLimit,
   NUM_EMBEDDING_WORKERS,
   PARENT_WORKER_SLEEP_DURATION,
   REDUCE_ISSUES_MAX_ATTEMPTS,
 } from "@/workflows/sync/sync.param";
+import { getDbStepConfig } from "@/workflows/workflow.param";
 import {
   getApproximateSizeInBytes,
   type WorkflowRPC,
@@ -31,7 +31,6 @@ interface Env extends WranglerEnv {
   SYNC_EMBEDDING_WORKFLOW: WorkflowRPC<EmbeddingParams>;
 }
 
-// User-defined params passed to your workflow
 export type RepoInitParams = {
   repoId: string;
 };
