@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 
 import { sendEmail } from "@/core/email";
+import { validateGithubWebhook } from "@/core/github/crypto";
 import {
   githubWebhookHeaderSchema,
   installationSchema,
@@ -12,14 +13,25 @@ import { handleInstallationEvent } from "./github.handler";
 
 export const githubRouter = new Hono<Context>().post("/", async (c) => {
   try {
-    const { db, emailClient, currStage } = getDeps();
+    const { db, emailClient, currStage, githubWebhookSecret } = getDeps();
     // Validate headers
     const headers = Object.fromEntries(c.req.raw.headers.entries());
-    const { "x-github-event": eventType } =
+    const { "x-github-event": eventType, "x-hub-signature-256": signature } =
       githubWebhookHeaderSchema.parse(headers);
-
-    // Get the webhook payload
-    const payload = await c.req.json();
+    // Get the webhook payload as text for validation
+    const payload = await c.req.text();
+    // Validate webhook signature
+    const isValid = await validateGithubWebhook({
+      payload,
+      signature,
+      secret: githubWebhookSecret,
+    });
+    if (!isValid) {
+      return c.json(
+        { success: false, error: "Invalid webhook signature" },
+        401,
+      );
+    }
 
     // Handle different event types
     switch (eventType) {

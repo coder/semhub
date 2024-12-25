@@ -1,3 +1,30 @@
+const encoder = new TextEncoder();
+
+async function createHmacKey(secretKey: string) {
+  const secretKeyData = encoder.encode(secretKey);
+  return await crypto.subtle.importKey(
+    "raw",
+    secretKeyData,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign", "verify"],
+  );
+}
+
+function arrayBufferToHex(buffer: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
+  }
+  return bytes;
+}
+
 export async function createHmacDigest({
   secretKey,
   data,
@@ -5,23 +32,9 @@ export async function createHmacDigest({
   secretKey: string;
   data: string;
 }) {
-  const encoder = new TextEncoder();
-
-  const secretKeyData = encoder.encode(secretKey);
-
-  const key = await crypto.subtle.importKey(
-    "raw",
-    secretKeyData,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign", "verify"],
-  );
-
+  const key = await createHmacKey(secretKey);
   const mac = await crypto.subtle.sign("HMAC", key, encoder.encode(data));
-
-  const base64Mac = Buffer.from(mac).toString("base64");
-
-  return base64Mac;
+  return arrayBufferToHex(mac);
 }
 
 export async function verifyHmacDigest({
@@ -33,6 +46,12 @@ export async function verifyHmacDigest({
   data: string;
   digest: string;
 }) {
-  const computedDigest = await createHmacDigest({ secretKey, data });
-  return computedDigest === digest;
+  const key = await createHmacKey(secretKey);
+  const signatureBytes = hexToBytes(digest);
+  return await crypto.subtle.verify(
+    "HMAC",
+    key,
+    signatureBytes,
+    encoder.encode(data),
+  );
 }

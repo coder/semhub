@@ -16,6 +16,7 @@ export const repositorySchema = z.object({
   private: z.boolean(),
 });
 
+// payload example: https://github.com/octokit/webhooks/issues/939#issuecomment-2169485000
 export const installationSchema = z.object({
   action: z.enum([
     "created",
