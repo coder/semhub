@@ -26,7 +26,7 @@ export class InstallationWorkflow extends WorkflowEntrypoint<
   InstallationParams
 > {
   async run(event: WorkflowEvent<InstallationParams>, step: WorkflowStep) {
-    const { db, appAuthOctokit } = getDeps(this.env);
+    const { db } = getDeps(this.env);
     const { installationId } = event.payload;
 
     // Get the installation record with access token info
@@ -37,8 +37,6 @@ export class InstallationWorkflow extends WorkflowEntrypoint<
         return await db
           .select({
             githubInstallationId: installations.githubInstallationId,
-            accessToken: installations.accessToken,
-            accessTokenExpiresAt: installations.accessTokenExpiresAt,
           })
           .from(installations)
           .where(eq(installations.id, installationId));
@@ -74,6 +72,7 @@ export class InstallationWorkflow extends WorkflowEntrypoint<
       return;
     }
 
+    const { githubInstallationId } = installation;
     // Process each pending repo
     for (const pendingRepo of pendingRepos) {
       // try {

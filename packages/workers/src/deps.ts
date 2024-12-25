@@ -3,7 +3,7 @@ import { Resource } from "sst";
 import { createDb } from "@/core/db";
 import { getEmailClient } from "@/core/email";
 import {
-  getAppAuthOctokit,
+  getAppAuth,
   getGraphqlOctokit,
   getRestOctokit,
 } from "@/core/github/shared";
@@ -18,13 +18,15 @@ export function getDeps() {
 
   const openai = createOpenAIClient(Resource.OPENAI_API_KEY.value);
 
-  const graphqlOctokit = getGraphqlOctokit(
-    Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value,
-  );
+  const graphqlOctokit = getGraphqlOctokit({
+    type: "token",
+    token: Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value,
+  });
 
-  const restOctokit = getRestOctokit(
-    Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value,
-  );
+  const restOctokit = getRestOctokit({
+    type: "token",
+    token: Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value,
+  });
 
   const emailClient = getEmailClient(Resource.RESEND_API_KEY.value);
 
@@ -35,7 +37,7 @@ export function getDeps() {
   const githubAppId = Resource.SEMHUB_GITHUB_APP_ID.value;
   const githubAppClientId = Resource.SEMHUB_GITHUB_APP_CLIENT_ID.value;
   const githubAppClientSecret = Resource.SEMHUB_GITHUB_APP_CLIENT_SECRET.value;
-  const appAuthOctokit = getAppAuthOctokit({
+  const appAuthOctokit = getAppAuth({
     githubAppId,
     githubAppPrivateKey,
     githubAppClientId,

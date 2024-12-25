@@ -21,7 +21,10 @@ export namespace User {
     db: DbClient;
     githubScopes: GithubScopes;
   }) {
-    const octokit = getRestOctokit(accessToken);
+    const octokit = getRestOctokit({
+      type: "token",
+      token: accessToken,
+    });
     const { data: userData } = await octokit.rest.users.getAuthenticated();
     const userDataParsed = githubUserSchema.parse(userData);
     const {

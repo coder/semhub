@@ -13,13 +13,15 @@ export function getDeps(withLogging = true) {
 
   const openai = createOpenAIClient(Resource.OPENAI_API_KEY.value);
 
-  const graphqlOctokit = getGraphqlOctokit(
-    Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value,
-  );
+  const graphqlOctokit = getGraphqlOctokit({
+    type: "token",
+    token: Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value,
+  });
 
-  const restOctokit = getRestOctokit(
-    Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value,
-  );
+  const restOctokit = getRestOctokit({
+    type: "token",
+    token: Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value,
+  });
 
   const emailClient = getEmailClient(Resource.RESEND_API_KEY.value);
 

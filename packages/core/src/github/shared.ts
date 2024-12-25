@@ -5,25 +5,56 @@ import { Octokit } from "octokit";
 
 const OctokitWithGraphqlPaginate = Octokit.plugin(paginateGraphQL);
 
-export function getRestOctokit(githubPersonalAccessToken: string) {
+type OctokitAuthOptions =
+  | { type: "token"; token: string }
+  | {
+      type: "app";
+      appId: string | number;
+      privateKey: string;
+      installationId: number;
+    };
+
+export function getRestOctokit(auth: OctokitAuthOptions) {
+  if (auth.type === "token") {
+    return new Octokit({
+      auth: auth.token,
+    });
+  }
+
   return new Octokit({
-    auth: githubPersonalAccessToken,
+    authStrategy: createAppAuth,
+    auth: {
+      appId: auth.appId,
+      privateKey: auth.privateKey,
+      installationId: auth.installationId,
+    },
   });
 }
 
 export type RestOctokit = ReturnType<typeof getRestOctokit>;
 
-export function getGraphqlOctokit(githubPersonalAccessToken: string) {
+export function getGraphqlOctokit(auth: OctokitAuthOptions) {
+  if (auth.type === "token") {
+    return new OctokitWithGraphqlPaginate({
+      auth: auth.token,
+    });
+  }
+
   return new OctokitWithGraphqlPaginate({
-    auth: githubPersonalAccessToken,
+    authStrategy: createAppAuth,
+    auth: {
+      appId: auth.appId,
+      privateKey: auth.privateKey,
+      installationId: auth.installationId,
+    },
   });
 }
 
 export type GraphqlOctokit = ReturnType<typeof getGraphqlOctokit>;
 
-export type AppAuthOctokit = AuthInterface;
+export type AppAuth = AuthInterface;
 
-export const getAppAuthOctokit = ({
+export const getAppAuth = ({
   githubAppId,
   githubAppPrivateKey,
   githubAppClientId,
@@ -33,7 +64,7 @@ export const getAppAuthOctokit = ({
   githubAppPrivateKey: string;
   githubAppClientId: string;
   githubAppClientSecret: string;
-}): AppAuthOctokit => {
+}): AppAuth => {
   return createAppAuth({
     appId: githubAppId,
     privateKey: githubAppPrivateKey,

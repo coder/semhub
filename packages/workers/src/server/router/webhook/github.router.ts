@@ -25,7 +25,7 @@ export const githubRouter = new Hono<Context>().post("/", async (c) => {
     switch (eventType) {
       case "installation": {
         const data = installationSchema.parse(payload);
-        await handleInstallationEvent(db, data);
+        await handleInstallationEvent(db, data, c.env.INSTALLATION_WORKFLOW);
         break;
       }
       // Add other event types as needed

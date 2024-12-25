@@ -9,6 +9,8 @@ import {
 import { organizations } from "@/db/schema/entities/organization.sql";
 import { users } from "@/db/schema/entities/user.sql";
 
+import type { AppAuth } from "./github/shared";
+
 export namespace Installation {
   export function mapGithubTargetType(githubType: "Organization" | "User") {
     switch (githubType) {
@@ -144,5 +146,44 @@ export namespace Installation {
       .limit(1);
 
     return !!validInstallation;
+  }
+
+  export async function getInstallationAccessToken({
+    installationId,
+    db,
+    appAuthOctokit,
+  }: {
+    installationId: string;
+    db: DbClient;
+    appAuthOctokit: AppAuth;
+  }) {
+    const [installation] = await db
+      .select({
+        accessToken: installations.accessToken,
+        accessTokenExpiresAt: installations.accessTokenExpiresAt,
+      })
+      .from(installations)
+      .where(eq(installations.id, installationId));
+
+    if (
+      !installation?.accessToken ||
+      (installation.accessTokenExpiresAt &&
+        installation.accessTokenExpiresAt < new Date())
+    ) {
+      const { token, expiresAt } = await appAuthOctokit({
+        type: "app",
+      });
+
+      await db
+        .update(installations)
+        .set({
+          accessToken: token,
+          accessTokenExpiresAt: new Date(expiresAt),
+        })
+        .where(eq(installations.id, installationId));
+
+      return token;
+    }
+    return installation.accessToken;
   }
 }
