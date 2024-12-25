@@ -6,9 +6,11 @@ import { and, eq, isNull } from "drizzle-orm";
 import type { WranglerEnv } from "@/core/constants/wrangler.constant";
 import { installationsToRepos } from "@/core/db/schema/entities/installation-to-repo.sql";
 import { installations } from "@/core/db/schema/entities/installation.sql";
-import { repos } from "@/core/db/schema/entities/repo.sql";
+import { sendEmail } from "@/core/email";
 import { Github } from "@/core/github";
+import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
+import { getEnvPrefix } from "@/util";
 import { getDbStepConfig } from "@/workflows/workflow.param";
 
 import type { WorkflowRPC } from "../workflow.util";
@@ -26,7 +28,7 @@ export class InstallationWorkflow extends WorkflowEntrypoint<
   InstallationParams
 > {
   async run(event: WorkflowEvent<InstallationParams>, step: WorkflowStep) {
-    const { db } = getDeps(this.env);
+    const { db, restOctokitAppFactory, emailClient } = getDeps(this.env);
     const { installationId } = event.payload;
 
     // Get the installation record with access token info
@@ -54,8 +56,7 @@ export class InstallationWorkflow extends WorkflowEntrypoint<
       async () => {
         return await db
           .select({
-            repoNodeId: installationsToRepos.repoNodeId,
-            repoId: installationsToRepos.repoId,
+            githubRepoId: installationsToRepos.githubRepoId,
           })
           .from(installationsToRepos)
           .where(
@@ -73,75 +74,38 @@ export class InstallationWorkflow extends WorkflowEntrypoint<
     }
 
     const { githubInstallationId } = installation;
+    const restOctokit = restOctokitAppFactory(githubInstallationId);
     // Process each pending repo
-    for (const pendingRepo of pendingRepos) {
-      // try {
-      //   // Get full repo info from GitHub
-      //   const { exists, data: repoData } = await step.do(
-      //     `get repo info for ${metadata.full_name}`,
-      //     async () => {
-      //       return await Github.getRepo({
-      //         repoName: name,
-      //         repoOwner: owner,
-      //         octokit: appAuthOctokit,
-      //       });
-      //     },
-      //   );
-      //   if (!exists || !repoData) {
-      //     console.error(
-      //       `Repo not found: ${metadata.full_name} (${pendingRepo.repoNodeId})`,
-      //     );
-      //     continue;
-      //   }
-      //   // Create repo record
-      //   const [newRepo] = await step.do(
-      //     `create repo record for ${metadata.full_name}`,
-      //     getDbStepConfig("short"),
-      //     async () => {
-      //       return await db
-      //         .insert(repos)
-      //         .values({
-      //           nodeId: repoData.node_id,
-      //           name: repoData.name,
-      //           ownerLogin: repoData.owner.login,
-      //           ownerAvatarUrl: repoData.owner.avatar_url,
-      //           htmlUrl: repoData.html_url,
-      //           isPrivate: repoData.private,
-      //         })
-      //         .returning({ id: repos.id });
-      //     },
-      //   );
-      //   if (!newRepo) {
-      //     throw new Error(
-      //       `Failed to create repo record for ${metadata.full_name}`,
-      //     );
-      //   }
-      //   // Update installation-to-repo mapping with the new repo ID
-      //   await step.do(
-      //     `update installation-to-repo mapping for ${metadata.full_name}`,
-      //     getDbStepConfig("short"),
-      //     async () => {
-      //       await db
-      //         .update(installationsToRepos)
-      //         .set({ repoId: newRepo.id })
-      //         .where(
-      //           and(
-      //             eq(installationsToRepos.installationId, installationId),
-      //             eq(installationsToRepos.repoNodeId, pendingRepo.repoNodeId),
-      //           ),
-      //         );
-      //     },
-      //   );
-      //   console.log(
-      //     `Successfully processed repo ${metadata.full_name} (${pendingRepo.repoNodeId})`,
-      //   );
-      // } catch (error) {
-      //   console.error(
-      //     `Error processing repo ${metadata.full_name} (${pendingRepo.repoNodeId}):`,
-      //     error,
-      //   );
-      //   // Continue with other repos even if one fails
-      // }
+    for (const { githubRepoId } of pendingRepos) {
+      const res = await step.do("get repo by id", async () => {
+        return await Github.getRepoById({
+          githubRepoId,
+          octokit: restOctokit,
+        });
+      });
+      if (!res.exists || !res.data) {
+        await step.do("send email notification", async () => {
+          await sendEmail(
+            {
+              to: "warren@coder.com",
+              subject: `Repo not found`,
+              html: `<p>Repo not found: ${githubRepoId}</p>`,
+            },
+            emailClient,
+            getEnvPrefix(this.env.ENVIRONMENT),
+          );
+        });
+        continue;
+      }
+      const createdRepo = await step.do("create repo record", async () => {
+        return await Repo.createRepo(res.data, db);
+      });
+      await step.do("update installation-to-repo mapping", async () => {
+        await db
+          .update(installationsToRepos)
+          .set({ repoId: createdRepo.id })
+          .where(eq(installationsToRepos.githubRepoId, githubRepoId));
+      });
     }
   }
 }

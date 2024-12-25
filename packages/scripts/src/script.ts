@@ -1,27 +1,16 @@
 import { Github } from "@/core/github";
 import { getDeps } from "@/deps";
 
-const { graphqlOctokit } = getDeps();
+const { restOctokit } = getDeps();
 
-function getApproximateSizeInBytes(obj: unknown) {
-  return new TextEncoder().encode(JSON.stringify(obj)).length;
-}
 try {
-  const result = await Github.getLatestRepoIssues({
-    repoId: "rep_01JF50WHPNBNSBMDGFMZAB7E24",
-    repoName: "go",
-    repoOwner: "golang",
-    octokit: graphqlOctokit,
-    since: null,
-    after: "Y3Vyc29yOnYyOpK5MjAyNC0xMi0xOFQwNDoyNTozMSswODowMM6ewFhF",
-    numIssues: 1,
+  // TODO: test and figure out response shape
+  // const restOctokit = restOctokitAppFactory(1);
+  const res = await Github.getRepoById({
+    githubRepoId: "123",
+    octokit: restOctokit,
   });
-  const {
-    issuesAndCommentsLabels: { issuesToInsert },
-  } = result;
-  console.log(issuesToInsert[0]?.htmlUrl);
-  const responseSize = getApproximateSizeInBytes(result);
-  console.log(responseSize);
+  console.log(res);
 } catch (e) {
   console.error(e);
 }
