@@ -10,8 +10,8 @@ import {
 import { getDeps } from "@/deps";
 import type { Context } from "@/server";
 
-import { handleInstallationRepositoriesEvent } from "./installation-repositories.handler";
-import { handleInstallationEvent } from "./installation.handler";
+import { handleInstallationRepositoriesEvent } from "./installation-repositories.event";
+import { handleInstallationEvent } from "./installation.event";
 
 export const githubRouter = new Hono<Context>().post("/", async (c) => {
   try {
