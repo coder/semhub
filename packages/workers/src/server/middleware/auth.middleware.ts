@@ -18,34 +18,29 @@ export const authMiddleware: MiddlewareHandler<Context> = async (c, next) => {
     throw new HTTPException(401, { message: "Unauthorized" });
   }
 
-  try {
-    const client = createClient({
-      issuer: Resource.Auth.url,
-      clientID: githubLogin.provider,
-    });
+  const client = createClient({
+    issuer: Resource.Auth.url,
+    clientID: githubLogin.provider,
+  });
 
-    const verified = await client.verify(subjects, accessToken || "", {
-      refresh: refreshToken,
-    });
+  const verified = await client.verify(subjects, accessToken || "", {
+    refresh: refreshToken,
+  });
 
-    if (verified.err) {
-      console.error("Authentication failed", verified.err.message);
-      throw new HTTPException(401, { message: verified.err.message });
-    }
-
-    const user =
-      verified.subject.type === "user" ? verified.subject.properties : null;
-    if (!user) {
-      console.error("Something went wrong in verified.subject.type", verified);
-      throw new HTTPException(401, {
-        message: "Something went wrong in verified.subject.type",
-      });
-    }
-    // Store the verified user in context for later use
-    c.set("user", user);
-    await next();
-  } catch (_error: any) {
-    console.error("Error in authMiddleware", _error.toString());
-    return c.redirect("/");
+  if (verified.err) {
+    console.error("Authentication failed", verified.err.message);
+    throw new HTTPException(401, { message: verified.err.message });
   }
+
+  const user =
+    verified.subject.type === "user" ? verified.subject.properties : null;
+  if (!user) {
+    console.error("Something went wrong in verified.subject.type", verified);
+    throw new HTTPException(401, {
+      message: "Something went wrong in verified.subject.type",
+    });
+  }
+  // Store the verified user in context for later use
+  c.set("user", user);
+  await next();
 };

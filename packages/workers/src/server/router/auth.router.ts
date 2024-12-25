@@ -167,10 +167,9 @@ export const authRouter = new Hono<Context>()
   })
   .post("/logout", (c) => {
     const { currStage } = getDeps();
-    const { returnTo = "/" } = c.req.query();
     deleteCookie(c, "access_token", getCookieOptions(currStage));
     deleteCookie(c, "refresh_token", getCookieOptions(currStage));
-    return c.redirect(returnTo);
+    return c.json(createSuccessResponse("Successfully logged out"));
   });
 
 function getAuthClient() {
