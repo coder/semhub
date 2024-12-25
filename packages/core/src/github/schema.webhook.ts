@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-/* NOTE: could replace with https://github.com/octokit/webhooks in the future */
+/* NOTE: use https://github.com/octokit/webhooks somehow in the future */
 
 export const permissionLevelSchema = z.enum(["read", "write", "admin"]);
 export type PermissionLevel = z.infer<typeof permissionLevelSchema>;
@@ -42,10 +42,10 @@ export const installationSchema = z.object({
     created_at: z.string(),
     updated_at: z.string(),
     repository_selection: z.enum(["all", "selected"]),
-    repositories: z.array(repositorySchema),
     suspended_at: z.string().nullable(),
     suspended_by: z.string().nullable(),
   }),
+  repositories: z.array(repositorySchema),
   sender: z.object({
     id: z.number(),
     login: z.string(),

@@ -18,7 +18,7 @@ export async function handleInstallationEvent(
   data: InstallationWebhook,
   installationWorkflow: WorkflowRPC<InstallationParams>,
 ) {
-  const { action, installation, sender } = data;
+  const { action, installation, sender, repositories } = data;
 
   switch (action) {
     case "created": {
@@ -111,11 +111,11 @@ export async function handleInstallationEvent(
         }
 
         // Process repositories if they exist in the webhook
-        if (installation.repositories?.length > 0) {
+        if (repositories?.length > 0) {
           await tx
             .insert(installationsToRepos)
             .values(
-              installation.repositories.map((repo) => ({
+              repositories.map((repo) => ({
                 installationId: newInstallation.id,
                 repoNodeId: repo.node_id,
                 githubRepoId: repo.id,

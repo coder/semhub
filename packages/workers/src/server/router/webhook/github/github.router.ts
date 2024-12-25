@@ -20,11 +20,10 @@ export const githubRouter = new Hono<Context>().post("/", async (c) => {
     const headers = Object.fromEntries(c.req.raw.headers.entries());
     const { "x-github-event": eventType, "x-hub-signature-256": signature } =
       githubWebhookHeaderSchema.parse(headers);
-    // Get the webhook payload as text for validation
-    const payload = await c.req.text();
     // Validate webhook signature
     const isValid = await validateGithubWebhook({
-      payload,
+      // Get the webhook payload as text for validation
+      payload: await c.req.text(),
       signature,
       secret: githubWebhookSecret,
     });
@@ -38,9 +37,10 @@ export const githubRouter = new Hono<Context>().post("/", async (c) => {
     }
 
     // Handle different event types
+    const payload = await c.req.json();
     switch (eventType) {
       case "installation": {
-        const data = installationSchema.parse(JSON.parse(payload));
+        const data = installationSchema.parse(payload);
         await handleInstallationEvent(
           db,
           emailClient,
@@ -50,7 +50,7 @@ export const githubRouter = new Hono<Context>().post("/", async (c) => {
         break;
       }
       case "installation_repositories": {
-        const data = installationRepositoriesSchema.parse(JSON.parse(payload));
+        const data = installationRepositoriesSchema.parse(payload);
         await handleInstallationRepositoriesEvent(
           db,
           emailClient,
@@ -59,6 +59,7 @@ export const githubRouter = new Hono<Context>().post("/", async (c) => {
         );
         break;
       }
+      // TODO: case: github_app_authorization
       default: {
         await sendEmail(
           {
