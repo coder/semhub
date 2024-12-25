@@ -64,3 +64,30 @@ export const githubWebhookHeaderSchema = z.object({
 });
 
 export type GithubWebhookHeaders = z.infer<typeof githubWebhookHeaderSchema>;
+
+export const installationRepositoriesSchema = z.object({
+  action: z.enum(["added", "removed"]),
+  installation: z.object({
+    id: z.number(),
+    account: z.object({
+      login: z.string(),
+      id: z.number(),
+      node_id: z.string(),
+      type: z.enum(["User", "Organization"]),
+    }),
+  }),
+  repository_selection: z.enum(["all", "selected"]),
+  repositories_added: z.array(repositorySchema),
+  repositories_removed: z.array(repositorySchema),
+  sender: z.object({
+    id: z.number(),
+    login: z.string(),
+    type: z.enum(["User", "Bot", "Organization"]),
+    node_id: z.string(),
+    html_url: z.string(),
+  }),
+});
+
+export type InstallationRepositoriesWebhook = z.infer<
+  typeof installationRepositoriesSchema
+>;

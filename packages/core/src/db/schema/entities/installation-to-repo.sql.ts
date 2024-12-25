@@ -25,15 +25,15 @@ export const installationsToRepos = pgTable(
     installationId: text("installation_id")
       .notNull()
       .references(() => installations.id),
-    repoId: text("repo_id").references(() => repos.id),
     githubRepoId: integer("github_repo_id").notNull(),
-    repoNodeId: text("repo_node_id").notNull(),
+    repoId: text("repo_id").references(() => repos.id),
     metadata: jsonb("metadata").$type<RepoMetadata>(),
     addedAt: timestamptz("added_at").notNull(),
     removedAt: timestamptz("removed_at"),
+    repoNodeId: text("repo_node_id").notNull(), // good to have, but not used at the moment
   },
   (table) => ({
-    pk: primaryKey({ columns: [table.installationId, table.repoNodeId] }),
+    pk: primaryKey({ columns: [table.installationId, table.githubRepoId] }),
     // For finding all accessible repos for an installation
     installationIdx: index("installations_to_repos_installation_idx").on(
       table.installationId,

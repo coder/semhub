@@ -92,7 +92,19 @@ export async function handleInstallationEvent(
             permissions: installation.permissions,
             permissionsUpdatedAt: new Date(),
           })
-          .returning({ id: installations.id });
+          .onConflictDoUpdate({
+            target: [installations.githubInstallationId],
+            set: conflictUpdateOnly(installations, [
+              "targetType",
+              "targetId",
+              "repositorySelection",
+              "installedByUserId",
+            ]),
+          })
+          .returning({
+            id: installations.id,
+            installedAt: installations.installedAt,
+          });
 
         if (!newInstallation) {
           throw new Error("Failed to create installation");
@@ -100,25 +112,37 @@ export async function handleInstallationEvent(
 
         // Process repositories if they exist in the webhook
         if (installation.repositories?.length > 0) {
-          await tx.insert(installationsToRepos).values(
-            installation.repositories.map((repo) => ({
-              installationId: newInstallation.id,
-              repoNodeId: repo.node_id,
-              githubRepoId: repo.id,
-              metadata: {
-                name: repo.name,
-                fullName: repo.full_name,
-                private: repo.private,
-              },
-              addedAt: new Date(),
-            })),
-          );
+          await tx
+            .insert(installationsToRepos)
+            .values(
+              installation.repositories.map((repo) => ({
+                installationId: newInstallation.id,
+                repoNodeId: repo.node_id,
+                githubRepoId: repo.id,
+                metadata: {
+                  name: repo.name,
+                  fullName: repo.full_name,
+                  private: repo.private,
+                },
+                addedAt: newInstallation.installedAt,
+              })),
+            )
+            .onConflictDoUpdate({
+              target: [
+                installationsToRepos.installationId,
+                installationsToRepos.githubRepoId,
+              ],
+              set: conflictUpdateOnly(installationsToRepos, [
+                "addedAt",
+                "metadata",
+              ]),
+            });
         }
         return newInstallation.id;
       });
 
       await installationWorkflow.create({
-        id: generateBackgroundWorkflowId(`repo-${installationId}`),
+        id: generateBackgroundWorkflowId(`installation-${installationId}`),
         params: {
           installationId,
         },

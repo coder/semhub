@@ -4,11 +4,13 @@ import { sendEmail } from "@/core/email";
 import { validateGithubWebhook } from "@/core/github/crypto";
 import {
   githubWebhookHeaderSchema,
+  installationRepositoriesSchema,
   installationSchema,
 } from "@/core/github/schema.webhook";
 import { getDeps } from "@/deps";
 import type { Context } from "@/server";
 
+import { handleInstallationRepositoriesEvent } from "./installation-repositories.handler";
 import { handleInstallationEvent } from "./installation.handler";
 
 export const githubRouter = new Hono<Context>().post("/", async (c) => {
@@ -38,7 +40,7 @@ export const githubRouter = new Hono<Context>().post("/", async (c) => {
     // Handle different event types
     switch (eventType) {
       case "installation": {
-        const data = installationSchema.parse(payload);
+        const data = installationSchema.parse(JSON.parse(payload));
         await handleInstallationEvent(
           db,
           emailClient,
@@ -47,7 +49,16 @@ export const githubRouter = new Hono<Context>().post("/", async (c) => {
         );
         break;
       }
-      // Add other event types as needed
+      case "installation_repositories": {
+        const data = installationRepositoriesSchema.parse(JSON.parse(payload));
+        await handleInstallationRepositoriesEvent(
+          db,
+          emailClient,
+          data,
+          c.env.INSTALLATION_WORKFLOW,
+        );
+        break;
+      }
       default: {
         await sendEmail(
           {
@@ -63,6 +74,7 @@ export const githubRouter = new Hono<Context>().post("/", async (c) => {
 
     return c.json({ success: true });
   } catch (error) {
+    // TODO: send email?
     console.error("Error processing GitHub webhook:", error);
     return c.json({ success: false, error: "Failed to process webhook" }, 500);
   }
