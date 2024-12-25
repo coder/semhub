@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import type { Resend } from "resend";
 
 import type { DbClient } from "@/core/db";
 import { installationsToRepos } from "@/core/db/schema/entities/installation-to-repo.sql";
@@ -13,6 +14,7 @@ import type { WorkflowRPC } from "@/wrangler/workflows/workflow.util";
 
 export async function handleInstallationEvent(
   db: DbClient,
+  _emailClient: Resend,
   data: InstallationWebhook,
   installationWorkflow: WorkflowRPC<InstallationParams>,
 ) {

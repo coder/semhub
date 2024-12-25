@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 
+import { sendEmail } from "@/core/email";
 import {
   githubWebhookHeaderSchema,
   installationSchema,
@@ -11,7 +12,7 @@ import { handleInstallationEvent } from "./github.handler";
 
 export const githubRouter = new Hono<Context>().post("/", async (c) => {
   try {
-    const { db } = getDeps();
+    const { db, emailClient, currStage } = getDeps();
     // Validate headers
     const headers = Object.fromEntries(c.req.raw.headers.entries());
     const { "x-github-event": eventType } =
@@ -24,12 +25,25 @@ export const githubRouter = new Hono<Context>().post("/", async (c) => {
     switch (eventType) {
       case "installation": {
         const data = installationSchema.parse(payload);
-        await handleInstallationEvent(db, data, c.env.INSTALLATION_WORKFLOW);
+        await handleInstallationEvent(
+          db,
+          emailClient,
+          data,
+          c.env.INSTALLATION_WORKFLOW,
+        );
         break;
       }
       // Add other event types as needed
       default: {
-        console.warn(`Unhandled webhook event type: ${eventType}`);
+        await sendEmail(
+          {
+            to: "warren@coder.com",
+            subject: `Unhandled webhook event type`,
+            html: `<p>Unhandled webhook event type: ${eventType}</p>`,
+          },
+          emailClient,
+          currStage,
+        );
       }
     }
 
