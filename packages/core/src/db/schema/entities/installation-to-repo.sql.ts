@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   index,
-  integer,
   jsonb,
   pgTable,
   primaryKey,
@@ -25,12 +25,12 @@ export const installationsToRepos = pgTable(
     installationId: text("installation_id")
       .notNull()
       .references(() => installations.id),
-    githubRepoId: integer("github_repo_id").notNull(),
+    githubRepoId: bigint("github_repo_id", { mode: "number" }).notNull(),
+    repoNodeId: text("repo_node_id").notNull(), // good to have, but not used at the moment
     repoId: text("repo_id").references(() => repos.id),
     metadata: jsonb("metadata").$type<RepoMetadata>(),
     addedAt: timestamptz("added_at").notNull(),
     removedAt: timestamptz("removed_at"),
-    repoNodeId: text("repo_node_id").notNull(), // good to have, but not used at the moment
   },
   (table) => ({
     pk: primaryKey({ columns: [table.installationId, table.githubRepoId] }),

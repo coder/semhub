@@ -53,13 +53,13 @@ export async function handleInstallationEvent(
             installation.target_type satisfies never;
         }
 
+        // deal with orphaned user
         const targetId = await Installation.getTargetId({
           targetType: installation.target_type,
           nodeId: installation.account.node_id,
           db: tx,
         });
-
-        // low likelihood of this happening because we require oauth before app installation
+        // todo: deal with t
         if (!targetId) {
           throw new Error(
             `Target not found. type=${installation.target_type} nodeId=${installation.account.node_id} login=${installation.account.login}`,
@@ -86,6 +86,8 @@ export async function handleInstallationEvent(
               installation.target_type,
             ),
             targetId,
+            targetNodeId: installation.account.node_id,
+            targetGithubId: installation.account.id,
             repositorySelection: installation.repository_selection,
             installedByUserId,
             installedAt: new Date(installation.created_at),

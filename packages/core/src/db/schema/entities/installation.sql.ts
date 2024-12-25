@@ -32,6 +32,8 @@ export const installations = pgTable(
     // References organizations.id when targetType is "organization"
     // We can't use a proper foreign key because it could reference either table
     targetId: text("target_id").notNull(),
+    targetGithubId: bigint("target_github_id", { mode: "number" }).notNull(),
+    targetNodeId: text("target_node_id").notNull(),
     repositorySelection: repositorySelectionEnum(
       "repository_selection",
     ).notNull(),
