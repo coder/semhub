@@ -1,4 +1,4 @@
-import { index, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import { index, jsonb, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 
 import { getBaseColumns, timestamptz } from "../base.sql";
 import { users } from "./user.sql";
@@ -8,6 +8,10 @@ export const repositorySelectionEnum = pgEnum("repository_selection", [
   "all",
   "selected",
 ]);
+
+export type InstallationPermissions = {
+  [key: string]: "read" | "write" | "admin";
+};
 
 export const installations = pgTable(
   "installations",
@@ -27,9 +31,15 @@ export const installations = pgTable(
       .references(() => users.id),
     installedAt: timestamptz("installed_at").notNull(),
     uninstalledAt: timestamptz("uninstalled_at"),
+    // Suspension fields - can be suspended by GitHub (TOS/billing), org admin, or user
+    suspendedAt: timestamptz("suspended_at"),
+    suspendedBy: text("suspended_by"),
     // Installation token fields - expires after 1 hour
     accessToken: text("access_token"),
     accessTokenExpiresAt: timestamptz("access_token_expires_at"),
+    // Permissions fields
+    permissions: jsonb("permissions").$type<InstallationPermissions>(),
+    permissionsUpdatedAt: timestamptz("permissions_updated_at"),
   },
   (table) => ({
     // Index for looking up installations by target (user/org)
