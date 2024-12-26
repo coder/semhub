@@ -103,19 +103,22 @@ export namespace Installation {
               return [];
           }
         })();
-        return and(
-          sql`${installations.permissions}->>${sql.raw(scope)} IS NOT NULL`,
-          sql`${installations.permissions}->>${sql.raw(scope)} = ANY(${validLevels})`,
-        );
+        return sql`(${installations.permissions}->${sql.raw(`'${scope}'`)} IS NOT NULL AND ${
+          installations.permissions
+        }->${sql.raw(`'${scope}'`)} IN (${sql.join(
+          validLevels.map((level) => sql`to_jsonb(${level}::text)`),
+          sql`, `,
+        )}))`;
       },
     );
 
-    // Find any installation that has required permissions and at least one accessible repo
     const [validInstallation] = await db
       .select({
         id: installations.id,
       })
       .from(installations)
+      // inner join to ensure we only get installations that have at least one accessible repo
+      // can consider using exists in the future
       .innerJoin(
         installationsToRepos,
         and(

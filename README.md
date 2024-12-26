@@ -100,7 +100,7 @@ We choose to use GitHub App (instead of OAuth App) because of [these reasons](ht
 To set up a GitHub App:
 
 - [Register a GitHub App](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app) (dev one can be within your personal account, the [prod one](https://github.com/organizations/coder/settings/apps/coder-semhub) is within the `coder` organization)
-  - Select the following read-only Repository permissions: Metadata (mandatory), Discussions, Issues, Pull Requests, Contents
+  - Select the following read-only Repository permissions: Metadata (mandatory), Discussions, Issues, Pull Requests, Contents. (These should be tracked in code via `github-app.ts`.)
   - Select the following read-only User permissions: Emails
   - Check the box that says "Request user authorization (OAuth) during installation". This ensures that only OAuthed users (i.e. users that exist in our database) can install the app.
   - Callback URL is: `https://auth.[stage].stg.semhub.dev/github-login/callback` (see `packages/workers/src/auth/auth.constant.ts`)

@@ -56,6 +56,7 @@ interface SubscribeRepoDialogProps {
   type: RepoType;
 }
 
+// TODO: refactor this as a public repo component
 export function SubscribeRepoDialog({ type }: SubscribeRepoDialogProps) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);

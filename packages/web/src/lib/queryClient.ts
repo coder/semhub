@@ -19,6 +19,9 @@ export const queryKeys = {
         params.lucky,
       ] as const,
   },
+  installation: {
+    status: ["installation", "status"] as const,
+  },
 } as const;
 
 export const queryClient = new QueryClient();

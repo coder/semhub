@@ -112,7 +112,7 @@ export async function handleInstallationEvent(
         }
 
         // Process repositories if they exist in the webhook
-        if (repositories?.length > 0) {
+        if (repositories.length > 0) {
           await tx
             .insert(installationsToRepos)
             .values(

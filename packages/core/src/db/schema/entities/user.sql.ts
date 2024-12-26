@@ -1,6 +1,6 @@
 import { jsonb, pgTable, text } from "drizzle-orm/pg-core";
 
-import { type GithubScope } from "@/github/permission";
+import { type GithubScope } from "@/github/permission/oauth";
 
 import { getBaseColumns, timestamptz } from "../base.sql";
 

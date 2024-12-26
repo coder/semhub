@@ -26,7 +26,6 @@ export const repoRouter = new Hono<AuthedContext>()
       }),
     );
   })
-
   // Subscribe to a public repository
   .post(
     "/subscribe/public",

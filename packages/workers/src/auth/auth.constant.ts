@@ -1,6 +1,6 @@
 import type { CookieOptions } from "hono/utils/cookie";
 
-import { GITHUB_SCOPES_PERMISSION } from "@/core/github/permission";
+import { GITHUB_SCOPES_PERMISSION } from "@/core/github/permission/oauth";
 
 export const githubLogin = {
   provider: "github-login" as const,
