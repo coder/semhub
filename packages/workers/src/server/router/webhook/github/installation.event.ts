@@ -143,7 +143,7 @@ export async function handleInstallationEvent(
       });
 
       await installationWorkflow.create({
-        id: generateBackgroundWorkflowId(`installation-${installationId}`),
+        id: generateBackgroundWorkflowId(installationId),
         params: {
           installationId,
         },

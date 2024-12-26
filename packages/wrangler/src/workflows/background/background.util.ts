@@ -5,7 +5,7 @@ export function generateBackgroundWorkflowId(
   windowSizeInMs = 1,
 ): string {
   return generateWorkflowId({
-    prefix: `background-${prefix}`,
+    prefix: `bg-${prefix}`,
     windowSizeInMs,
   });
 }

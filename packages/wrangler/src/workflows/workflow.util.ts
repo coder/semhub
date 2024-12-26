@@ -56,5 +56,13 @@ export function generateWorkflowId({
   windowSizeInMs?: number;
 }): string {
   const sanitizedPrefix = sanitizePrefix(prefix);
-  return `${sanitizedPrefix}-${getCurrentWindowTimestamp(windowSizeInMs)}`;
+  const workflowId = `${sanitizedPrefix}-${getCurrentWindowTimestamp(
+    windowSizeInMs,
+  )}`;
+  if (workflowId.length > 64) {
+    throw new Error(
+      `Workflow ID ${workflowId} is too long. Maximum length is 64 characters.`,
+    );
+  }
+  return workflowId;
 }

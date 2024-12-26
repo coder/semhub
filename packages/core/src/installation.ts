@@ -79,7 +79,7 @@ export namespace Installation {
     }
   }
 
-  export async function hasValidInstallation({
+  export async function userHasValidInstallation({
     userId,
     requiredPermissions,
     db,
