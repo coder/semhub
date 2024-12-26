@@ -38,8 +38,15 @@ export const repoRouter = new Hono<AuthedContext>()
       // first, check whether repo is already in db, if so, associate with user and return
       const repoExists = await Repo.exists({ owner, name: repo, db: db });
       if (repoExists.exists) {
+        const { id, isPrivate } = repoExists;
+        if (isPrivate) {
+          throw new HTTPException(400, {
+            message: "This endpoint is for public repositories only",
+          });
+        }
+        // assumption: since this is a public repo, it has already been initialised
         await User.subscribeRepo({
-          repoId: repoExists.id,
+          repoId: id,
           userId: user.id,
           db,
         });
@@ -58,7 +65,11 @@ export const repoRouter = new Hono<AuthedContext>()
           message: "Repository does not exist on GitHub",
         });
       }
-      const createdRepo = await Repo.createRepo(repoData.data, db);
+      const createdRepo = await Repo.createRepo({
+        data: repoData.data,
+        db,
+        defaultInitStatus: "ready", // public repo can initialise directly upon creation
+      });
       await User.subscribeRepo({
         repoId: createdRepo.id,
         userId: user.id,

@@ -83,6 +83,10 @@ function getAbnormalSyncState(
   });
 
   switch (initStatus) {
+    // should never happen because filtered out in backend
+    case "pending": {
+      return null;
+    }
     case "error":
       return createState({
         text: "Initialization failed",

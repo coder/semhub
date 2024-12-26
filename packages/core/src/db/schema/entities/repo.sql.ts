@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getBaseColumns, timestamptz } from "../base.sql";
 
 export const initStatusEnum = pgEnum("init_status", [
+  "pending", // for private repos that were added via GitHub App, before user has actively subscribed
   "ready",
   "in_progress",
   "completed",

@@ -98,7 +98,11 @@ export class InstallationWorkflow extends WorkflowEntrypoint<
         continue;
       }
       const createdRepo = await step.do("create repo record", async () => {
-        return await Repo.createRepo(res.data, db);
+        return await Repo.createRepo({
+          data: res.data,
+          db,
+          defaultInitStatus: "pending",
+        });
       });
       await step.do("update installation-to-repo mapping", async () => {
         await db
