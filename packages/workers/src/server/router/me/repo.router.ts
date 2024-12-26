@@ -6,6 +6,7 @@ import { and, eq } from "@/core/db";
 import { usersToRepos } from "@/core/db/schema/entities/user-to-repo.sql";
 import { Github } from "@/core/github";
 import { repoValidationSchema } from "@/core/github/schema.validation";
+import { Installation } from "@/core/installation";
 import { Repo } from "@/core/repo";
 import { User } from "@/core/user";
 import { getDeps } from "@/deps";
@@ -23,6 +24,32 @@ export const repoRouter = new Hono<AuthedContext>()
       createSuccessResponse({
         data: repos,
         message: "Successfully retrieved subscribed repositories",
+      }),
+    );
+  })
+  .get("/preview", zValidator("query", repoValidationSchema), async (c) => {
+    const { owner, repo } = c.req.valid("query");
+    const { db, restOctokitAppFactory } = getDeps();
+    const installationId = await Installation.getGithubInstallationId({
+      repoName: repo,
+      repoOwner: owner,
+      db,
+    });
+    if (!installationId) {
+      throw new HTTPException(404, {
+        message: "Installation for specified repo not found",
+      });
+    }
+    const octokit = restOctokitAppFactory(installationId);
+    const repoData = await Github.getRepo({
+      repoName: repo,
+      repoOwner: owner,
+      octokit,
+    });
+    return c.json(
+      createSuccessResponse({
+        data: repoData,
+        message: "Successfully retrieved repository preview",
       }),
     );
   })

@@ -9,7 +9,33 @@ import {
 import { organizations } from "@/db/schema/entities/organization.sql";
 import { users } from "@/db/schema/entities/user.sql";
 
+import { repos } from "./db/schema/entities/repo.sql";
+
 export namespace Installation {
+  export async function getGithubInstallationId({
+    repoName,
+    repoOwner,
+    db,
+  }: {
+    repoName: string;
+    repoOwner: string;
+    db: DbClient;
+  }) {
+    const [installation] = await db
+      .select({ id: installations.githubInstallationId })
+      .from(repos)
+      .innerJoin(
+        installationsToRepos,
+        eq(repos.id, installationsToRepos.repoId),
+      )
+      .innerJoin(
+        installations,
+        eq(installationsToRepos.installationId, installations.id),
+      )
+      .where(and(eq(repos.name, repoName), eq(repos.ownerLogin, repoOwner)));
+
+    return installation?.id ?? null;
+  }
   export function mapGithubTargetType(githubType: "Organization" | "User") {
     switch (githubType) {
       case "Organization":

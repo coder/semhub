@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthorizeButton } from "@/components/repos/AuthorizeButton";
 import { RepoCard } from "@/components/repos/RepoCard";
+import { SubscribePrivateRepo } from "@/components/repos/SubscribePrivateRepo";
 import { SubscribePublicRepo } from "@/components/repos/SubscribePublicRepo";
 
 export const Route = createFileRoute("/repos")({
@@ -65,8 +66,14 @@ function RepoSection({ title, type, repos }: RepoSectionProps) {
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold">{title}</h2>
         <div className="flex items-center gap-2">
-          {isPrivate && <AuthorizeButton />}
-          <SubscribePublicRepo />
+          {isPrivate ? (
+            <>
+              <AuthorizeButton />
+              {hasValidInstallation && <SubscribePrivateRepo />}
+            </>
+          ) : (
+            <SubscribePublicRepo />
+          )}
         </div>
       </div>
       {showInstallAlert && (

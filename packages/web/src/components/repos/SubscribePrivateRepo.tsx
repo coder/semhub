@@ -4,6 +4,7 @@ import { LoaderIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 
 import { repoSchema } from "@/core/github/schema.rest";
+import { client, handleResponse } from "@/lib/api/client";
 import { useSubscribeRepo } from "@/lib/hooks/useRepo";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,10 @@ import {
   ValidationErrors,
 } from "@/components/repos/subscribe";
 
-export function SubscribePublicRepo() {
+// TODO: eventually move to a different UX where we support a dropdown menu
+// that contains all the repos user has granted access to
+// more complexity there, so let's deal with that later
+export function SubscribePrivateRepo() {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<RepoPreviewProps | null>(null);
@@ -45,7 +49,7 @@ export function SubscribePublicRepo() {
       try {
         const { owner, repo } = githubUrlSchema.parse(value);
         await subscribeRepoMutation.mutateAsync({
-          type: "public",
+          type: "private",
           owner,
           repo,
         });
@@ -67,30 +71,30 @@ export function SubscribePublicRepo() {
   const fetchPreview = async (owner: string, repo: string) => {
     try {
       setIsLoadingPreview(true);
-      const response = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}`,
+      const response = await client.me.repos.preview.$get({
+        query: { owner, repo },
+      });
+      const { data } = await handleResponse(
+        response,
+        "Failed to fetch repository preview",
       );
+      const repoData = repoSchema.parse(data);
 
-      if (!response.ok) {
+      if (!repoData.private) {
         throw new Error(
-          response.status === 404
-            ? "Repository not found"
-            : response.status === 403
-              ? "Rate limit exceeded. Please try again later."
-              : "Failed to fetch repository",
+          "This repository is not private. Please use the public repository subscription instead.",
         );
       }
 
-      const data = repoSchema.parse(await response.json());
       setPreview({
-        name: data.name,
-        description: data.description,
+        name: repoData.name,
+        description: repoData.description,
         owner: {
-          login: data.owner.login,
-          avatarUrl: data.owner.avatar_url,
+          login: repoData.owner.login,
+          avatarUrl: repoData.owner.avatar_url,
         },
-        private: data.private,
-        stargazersCount: data.stargazers_count,
+        private: repoData.private,
+        stargazersCount: repoData.stargazers_count,
       });
       setError(null);
     } catch (error) {
@@ -122,9 +126,10 @@ export function SubscribePublicRepo() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add Public Repository</DialogTitle>
+          <DialogTitle>Add Private Repository</DialogTitle>
           <DialogDescription>
-            Enter the URL of the GitHub repository you want to subscribe to.
+            Enter the URL of the private GitHub repository you want to subscribe
+            to.
           </DialogDescription>
         </DialogHeader>
 
