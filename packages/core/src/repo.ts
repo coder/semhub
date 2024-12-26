@@ -109,6 +109,7 @@ export namespace Repo {
           repoName: repos.name,
           repoOwner: repos.ownerLogin,
           issuesLastEndCursor: repos.issuesLastEndCursor,
+          isPrivate: repos.isPrivate,
           repoIssuesLastUpdatedAt: sql<
             string | null
           >`(${repoIssuesLastUpdatedSql(repos, tx)})`,

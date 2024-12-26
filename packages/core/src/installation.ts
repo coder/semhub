@@ -19,14 +19,14 @@ export namespace Installation {
     repoOwner,
     db,
     userId,
-    restOctokitFactory,
+    restOctokitAppFactory,
   }: {
     repoName: string;
     repoOwner: string;
     db: DbClient;
     // if userId is null, it means we just get any valid one
     userId: string | null;
-    restOctokitFactory: (installationId: number) => RestOctokit;
+    restOctokitAppFactory: (installationId: number) => RestOctokit;
   }) {
     const [installation] = await db
       .select({
@@ -72,7 +72,7 @@ export namespace Installation {
         return installationTargetId === userId ? installation : null;
       case "organization": {
         // check if user is a member of the org
-        const octokit = restOctokitFactory(githubInstallationId);
+        const octokit = restOctokitAppFactory(githubInstallationId);
         const [user] = await db
           .select({
             name: users.name,

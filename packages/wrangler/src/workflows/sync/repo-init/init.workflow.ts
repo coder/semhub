@@ -7,6 +7,7 @@ import { eq, sql } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
 import { Github } from "@/core/github";
+import { Installation } from "@/core/installation";
 import { Repo, repoIssuesLastUpdatedSql } from "@/core/repo";
 import { getDeps } from "@/deps";
 import { getEnvPrefix } from "@/util";
@@ -40,7 +41,13 @@ export type RepoInitParams = {
 export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
   async run(event: WorkflowEvent<RepoInitParams>, step: WorkflowStep) {
     const { repoId } = event.payload;
-    const { db, graphqlOctokit, emailClient } = getDeps(this.env);
+    const {
+      db,
+      graphqlOctokit,
+      emailClient,
+      graphqlOctokitAppFactory,
+      restOctokitAppFactory,
+    } = getDeps(this.env);
     // wait 10 seconds before starting
     // this prevents race condition where in_progress status has not been committed yet
     await step.sleep(
@@ -57,7 +64,8 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             repoName: repos.name,
             repoOwner: repos.ownerLogin,
             issuesLastEndCursor: repos.issuesLastEndCursor,
-            issueLastUpdatedAt: sql<
+            isPrivate: repos.isPrivate,
+            repoIssuesLastUpdatedAt: sql<
               string | null
             >`(${repoIssuesLastUpdatedSql(repos, db)})`,
           })
@@ -73,17 +81,43 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         return result;
       },
     );
-    const { repoName, repoOwner, issueLastUpdatedAt, issuesLastEndCursor } =
-      result;
+    const {
+      repoName,
+      repoOwner,
+      repoIssuesLastUpdatedAt,
+      issuesLastEndCursor,
+      isPrivate,
+    } = result;
     const name = `${repoOwner}/${repoName}`;
     let responseSizeForDebugging = 0;
     try {
+      const octokit = await step.do(
+        "determine which octokit to use",
+        async () => {
+          if (!isPrivate) {
+            return graphqlOctokit;
+          }
+          const installation = await step.do("get installation", async () => {
+            return await Installation.getValidGithubInstallationIdByRepo({
+              userId: null,
+              repoName,
+              repoOwner,
+              db,
+              restOctokitAppFactory,
+            });
+          });
+          if (!installation) {
+            throw new NonRetryableError("Installation not found");
+          }
+          return graphqlOctokitAppFactory(installation.githubInstallationId);
+        },
+      );
       const { issueIdsArray, hasMoreIssues, after } = await step.do(
         `get ${NUM_EMBEDDING_WORKERS} API calls worth of data for ${name}`,
         async () => {
           const issueIdsArray = [];
-          let currentSince = issueLastUpdatedAt
-            ? new Date(issueLastUpdatedAt)
+          let currentSince = repoIssuesLastUpdatedAt
+            ? new Date(repoIssuesLastUpdatedAt)
             : null;
           let hasMoreIssues = true;
           let after = issuesLastEndCursor ?? null;
@@ -107,7 +141,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                     repoId,
                     repoName,
                     repoOwner,
-                    octokit: graphqlOctokit,
+                    octokit,
                     since: currentSince,
                     numIssues,
                     after,

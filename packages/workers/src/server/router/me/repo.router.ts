@@ -35,6 +35,7 @@ export const repoRouter = new Hono<AuthedContext>()
       userId: user.id,
       repoName: repo,
       repoOwner: owner,
+      restOctokitAppFactory,
       db,
     });
     if (!res) {
@@ -122,13 +123,14 @@ export const repoRouter = new Hono<AuthedContext>()
     zValidator("json", repoValidationSchema),
     async (c) => {
       const user = c.get("user");
-      const { db, emailClient } = getDeps();
+      const { db, emailClient, restOctokitAppFactory } = getDeps();
       const { owner, repo } = c.req.valid("json");
       // in theory, should have been validated by preview, but no trust frontend
       const res = await Installation.getValidGithubInstallationIdByRepo({
         userId: user.id,
         repoName: repo,
         repoOwner: owner,
+        restOctokitAppFactory,
         db,
       });
       if (!res) {
