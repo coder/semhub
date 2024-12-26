@@ -341,6 +341,12 @@ export namespace Repo {
       )
       .orderBy(desc(usersToRepos.subscribedAt));
   }
+  export async function setPrivateRepoToReady(repoId: string, db: DbClient) {
+    await db
+      .update(repos)
+      .set({ initStatus: "ready" })
+      .where(eq(repos.id, repoId));
+  }
 }
 
 export const repoIssuesLastUpdatedSql = (

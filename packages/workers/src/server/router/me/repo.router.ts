@@ -31,19 +31,18 @@ export const repoRouter = new Hono<AuthedContext>()
     const { owner, repo } = c.req.valid("query");
     const { db, restOctokitAppFactory } = getDeps();
     const user = c.get("user");
-    const installationId =
-      await Installation.getValidGithubInstallationIdByRepo({
-        userId: user.id,
-        repoName: repo,
-        repoOwner: owner,
-        db,
-      });
-    if (!installationId) {
+    const res = await Installation.getValidGithubInstallationIdByRepo({
+      userId: user.id,
+      repoName: repo,
+      repoOwner: owner,
+      db,
+    });
+    if (!res) {
       throw new HTTPException(404, {
         message: "Installation for specified repo not found",
       });
     }
-    const octokit = restOctokitAppFactory(installationId);
+    const octokit = restOctokitAppFactory(res.githubInstallationId);
     const retrieved = await Github.getRepo({
       repoName: repo,
       repoOwner: owner,
@@ -100,17 +99,19 @@ export const repoRouter = new Hono<AuthedContext>()
           message: "Repository does not exist on GitHub",
         });
       }
-      const createdRepo = await Repo.createRepo({
-        data: repoData.data,
-        db,
-        defaultInitStatus: "ready", // public repo can initialise directly upon creation
+      await db.transaction(async (tx) => {
+        const createdRepo = await Repo.createRepo({
+          data: repoData.data,
+          db: tx,
+          defaultInitStatus: "ready", // public repo can initialise directly upon creation
+        });
+        await User.subscribeRepo({
+          repoId: createdRepo.id,
+          userId: user.id,
+          db: tx,
+        });
+        await initNextRepos(tx, c.env.REPO_INIT_WORKFLOW, emailClient);
       });
-      await User.subscribeRepo({
-        repoId: createdRepo.id,
-        userId: user.id,
-        db,
-      });
-      await initNextRepos(db, c.env.REPO_INIT_WORKFLOW, emailClient);
       return c.json(createSuccessResponse("Repository created and subscribed"));
     },
   )
@@ -121,8 +122,37 @@ export const repoRouter = new Hono<AuthedContext>()
     zValidator("json", repoValidationSchema),
     async (c) => {
       const user = c.get("user");
+      const { db, emailClient } = getDeps();
       const { owner, repo } = c.req.valid("json");
-      // TODO: Implement private repository subscription logic
+      // in theory, should have been validated by preview, but no trust frontend
+      const res = await Installation.getValidGithubInstallationIdByRepo({
+        userId: user.id,
+        repoName: repo,
+        repoOwner: owner,
+        db,
+      });
+      if (!res) {
+        throw new HTTPException(404, {
+          message: "Installation for specified repo not found",
+        });
+      }
+      const { repoId, repoIsPrivate } = res;
+      // for private repos, the repo must already exist in db
+      // rather, we need to (1) create the subscription; (2) initialise the repo if it's not already initialised
+      if (!repoIsPrivate) {
+        throw new HTTPException(400, {
+          message: "This endpoint is for private repositories only",
+        });
+      }
+      await db.transaction(async (tx) => {
+        await User.subscribeRepo({
+          repoId,
+          userId: user.id,
+          db: tx,
+        });
+        await Repo.setPrivateRepoToReady(repoId, tx);
+        await initNextRepos(tx, c.env.REPO_INIT_WORKFLOW, emailClient);
+      });
       return c.json(
         createSuccessResponse(
           "Private repository subscription will be implemented",

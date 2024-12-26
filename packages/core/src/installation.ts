@@ -24,7 +24,11 @@ export namespace Installation {
     userId: string;
   }) {
     const [installation] = await db
-      .select({ id: installations.githubInstallationId })
+      .select({
+        githubInstallationId: installations.githubInstallationId,
+        repoId: repos.id,
+        repoIsPrivate: repos.isPrivate,
+      })
       .from(repos)
       .innerJoin(
         installationsToRepos,
@@ -48,13 +52,13 @@ export namespace Installation {
             ),
             // Or user installed it for their org
             eq(installations.installedByUserId, userId),
-            // BUT: need to check user is still a member of the org
+            // BUT: need to check user is still a member of the org, need to do API call
           ),
         ),
       )
       .limit(1);
 
-    return installation?.id ?? null;
+    return installation ?? null;
   }
   export function mapGithubTargetType(githubType: "Organization" | "User") {
     switch (githubType) {
