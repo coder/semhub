@@ -16,6 +16,16 @@ export const repositorySchema = z.object({
   private: z.boolean(),
 });
 
+export const senderSchema = z.object({
+  id: z.number(),
+  login: z.string(),
+  type: z.enum(["User", "Bot", "Organization"]),
+  node_id: z.string(),
+  html_url: z.string(),
+});
+
+export type Sender = z.infer<typeof senderSchema>;
+
 // payload example: https://github.com/octokit/webhooks/issues/939#issuecomment-2169485000
 export const installationSchema = z.object({
   action: z.enum([
@@ -46,13 +56,7 @@ export const installationSchema = z.object({
     suspended_by: z.string().nullable(),
   }),
   repositories: z.array(repositorySchema),
-  sender: z.object({
-    id: z.number(),
-    login: z.string(),
-    type: z.enum(["User", "Bot", "Organization"]),
-    node_id: z.string(),
-    html_url: z.string(),
-  }),
+  sender: senderSchema,
 });
 
 export type InstallationWebhook = z.infer<typeof installationSchema>;
@@ -79,15 +83,18 @@ export const installationRepositoriesSchema = z.object({
   repository_selection: z.enum(["all", "selected"]),
   repositories_added: z.array(repositorySchema),
   repositories_removed: z.array(repositorySchema),
-  sender: z.object({
-    id: z.number(),
-    login: z.string(),
-    type: z.enum(["User", "Bot", "Organization"]),
-    node_id: z.string(),
-    html_url: z.string(),
-  }),
+  sender: senderSchema,
 });
 
 export type InstallationRepositoriesWebhook = z.infer<
   typeof installationRepositoriesSchema
+>;
+
+export const githubAppAuthorizationSchema = z.object({
+  action: z.enum(["revoked"]),
+  sender: senderSchema,
+});
+
+export type GithubAppAuthorizationWebhook = z.infer<
+  typeof githubAppAuthorizationSchema
 >;

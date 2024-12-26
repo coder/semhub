@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { sendEmail } from "@/core/email";
 import { validateGithubWebhook } from "@/core/github/crypto";
 import {
+  githubAppAuthorizationSchema,
   githubWebhookHeaderSchema,
   installationRepositoriesSchema,
   installationSchema,
@@ -10,6 +11,7 @@ import {
 import { getDeps } from "@/deps";
 import type { Context } from "@/server";
 
+import { handleGithubAppAuthorizationEvent } from "./github-app-authorization.event";
 import { handleInstallationRepositoriesEvent } from "./installation-repositories.event";
 import { handleInstallationEvent } from "./installation.event";
 
@@ -59,7 +61,12 @@ export const githubRouter = new Hono<Context>().post("/", async (c) => {
         );
         break;
       }
-      // TODO: case: github_app_authorization
+      // only sent when auth is revoked (not the same as app uninstallation)
+      case "github_app_authorization": {
+        const data = githubAppAuthorizationSchema.parse(payload);
+        await handleGithubAppAuthorizationEvent(db, emailClient, data);
+        break;
+      }
       default: {
         await sendEmail(
           {
