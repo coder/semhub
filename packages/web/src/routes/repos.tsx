@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthorizeButton } from "@/components/AuthorizeButton";
-import { RepoCard } from "@/components/RepoCard";
-import { SubscribeRepoDialog } from "@/components/SubscribeRepoDialog";
+import { AuthorizeButton } from "@/components/repos/AuthorizeButton";
+import { RepoCard } from "@/components/repos/RepoCard";
+import { SubscribePublicRepo } from "@/components/repos/SubscribePublicRepo";
 
 export const Route = createFileRoute("/repos")({
   component: ReposPage,
@@ -66,7 +66,7 @@ function RepoSection({ title, type, repos }: RepoSectionProps) {
         <h2 className="text-xl font-semibold">{title}</h2>
         <div className="flex items-center gap-2">
           {isPrivate && <AuthorizeButton />}
-          <SubscribeRepoDialog type={type} />
+          <SubscribePublicRepo />
         </div>
       </div>
       {showInstallAlert && (

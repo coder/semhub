@@ -1,11 +1,9 @@
-import { useForm, type FieldApi } from "@tanstack/react-form";
+import { useForm } from "@tanstack/react-form";
 import { zodValidator } from "@tanstack/zod-form-adapter";
-import { AlertCircleIcon, LoaderIcon, PlusIcon } from "lucide-react";
+import { LoaderIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
-import { z } from "zod";
 
 import { repoSchema } from "@/core/github/schema.rest";
-import { repoValidationSchema } from "@/core/github/schema.validation";
 import { useSubscribeRepo } from "@/lib/hooks/useRepo";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Button } from "@/components/ui/button";
@@ -23,41 +21,13 @@ import {
   RepoPreview,
   RepoPreviewSkeleton,
   type RepoPreviewProps,
-} from "@/components/RepoPreview";
+} from "@/components/repos/RepoPreview";
+import {
+  githubUrlSchema,
+  ValidationErrors,
+} from "@/components/repos/validation";
 
-const githubUrlSchema = z
-  .object({
-    url: z.string().url("Please enter a valid URL"),
-  })
-  .refine(({ url }) => {
-    try {
-      const parsed = new URL(url);
-      return (
-        parsed.hostname === "github.com" &&
-        parsed.pathname.split("/").filter(Boolean).length === 2
-      );
-    } catch {
-      return false;
-    }
-  }, "Please enter a valid GitHub repository URL")
-  .transform(({ url }) => {
-    const parsedUrl = new URL(url);
-    const parts = parsedUrl.pathname.split("/").filter(Boolean);
-    const repoSubscribe = {
-      owner: parts[0]!,
-      repo: parts[1]!,
-    };
-    return repoValidationSchema.parse(repoSubscribe);
-  });
-
-type RepoType = "public" | "private";
-
-interface SubscribeRepoDialogProps {
-  type: RepoType;
-}
-
-// TODO: refactor this as a public repo component
-export function SubscribeRepoDialog({ type }: SubscribeRepoDialogProps) {
+export function SubscribePublicRepo() {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<RepoPreviewProps | null>(null);
@@ -74,7 +44,11 @@ export function SubscribeRepoDialog({ type }: SubscribeRepoDialogProps) {
     onSubmit: async ({ value }) => {
       try {
         const { owner, repo } = githubUrlSchema.parse(value);
-        await subscribeRepoMutation.mutateAsync({ type, owner, repo });
+        await subscribeRepoMutation.mutateAsync({
+          type: "public",
+          owner,
+          repo,
+        });
         setOpen(false);
         setPreview(null);
         form.reset();
@@ -90,8 +64,6 @@ export function SubscribeRepoDialog({ type }: SubscribeRepoDialogProps) {
     },
   });
 
-  // can fetch preview from frontend for public repo
-  // for private repo, must fetch from backend...
   const fetchPreview = async (owner: string, repo: string) => {
     try {
       setIsLoadingPreview(true);
@@ -150,9 +122,7 @@ export function SubscribeRepoDialog({ type }: SubscribeRepoDialogProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>
-            Add {type === "private" ? "Private" : "Public"} Repository
-          </DialogTitle>
+          <DialogTitle>Add Public Repository</DialogTitle>
           <DialogDescription>
             Enter the URL of the GitHub repository you want to subscribe to.
           </DialogDescription>
@@ -242,29 +212,4 @@ export function SubscribeRepoDialog({ type }: SubscribeRepoDialogProps) {
       </DialogContent>
     </Dialog>
   );
-}
-
-interface ValidationErrorsProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  field: FieldApi<any, any, any, any, any>;
-  error: string | null;
-}
-
-function ValidationErrors({ field, error }: ValidationErrorsProps) {
-  const validationError =
-    field.state.meta.isTouched && field.state.meta.errors.length
-      ? field.state.meta.errors
-          .filter((err: unknown): err is string => typeof err === "string")
-          .join(", ")
-      : null;
-
-  const errors = [validationError, error].filter(Boolean);
-  const displayError = errors.length > 0 ? errors.join(", ") : null;
-
-  return displayError ? (
-    <div className="flex items-center gap-2 text-sm text-red-500">
-      <AlertCircleIcon className="size-4" />
-      <span>{displayError}</span>
-    </div>
-  ) : null;
 }
