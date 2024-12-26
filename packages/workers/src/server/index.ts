@@ -15,6 +15,7 @@ import type { WorkflowRPC } from "@/wrangler/workflows/workflow.util";
 import { authMiddleware } from "./middleware/auth.middleware";
 import type { ErrorResponse } from "./response";
 import { authRouter } from "./router/auth.router";
+import { authzRouter } from "./router/authz.router";
 import { meRouter } from "./router/me/me.router";
 import { publicRouter } from "./router/public/public.router";
 import { webhookRouter } from "./router/webhook/webhook.router";
@@ -57,6 +58,8 @@ const _routes = app
   .route("/me", meRouter) // Mount the me router
   // Auth routes (no middleware needed)
   .route("/auth", authRouter)
+  // Authz routes (no middleware needed)
+  .route("/authz", authzRouter)
   // Public routes (no middleware needed)
   .route("/public", publicRouter)
   // Webhook routes
