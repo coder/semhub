@@ -1,4 +1,5 @@
 import { and, eq, isNull, or, sql } from "drizzle-orm";
+import { RequestError } from "octokit";
 
 import type { DbClient } from "@/db";
 import { installationsToRepos } from "@/db/schema/entities/installation-to-repo.sql";
@@ -10,6 +11,7 @@ import { organizations } from "@/db/schema/entities/organization.sql";
 import { users } from "@/db/schema/entities/user.sql";
 
 import { repos } from "./db/schema/entities/repo.sql";
+import type { RestOctokit } from "./github/shared";
 
 export namespace Installation {
   export async function getValidGithubInstallationIdByRepo({
@@ -17,17 +19,22 @@ export namespace Installation {
     repoOwner,
     db,
     userId,
+    restOctokitFactory,
   }: {
     repoName: string;
     repoOwner: string;
     db: DbClient;
-    userId: string;
+    // if userId is null, it means we just get any valid one
+    userId: string | null;
+    restOctokitFactory: (installationId: number) => RestOctokit;
   }) {
     const [installation] = await db
       .select({
-        githubInstallationId: installations.githubInstallationId,
         repoId: repos.id,
         repoIsPrivate: repos.isPrivate,
+        githubInstallationId: installations.githubInstallationId,
+        installationTargetType: installations.targetType,
+        installationTargetId: installations.targetId,
       })
       .from(repos)
       .innerJoin(
@@ -44,21 +51,63 @@ export namespace Installation {
           eq(repos.ownerLogin, repoOwner),
           isNull(installations.uninstalledAt),
           isNull(installations.suspendedAt),
-          or(
-            // User has directly installed the app
-            and(
-              eq(installations.targetType, "user"),
-              eq(installations.targetId, userId),
-            ),
-            // Or user installed it for their org
-            eq(installations.installedByUserId, userId),
-            // BUT: need to check user is still a member of the org, need to do API call
-          ),
         ),
       )
       .limit(1);
+    if (!installation) {
+      return null;
+    }
+    if (!userId) {
+      return installation;
+    }
+    // code path below is only if userId is provided and we're checking if the user has access to the repo
+    const {
+      installationTargetType,
+      installationTargetId,
+      githubInstallationId,
+    } = installation;
+    switch (installationTargetType) {
+      case "user":
+        // return null because repo belongs to another user
+        return installationTargetId === userId ? installation : null;
+      case "organization": {
+        // check if user is a member of the org
+        const octokit = restOctokitFactory(githubInstallationId);
+        const [user] = await db
+          .select({
+            name: users.name,
+          })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        if (!user) {
+          throw new Error("User not found");
+        }
+        try {
+          // overriding type is necessary because of Octokit error
+          // see https://github.com/octokit/rest.js/issues/188
+          const { status }: { status: number } =
+            await octokit.rest.orgs.checkMembershipForUser({
+              org: installationTargetId,
+              username: user.name,
+            });
 
-    return installation ?? null;
+          // Only 204 means success, anything else means not a member
+          return status === 204 ? installation : null;
+        } catch (error) {
+          if (error instanceof RequestError && error.status === 404) {
+            // User is not a member of the organization
+            return null;
+          }
+          throw error;
+        }
+      }
+      default:
+        installationTargetType satisfies never;
+        throw new Error(
+          `Unexpected installation target type: ${installationTargetType}`,
+        );
+    }
   }
   export function mapGithubTargetType(githubType: "Organization" | "User") {
     switch (githubType) {
