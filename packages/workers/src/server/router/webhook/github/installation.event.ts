@@ -53,13 +53,12 @@ export async function handleInstallationEvent(
             installation.target_type satisfies never;
         }
 
-        // deal with orphaned user
+        // todo: deal with orphaned user, don't do this join here
         const targetId = await Installation.getTargetId({
           targetType: installation.target_type,
           nodeId: installation.account.node_id,
           db: tx,
         });
-        // todo: deal with t
         if (!targetId) {
           throw new Error(
             `Target not found. type=${installation.target_type} nodeId=${installation.account.node_id} login=${installation.account.login}`,

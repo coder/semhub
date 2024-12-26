@@ -183,6 +183,13 @@
       "when": 1735137537742,
       "tag": "0025_flat_puck",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1735169710298,
+      "tag": "0026_fast_puppet_master",
+      "breakpoints": true
     }
   ]
 }
