@@ -24,6 +24,7 @@ export async function handleGithubAppAuthorizationEvent(
       client,
       currStage,
     );
+    return;
   }
 
   switch (action) {
