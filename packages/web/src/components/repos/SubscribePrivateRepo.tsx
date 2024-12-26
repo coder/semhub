@@ -3,7 +3,6 @@ import { zodValidator } from "@tanstack/zod-form-adapter";
 import { LoaderIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 
-import { repoSchema } from "@/core/github/schema.rest";
 import { client, handleResponse } from "@/lib/api/client";
 import { useSubscribeRepo } from "@/lib/hooks/useRepo";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -24,13 +23,10 @@ import {
   type RepoPreviewProps,
 } from "@/components/repos/RepoPreview";
 import {
-  githubUrlSchema,
+  githubRepoPathSchema,
   ValidationErrors,
 } from "@/components/repos/subscribe";
 
-// TODO: eventually move to a different UX where we support a dropdown menu
-// that contains all the repos user has granted access to
-// more complexity there, so let's deal with that later
 export function SubscribePrivateRepo() {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,15 +35,15 @@ export function SubscribePrivateRepo() {
   const subscribeRepoMutation = useSubscribeRepo();
   const form = useForm({
     defaultValues: {
-      url: "",
+      path: "",
     },
     validatorAdapter: zodValidator(),
     validators: {
-      onChange: githubUrlSchema,
+      onChange: githubRepoPathSchema,
     },
     onSubmit: async ({ value }) => {
       try {
-        const { owner, repo } = githubUrlSchema.parse(value);
+        const { owner, repo } = githubRepoPathSchema.parse(value);
         await subscribeRepoMutation.mutateAsync({
           type: "private",
           owner,
@@ -78,28 +74,32 @@ export function SubscribePrivateRepo() {
         response,
         "Failed to fetch repository preview",
       );
-      const repoData = repoSchema.parse(data);
-
-      if (!repoData.private) {
+      console.log({ data });
+      if (!data.private) {
         throw new Error(
           "This repository is not private. Please use the public repository subscription instead.",
         );
       }
 
       setPreview({
-        name: repoData.name,
-        description: repoData.description,
+        name: data.name,
+        description: data.description,
         owner: {
-          login: repoData.owner.login,
-          avatarUrl: repoData.owner.avatar_url,
+          login: data.owner.login,
+          avatarUrl: data.owner.avatar_url,
         },
-        private: repoData.private,
-        stargazersCount: repoData.stargazers_count,
+        private: data.private,
+        stargazersCount: data.stargazers_count,
       });
       setError(null);
     } catch (error) {
+      console.error("Preview fetch error:", error);
       setError(
-        error instanceof Error ? error.message : "Failed to fetch repository",
+        error instanceof Error
+          ? error.message.includes("not found") || error.message.includes("404")
+            ? "Repository not found, please check your configuration."
+            : error.message
+          : "Failed to fetch repository",
       );
       setPreview(null);
     } finally {
@@ -107,9 +107,9 @@ export function SubscribePrivateRepo() {
     }
   };
 
-  const debouncedValidateAndPreview = useDebounce((url: string) => {
+  const debouncedValidateAndPreview = useDebounce((path: string) => {
     setError(null);
-    const { success, data } = githubUrlSchema.safeParse({ url });
+    const { success, data } = githubRepoPathSchema.safeParse({ path });
     if (success) {
       void fetchPreview(data.owner, data.repo);
     } else {
@@ -128,8 +128,7 @@ export function SubscribePrivateRepo() {
         <DialogHeader>
           <DialogTitle>Add Private Repository</DialogTitle>
           <DialogDescription>
-            Enter the URL of the private GitHub repository you want to subscribe
-            to.
+            Enter the repository in the format &ldquo;org/repo&rdquo;
           </DialogDescription>
         </DialogHeader>
 
@@ -142,11 +141,11 @@ export function SubscribePrivateRepo() {
           className="grid gap-4"
         >
           <form.Field
-            name="url"
+            name="path"
             children={(field) => (
               <div className="grid gap-2">
                 <Input
-                  placeholder="Enter GitHub repository URL"
+                  placeholder="org/repo"
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => {

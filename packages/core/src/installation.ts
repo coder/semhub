@@ -12,14 +12,16 @@ import { users } from "@/db/schema/entities/user.sql";
 import { repos } from "./db/schema/entities/repo.sql";
 
 export namespace Installation {
-  export async function getGithubInstallationId({
+  export async function getValidGithubInstallationIdByRepo({
     repoName,
     repoOwner,
     db,
+    userId,
   }: {
     repoName: string;
     repoOwner: string;
     db: DbClient;
+    userId: string;
   }) {
     const [installation] = await db
       .select({ id: installations.githubInstallationId })
@@ -32,7 +34,25 @@ export namespace Installation {
         installations,
         eq(installationsToRepos.installationId, installations.id),
       )
-      .where(and(eq(repos.name, repoName), eq(repos.ownerLogin, repoOwner)));
+      .where(
+        and(
+          eq(repos.name, repoName),
+          eq(repos.ownerLogin, repoOwner),
+          isNull(installations.uninstalledAt),
+          isNull(installations.suspendedAt),
+          or(
+            // User has directly installed the app
+            and(
+              eq(installations.targetType, "user"),
+              eq(installations.targetId, userId),
+            ),
+            // Or user installed it for their org
+            eq(installations.installedByUserId, userId),
+            // BUT: need to check user is still a member of the org
+          ),
+        ),
+      )
+      .limit(1);
 
     return installation?.id ?? null;
   }
@@ -166,6 +186,7 @@ export namespace Installation {
             ),
             // Or user installed it for their org
             eq(installations.installedByUserId, userId),
+            // BUT: need to check user is still a member of the org
           ),
           ...permissionChecks,
         ),

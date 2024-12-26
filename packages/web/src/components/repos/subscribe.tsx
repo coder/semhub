@@ -29,6 +29,26 @@ export const githubUrlSchema = z
     return repoValidationSchema.parse(repoSubscribe);
   });
 
+export const githubRepoPathSchema = z
+  .object({
+    path: z.string(),
+  })
+  .refine(
+    ({ path }) => {
+      const parts = path.split("/").filter(Boolean);
+      return parts.length === 2;
+    },
+    { message: "Please enter in the format 'org/repo'" },
+  )
+  .transform(({ path }) => {
+    const parts = path.split("/").filter(Boolean);
+    const repoSubscribe = {
+      owner: parts[0]!,
+      repo: parts[1]!,
+    };
+    return repoValidationSchema.parse(repoSubscribe);
+  });
+
 interface ValidationErrorsProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   field: FieldApi<any, any, any, any, any>;

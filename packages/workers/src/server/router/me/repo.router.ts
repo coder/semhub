@@ -30,25 +30,34 @@ export const repoRouter = new Hono<AuthedContext>()
   .get("/preview", zValidator("query", repoValidationSchema), async (c) => {
     const { owner, repo } = c.req.valid("query");
     const { db, restOctokitAppFactory } = getDeps();
-    const installationId = await Installation.getGithubInstallationId({
-      repoName: repo,
-      repoOwner: owner,
-      db,
-    });
+    const user = c.get("user");
+    const installationId =
+      await Installation.getValidGithubInstallationIdByRepo({
+        userId: user.id,
+        repoName: repo,
+        repoOwner: owner,
+        db,
+      });
     if (!installationId) {
       throw new HTTPException(404, {
         message: "Installation for specified repo not found",
       });
     }
     const octokit = restOctokitAppFactory(installationId);
-    const repoData = await Github.getRepo({
+    const retrieved = await Github.getRepo({
       repoName: repo,
       repoOwner: owner,
       octokit,
     });
+    // highly unlikely to happen, only if race condition between repo name change + subscription
+    if (!retrieved.exists) {
+      throw new HTTPException(404, {
+        message: "GitHub repository not found",
+      });
+    }
     return c.json(
       createSuccessResponse({
-        data: repoData,
+        data: retrieved.data,
         message: "Successfully retrieved repository preview",
       }),
     );
