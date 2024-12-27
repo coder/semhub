@@ -11,6 +11,7 @@ import { AuthorizeButton } from "@/components/repos/AuthorizeButton";
 import { RepoCard } from "@/components/repos/RepoCard";
 import { SubscribePrivateRepo } from "@/components/repos/SubscribePrivateRepo";
 import { SubscribePublicRepo } from "@/components/repos/SubscribePublicRepo";
+import { ReposPageSearchBar } from "@/components/SearchBars";
 
 export const Route = createFileRoute("/repos")({
   component: ReposPage,
@@ -29,6 +30,11 @@ function ReposPage() {
       <h1 className="mb-8 text-center text-2xl font-bold">My Repositories</h1>
       <>
         {!hasRepos && <EmptyState />}
+        {hasRepos && (
+          <div className="mb-8">
+            <ReposPageSearchBar />
+          </div>
+        )}
         <div className="space-y-8">
           <TooltipProvider>
             <RepoSection
