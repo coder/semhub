@@ -9,7 +9,11 @@ export const useMeSearch = () => {
     e.preventDefault();
     e.stopPropagation();
     if (query.trim()) {
-      navigate({ to: "/search", search: { q: injectDefaultQueries(query) } });
+      const search = { q: injectDefaultQueries(query) };
+      navigate({
+        to: "/repos/search",
+        search,
+      });
     }
   };
 

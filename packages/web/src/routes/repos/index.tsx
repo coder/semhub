@@ -13,7 +13,7 @@ import { SubscribePrivateRepo } from "@/components/repos/SubscribePrivateRepo";
 import { SubscribePublicRepo } from "@/components/repos/SubscribePublicRepo";
 import { MyReposSearchBar } from "@/components/search/MeSearchBars";
 
-export const Route = createFileRoute("/repos")({
+export const Route = createFileRoute("/repos/")({
   component: ReposPage,
   pendingComponent: ReposSkeleton,
 });
