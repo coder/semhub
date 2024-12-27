@@ -29,8 +29,8 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
   } = useSearchBar(initialQuery);
 
   return (
-    <div className="relative mx-auto w-full">
-      <form onSubmit={(e) => handleSearch(e, query)}>
+    <form onSubmit={(e) => handleSearch(e, query)}>
+      <div className="relative mx-auto w-full">
         <div className="relative">
           <Input
             type="text"
@@ -78,8 +78,8 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
             />
           </div>
         )}
-      </form>
-    </div>
+      </div>
+    </form>
   );
 }
 
