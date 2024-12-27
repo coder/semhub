@@ -14,7 +14,7 @@ import { repos } from "./db/schema/entities/repo.sql";
 import type { RestOctokit } from "./github/shared";
 
 export namespace Installation {
-  export async function getValidGithubInstallationIdByRepo({
+  export async function getActiveGithubInstallationId({
     repoName,
     repoOwner,
     db,
@@ -32,6 +32,7 @@ export namespace Installation {
       .select({
         repoId: repos.id,
         repoIsPrivate: repos.isPrivate,
+        repoInitStatus: repos.initStatus,
         githubInstallationId: installations.githubInstallationId,
         installationTargetType: installations.targetType,
         installationTargetId: installations.targetId,

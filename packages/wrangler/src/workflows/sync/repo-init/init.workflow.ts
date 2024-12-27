@@ -95,14 +95,13 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         if (!isPrivate) {
           return graphqlOctokit;
         }
-        const installation =
-          await Installation.getValidGithubInstallationIdByRepo({
-            userId: null,
-            repoName,
-            repoOwner,
-            db,
-            restOctokitAppFactory,
-          });
+        const installation = await Installation.getActiveGithubInstallationId({
+          userId: null,
+          repoName,
+          repoOwner,
+          db,
+          restOctokitAppFactory,
+        });
         if (!installation) {
           throw new NonRetryableError("Installation not found");
         }

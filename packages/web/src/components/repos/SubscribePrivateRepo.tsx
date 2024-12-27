@@ -74,13 +74,6 @@ export function SubscribePrivateRepo() {
         response,
         "Failed to fetch repository preview",
       );
-      console.log({ data });
-      if (!data.private) {
-        throw new Error(
-          "This repository is not private. Please use the public repository subscription instead.",
-        );
-      }
-
       setPreview({
         name: data.name,
         description: data.description,

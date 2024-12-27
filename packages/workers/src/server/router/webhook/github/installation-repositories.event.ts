@@ -18,16 +18,14 @@ export async function handleInstallationRepositoriesEvent(
 ) {
   const { action, installation, repositories_added, repositories_removed } =
     data;
-
-  // Get the installation record
-  const [installationRecord] = await db
+  const [installationFromDb] = await db
     .select({
       id: installations.id,
     })
     .from(installations)
     .where(eq(installations.githubInstallationId, installation.id));
 
-  if (!installationRecord) {
+  if (!installationFromDb) {
     throw new Error(`Installation not found: ${installation.id}`);
   }
 
@@ -38,7 +36,7 @@ export async function handleInstallationRepositoriesEvent(
           .insert(installationsToRepos)
           .values(
             repositories_added.map((repo) => ({
-              installationId: installationRecord.id,
+              installationId: installationFromDb.id,
               repoNodeId: repo.node_id,
               githubRepoId: repo.id,
               metadata: {
@@ -64,10 +62,10 @@ export async function handleInstallationRepositoriesEvent(
         // Trigger installation workflow to process the newly added repositories
         await installationWorkflow.create({
           id: generateBackgroundWorkflowId(
-            `installation-${installationRecord.id}`,
+            `installation-${installationFromDb.id}`,
           ),
           params: {
-            installationId: installationRecord.id,
+            installationId: installationFromDb.id,
           },
         });
       }

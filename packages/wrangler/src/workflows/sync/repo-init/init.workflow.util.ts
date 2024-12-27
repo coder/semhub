@@ -11,7 +11,7 @@ export async function initNextRepos(
   db: DbClient,
   workflow: WorkflowRPC<RepoInitParams>,
   email: EmailClient,
-  environment: string,
+  stage: string,
 ) {
   const res = await db.transaction(
     async (tx) => {
@@ -54,7 +54,7 @@ export async function initNextRepos(
           .join(", ")}</p>`,
       },
       email,
-      environment,
+      stage,
     );
   }
   return res;

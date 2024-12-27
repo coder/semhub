@@ -104,10 +104,16 @@ export namespace User {
         repoId,
         userId,
         status: "active",
+        subscribedAt: new Date(), // overwrite previous subscription, if any
+        unsubscribedAt: null,
       })
       .onConflictDoUpdate({
         target: [usersToRepos.userId, usersToRepos.repoId],
-        set: conflictUpdateOnly(usersToRepos, ["status", "subscribedAt"]),
+        set: conflictUpdateOnly(usersToRepos, [
+          "status",
+          "subscribedAt",
+          "unsubscribedAt",
+        ]),
       });
   }
   export async function unsubscribeRepo({

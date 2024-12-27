@@ -31,7 +31,7 @@ export const repoRouter = new Hono<AuthedContext>()
     const { owner, repo } = c.req.valid("query");
     const { db, restOctokitAppFactory } = getDeps();
     const user = c.get("user");
-    const res = await Installation.getValidGithubInstallationIdByRepo({
+    const res = await Installation.getActiveGithubInstallationId({
       userId: user.id,
       repoName: repo,
       repoOwner: owner,
@@ -55,9 +55,15 @@ export const repoRouter = new Hono<AuthedContext>()
         message: "GitHub repository not found",
       });
     }
+    const { data } = retrieved;
+    if (!data.private) {
+      throw new HTTPException(400, {
+        message: "This endpoint is for private repositories only",
+      });
+    }
     return c.json(
       createSuccessResponse({
-        data: retrieved.data,
+        data,
         message: "Successfully retrieved repository preview",
       }),
     );
@@ -71,7 +77,7 @@ export const repoRouter = new Hono<AuthedContext>()
       const { db, restOctokit, emailClient, currStage } = getDeps();
       const { owner, repo } = c.req.valid("json");
       // first, check whether repo is already in db, if so, associate with user and return
-      const repoExists = await Repo.exists({ owner, name: repo, db: db });
+      const repoExists = await Repo.exists({ owner, name: repo, db });
       if (repoExists.exists) {
         const { id, isPrivate } = repoExists;
         if (isPrivate) {
@@ -130,8 +136,9 @@ export const repoRouter = new Hono<AuthedContext>()
       const user = c.get("user");
       const { db, emailClient, restOctokitAppFactory, currStage } = getDeps();
       const { owner, repo } = c.req.valid("json");
-      // in theory, should have been validated by preview, but no trust frontend
-      const res = await Installation.getValidGithubInstallationIdByRepo({
+      // in theory, should have been validated by preview
+      // but always validate
+      const res = await Installation.getActiveGithubInstallationId({
         userId: user.id,
         repoName: repo,
         repoOwner: owner,
@@ -143,7 +150,7 @@ export const repoRouter = new Hono<AuthedContext>()
           message: "Installation for specified repo not found",
         });
       }
-      const { repoId, repoIsPrivate } = res;
+      const { repoId, repoIsPrivate, repoInitStatus } = res;
       // for private repos, the repo must already exist in db
       // rather, we need to (1) create the subscription; (2) initialise the repo if it's not already initialised
       if (!repoIsPrivate) {
@@ -157,13 +164,15 @@ export const repoRouter = new Hono<AuthedContext>()
           userId: user.id,
           db: tx,
         });
-        await Repo.setPrivateRepoToReady(repoId, tx);
-        await initNextRepos(
-          tx,
-          c.env.REPO_INIT_WORKFLOW,
-          emailClient,
-          currStage.toLocaleUpperCase(),
-        );
+        if (repoInitStatus === "pending") {
+          await Repo.setPrivateRepoToReady(repoId, tx);
+          await initNextRepos(
+            tx,
+            c.env.REPO_INIT_WORKFLOW,
+            emailClient,
+            currStage.toLocaleUpperCase(),
+          );
+        }
       });
       return c.json(
         createSuccessResponse("Please wait for repo to be initialized."),
