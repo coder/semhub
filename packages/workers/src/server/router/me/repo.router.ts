@@ -68,7 +68,7 @@ export const repoRouter = new Hono<AuthedContext>()
     zValidator("json", repoValidationSchema),
     async (c) => {
       const user = c.get("user");
-      const { db, restOctokit, emailClient } = getDeps();
+      const { db, restOctokit, emailClient, currStage } = getDeps();
       const { owner, repo } = c.req.valid("json");
       // first, check whether repo is already in db, if so, associate with user and return
       const repoExists = await Repo.exists({ owner, name: repo, db: db });
@@ -111,7 +111,12 @@ export const repoRouter = new Hono<AuthedContext>()
           userId: user.id,
           db: tx,
         });
-        await initNextRepos(tx, c.env.REPO_INIT_WORKFLOW, emailClient);
+        await initNextRepos(
+          tx,
+          c.env.REPO_INIT_WORKFLOW,
+          emailClient,
+          currStage.toLocaleUpperCase(),
+        );
       });
       return c.json(createSuccessResponse("Repository created and subscribed"));
     },
@@ -123,7 +128,7 @@ export const repoRouter = new Hono<AuthedContext>()
     zValidator("json", repoValidationSchema),
     async (c) => {
       const user = c.get("user");
-      const { db, emailClient, restOctokitAppFactory } = getDeps();
+      const { db, emailClient, restOctokitAppFactory, currStage } = getDeps();
       const { owner, repo } = c.req.valid("json");
       // in theory, should have been validated by preview, but no trust frontend
       const res = await Installation.getValidGithubInstallationIdByRepo({
@@ -153,12 +158,15 @@ export const repoRouter = new Hono<AuthedContext>()
           db: tx,
         });
         await Repo.setPrivateRepoToReady(repoId, tx);
-        await initNextRepos(tx, c.env.REPO_INIT_WORKFLOW, emailClient);
+        await initNextRepos(
+          tx,
+          c.env.REPO_INIT_WORKFLOW,
+          emailClient,
+          currStage.toLocaleUpperCase(),
+        );
       });
       return c.json(
-        createSuccessResponse(
-          "Subscription successful. Please wait for repo to be initialized.",
-        ),
+        createSuccessResponse("Please wait for repo to be initialized."),
       );
     },
   )
