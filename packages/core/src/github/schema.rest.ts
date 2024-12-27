@@ -42,7 +42,7 @@ export const githubUserSchema = z
     login: z.string(),
     html_url: z.string().url(),
     node_id: z.string(),
-    name: z.string(),
+    name: z.string().nullable(),
     // email: z.string().nullable(), // not relying on this
     avatar_url: z.string().url(),
     company: z.string().nullable(),

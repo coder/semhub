@@ -197,6 +197,13 @@
       "when": 1735179740781,
       "tag": "0027_powerful_firelord",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1735272763194,
+      "tag": "0028_wet_pet_avengers",
+      "breakpoints": true
     }
   ]
 }

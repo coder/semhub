@@ -76,7 +76,7 @@ export namespace Installation {
         const octokit = restOctokitAppFactory(githubInstallationId);
         const [user] = await db
           .select({
-            name: users.name,
+            login: users.login,
           })
           .from(users)
           .where(eq(users.id, userId))
@@ -90,7 +90,7 @@ export namespace Installation {
           const { status }: { status: number } =
             await octokit.rest.orgs.checkMembershipForUser({
               org: installationTargetId,
-              username: user.name,
+              username: user.login,
             });
 
           // Only 204 means success, anything else means not a member
