@@ -1,14 +1,15 @@
 import { SearchIcon, XIcon } from "lucide-react";
-import { useTheme } from "next-themes";
 
-import { usePublicSearch } from "@/hooks/usePublicSearch";
 import { useSearchBar } from "@/hooks/useSearchBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchDropdownMenu } from "@/components/search/SearchDropdownMenu";
 
-export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
-  const { handleSearch } = usePublicSearch();
+export function MyReposResultsSearchBar({
+  query: initialQuery,
+}: {
+  query: string;
+}) {
   const {
     query,
     inputRef,
@@ -30,7 +31,7 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
 
   return (
     <div className="relative mx-auto w-full">
-      <form onSubmit={(e) => handleSearch(e, query)}>
+      <form onSubmit={(e) => console.log(e, query)}>
         <div className="relative">
           <Input
             type="text"
@@ -82,10 +83,7 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
     </div>
   );
 }
-
-export function HomepageSearchBar() {
-  const { theme } = useTheme();
-  const { handleSearch, handleLuckySearch } = usePublicSearch();
+export function MyReposSearchBar() {
   const {
     query,
     inputRef,
@@ -106,8 +104,8 @@ export function HomepageSearchBar() {
   } = useSearchBar();
 
   return (
-    <form onSubmit={(e) => handleSearch(e, query)}>
-      <div className="relative mx-auto w-full max-w-xl">
+    <div className="relative mx-auto w-full">
+      <form onSubmit={(e) => console.log(e, query)}>
         <Input
           ref={inputRef}
           type="text"
@@ -147,24 +145,7 @@ export function HomepageSearchBar() {
             <XIcon className="size-4 text-muted-foreground" />
           </Button>
         )}
-      </div>
-      <div className="mt-8 space-x-4">
-        <Button
-          type="submit"
-          onClick={(e) => handleSearch(e, query)}
-          variant="secondary"
-        >
-          SemHub Search
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={(e) => handleLuckySearch(e, query)}
-        >
-          <span className="inline-block w-32 text-center">
-            {theme === "dark" ? "Time to Get Lucky" : "I'm Feeling Lucky"}
-          </span>
-        </Button>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 }

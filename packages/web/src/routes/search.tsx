@@ -34,8 +34,8 @@ const issuesInfiniteQueryOptions = ({ q, page, lucky }: SearchParams) => {
 export const Route = createFileRoute("/search")({
   validateSearch: issuesSearchSchema,
   loaderDeps: ({ search: { q, page, lucky } }) => ({ q, page, lucky }),
-  component: () => <SearchResults />,
-  pendingComponent: () => <SearchResultsSkeleton />,
+  component: () => <Search />,
+  pendingComponent: () => <SearchSkeleton />,
   loader: ({ context, deps: { page, q, lucky } }) => {
     context.queryClient.ensureInfiniteQueryData(
       issuesInfiniteQueryOptions({ q, page, lucky }),
@@ -82,7 +82,7 @@ function SearchLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SearchResults() {
+function Search() {
   const { q, page, lucky } = Route.useSearch();
   const { data, isFetching, fetchNextPage, hasNextPage } =
     useSuspenseInfiniteQuery(issuesInfiniteQueryOptions({ q, page, lucky }));
@@ -130,7 +130,7 @@ function SearchResults() {
   );
 }
 
-function SearchResultsSkeleton() {
+function SearchSkeleton() {
   return (
     <SearchLayout>
       <IssuesSkeleton />

@@ -2,7 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 
 import { parseSearchQuery } from "@/core/semsearch.util";
 
-export const useSearch = () => {
+export const usePublicSearch = () => {
   const navigate = useNavigate();
 
   const injectDefaultQueries = (query: string) => {
