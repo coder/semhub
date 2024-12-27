@@ -74,22 +74,34 @@ export namespace Installation {
       case "organization": {
         // check if user is a member of the org
         const octokit = restOctokitAppFactory(githubInstallationId);
-        const [user] = await db
-          .select({
-            login: users.login,
-          })
-          .from(users)
-          .where(eq(users.id, userId))
-          .limit(1);
+        const [[user], [org]] = await Promise.all([
+          db
+            .select({
+              login: users.login,
+            })
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1),
+          db
+            .select({
+              login: organizations.login,
+            })
+            .from(organizations)
+            .where(eq(organizations.id, installationTargetId))
+            .limit(1),
+        ]);
         if (!user) {
           throw new Error("User not found");
+        }
+        if (!org) {
+          throw new Error("Organization not found");
         }
         try {
           // overriding type is necessary because of Octokit bug
           // see https://github.com/octokit/rest.js/issues/188
           const { status }: { status: number } =
             await octokit.rest.orgs.checkMembershipForUser({
-              org: installationTargetId,
+              org: org.login,
               username: user.login,
             });
 
