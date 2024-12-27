@@ -21,11 +21,11 @@ export namespace Installation {
     userId,
     restOctokitAppFactory,
   }: {
-    repoName: string;
-    repoOwner: string;
     db: DbClient;
     // if userId is null, it means we just get any valid one
     userId: string | null;
+    repoName: string;
+    repoOwner: string;
     restOctokitAppFactory: (installationId: number) => RestOctokit;
   }) {
     const [installation] = await db
@@ -47,10 +47,11 @@ export namespace Installation {
       )
       .where(
         and(
-          eq(repos.name, repoName),
-          eq(repos.ownerLogin, repoOwner),
           isNull(installations.uninstalledAt),
           isNull(installations.suspendedAt),
+          isNull(installationsToRepos.removedAt),
+          eq(repos.name, repoName),
+          eq(repos.ownerLogin, repoOwner),
         ),
       )
       .limit(1);
@@ -84,7 +85,7 @@ export namespace Installation {
           throw new Error("User not found");
         }
         try {
-          // overriding type is necessary because of Octokit error
+          // overriding type is necessary because of Octokit bug
           // see https://github.com/octokit/rest.js/issues/188
           const { status }: { status: number } =
             await octokit.rest.orgs.checkMembershipForUser({
@@ -220,17 +221,13 @@ export namespace Installation {
       // can consider using exists in the future
       .innerJoin(
         installationsToRepos,
-        and(
-          eq(installations.id, installationsToRepos.installationId),
-          isNull(installationsToRepos.removedAt),
-        ),
+        eq(installations.id, installationsToRepos.installationId),
       )
       .where(
         and(
-          // Installation is not uninstalled
           isNull(installations.uninstalledAt),
-          // Installation is not suspended
           isNull(installations.suspendedAt),
+          isNull(installationsToRepos.removedAt),
           or(
             // User has directly installed the app
             and(

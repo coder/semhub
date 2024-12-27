@@ -126,6 +126,7 @@ export async function handleInstallationEvent(
                   private: repo.private,
                 },
                 addedAt: newInstallation.installedAt,
+                removedAt: null, // unlikely to be needed
               })),
             )
             .onConflictDoUpdate({
@@ -136,6 +137,7 @@ export async function handleInstallationEvent(
               set: conflictUpdateOnly(installationsToRepos, [
                 "addedAt",
                 "metadata",
+                "removedAt",
               ]),
             });
         }

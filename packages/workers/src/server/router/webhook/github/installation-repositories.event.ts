@@ -47,6 +47,7 @@ export async function handleInstallationRepositoriesEvent(
                 private: repo.private,
               },
               addedAt: new Date(),
+              removedAt: null, // important to override in case repo was previously removed
             })),
           )
           .onConflictDoUpdate({
@@ -57,6 +58,7 @@ export async function handleInstallationRepositoriesEvent(
             set: conflictUpdateOnly(installationsToRepos, [
               "addedAt",
               "metadata",
+              "removedAt",
             ]),
           });
         // Trigger installation workflow to process the newly added repositories
