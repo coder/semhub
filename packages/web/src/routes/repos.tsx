@@ -1,54 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { InfoIcon } from "lucide-react";
 
-import { Repo, RepoType, useReposQuery } from "@/lib/hooks/useRepo";
+import { useInstallationStatus } from "@/lib/hooks/useInstallation";
+import { Repo, RepoType, useReposList } from "@/lib/hooks/useRepo";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { RepoCard } from "@/components/RepoCard";
-import { SubscribeRepoDialog } from "@/components/SubscribeRepoDialog";
+import { AuthorizeButton } from "@/components/repos/AuthorizeButton";
+import { RepoCard } from "@/components/repos/RepoCard";
+import { SubscribePrivateRepo } from "@/components/repos/SubscribePrivateRepo";
+import { SubscribePublicRepo } from "@/components/repos/SubscribePublicRepo";
 
-interface RepoSectionProps {
-  title: string;
-  type: RepoType;
-  repos: Repo[];
-}
-
-function RepoSection({ title, type, repos }: RepoSectionProps) {
-  return (
-    <section>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-semibold">{title}</h2>
-        <SubscribeRepoDialog type={type} />
-      </div>
-      <div
-        className={cn("space-y-2", !repos.length && "text-sm text-gray-500")}
-      >
-        {repos.length === 0 ? (
-          <p>No subscribed {type} repositories</p>
-        ) : (
-          repos.map((repo) => <RepoCard key={repo.id} repo={repo} />)
-        )}
-      </div>
-    </section>
-  );
-}
-
-function EmptyState() {
-  return (
-    <Alert variant="default" className="mb-8">
-      <InfoIcon className="size-4" />
-      <AlertTitle>No repositories</AlertTitle>
-      <AlertDescription>
-        Subscribe to your first repository to get started with SemHub.
-      </AlertDescription>
-    </Alert>
-  );
-}
+export const Route = createFileRoute("/repos")({
+  component: ReposPage,
+  pendingComponent: ReposSkeleton,
+});
 
 function ReposPage() {
-  const { data: reposData } = useReposQuery();
+  const { data: reposData } = useReposList();
 
   const publicRepos = reposData?.filter((repo) => !repo.isPrivate) ?? [];
   const privateRepos = reposData?.filter((repo) => repo.isPrivate) ?? [];
@@ -78,10 +48,68 @@ function ReposPage() {
   );
 }
 
-export const Route = createFileRoute("/repos")({
-  component: ReposPage,
-  pendingComponent: ReposSkeleton,
-});
+interface RepoSectionProps {
+  title: string;
+  type: RepoType;
+  repos: Repo[];
+}
+
+function RepoSection({ title, type, repos }: RepoSectionProps) {
+  const {
+    data: { hasValidInstallation },
+  } = useInstallationStatus();
+  const isPrivate = type === "private";
+  const showInstallAlert = isPrivate && !hasValidInstallation;
+
+  return (
+    <section>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-semibold">{title}</h2>
+        <div className="flex items-center gap-2">
+          {isPrivate ? (
+            <>
+              <AuthorizeButton hasValidInstallation={hasValidInstallation} />
+              {hasValidInstallation && <SubscribePrivateRepo />}
+            </>
+          ) : (
+            <SubscribePublicRepo />
+          )}
+        </div>
+      </div>
+      {showInstallAlert && (
+        <Alert variant="default" className="mb-4">
+          <InfoIcon className="size-4" />
+          <AlertTitle>Install Semhub</AlertTitle>
+          <AlertDescription>
+            Click the &ldquo;Authorize&rdquo; button to grant Semhub access to
+            your private repositories.
+          </AlertDescription>
+        </Alert>
+      )}
+      <div
+        className={cn("space-y-2", !repos.length && "text-sm text-gray-500")}
+      >
+        {repos.length === 0 ? (
+          <p>No subscribed {type} repositories</p>
+        ) : (
+          repos.map((repo) => <RepoCard key={repo.id} repo={repo} />)
+        )}
+      </div>
+    </section>
+  );
+}
+
+function EmptyState() {
+  return (
+    <Alert variant="default" className="mb-8">
+      <InfoIcon className="size-4" />
+      <AlertTitle>No repositories</AlertTitle>
+      <AlertDescription>
+        Subscribe to your first repository to get started with SemHub.
+      </AlertDescription>
+    </Alert>
+  );
+}
 
 function ReposSkeleton() {
   return (

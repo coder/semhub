@@ -176,6 +176,34 @@
       "when": 1735013615374,
       "tag": "0024_neat_nemesis",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1735137537742,
+      "tag": "0025_flat_puck",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1735169710298,
+      "tag": "0026_fast_puppet_master",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1735179740781,
+      "tag": "0027_powerful_firelord",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1735272763194,
+      "tag": "0028_wet_pet_avengers",
+      "breakpoints": true
     }
   ]
 }

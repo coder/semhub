@@ -58,6 +58,12 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        authorize: {
+          DEFAULT: "hsl(var(--authorize))",
+          foreground: "hsl(var(--authorize-foreground))",
+          hover: "hsl(var(--authorize-hover))",
+          "hover-foreground": "hsl(var(--authorize-hover-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

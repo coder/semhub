@@ -34,6 +34,9 @@ async function deploy() {
     //     GITHUB_PERSONAL_ACCESS_TOKEN:
     //       Resource.GITHUB_PERSONAL_ACCESS_TOKEN.value,
     //     RESEND_API_KEY: Resource.RESEND_API_KEY.value,
+    //     SEMHUB_GITHUB_APP_PRIVATE_KEY:
+    //       Resource.SEMHUB_GITHUB_APP_PRIVATE_KEY.value,
+    //     SEMHUB_GITHUB_APP_ID: Resource.SEMHUB_GITHUB_APP_ID.value,
     //   };
     //   for (const [key, value] of Object.entries(secrets)) {
     //     execSync(

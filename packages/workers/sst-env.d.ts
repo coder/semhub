@@ -21,6 +21,7 @@ declare module "sst" {
       "value": string
     }
     "Keys": {
+      "githubWebhookSecret": string
       "hmacSecretKey": string
       "type": "sst.sst.Linkable"
     }
@@ -37,6 +38,18 @@ declare module "sst" {
       "value": string
     }
     "SEMHUB_GITHUB_APP_CLIENT_SECRET": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "SEMHUB_GITHUB_APP_ID": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "SEMHUB_GITHUB_APP_PRIVATE_KEY": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "SEMHUB_GITHUB_PUBLIC_LINK": {
       "type": "sst.sst.Secret"
       "value": string
     }

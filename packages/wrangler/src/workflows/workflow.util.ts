@@ -11,6 +11,7 @@ export interface WorkflowRPC<T extends ParamsRPC = ParamsRPC, E = unknown> {
   getInstanceStatus(id: string, env?: E): Promise<InstanceStatus>;
 }
 
+// not actually accurate, be careful
 export function getApproximateSizeInBytes(obj: unknown) {
   return new TextEncoder().encode(JSON.stringify(obj)).length;
 }
@@ -32,4 +33,36 @@ export function sanitizePrefix(prefix: string): string {
   }
 
   return sanitized;
+}
+
+/**
+ * Calculates the timestamp for the current time window
+ * @param windowSizeInMs The size of the time window in milliseconds
+ * @returns Timestamp in milliseconds, rounded down to the nearest window
+ */
+export function getCurrentWindowTimestamp(windowSizeInMs: number): number {
+  return Math.floor(Date.now() / windowSizeInMs) * windowSizeInMs;
+}
+
+/**
+ * Generates a unique workflow ID based on the time window size
+ * @returns A string ID in format "{prefix}-{timestamp}"
+ */
+export function generateWorkflowId({
+  prefix,
+  windowSizeInMs = 1,
+}: {
+  prefix: string;
+  windowSizeInMs?: number;
+}): string {
+  const sanitizedPrefix = sanitizePrefix(prefix);
+  const workflowId = `${sanitizedPrefix}-${getCurrentWindowTimestamp(
+    windowSizeInMs,
+  )}`;
+  if (workflowId.length > 64) {
+    throw new Error(
+      `Workflow ID ${workflowId} is too long. Maximum length is 64 characters.`,
+    );
+  }
+  return workflowId;
 }

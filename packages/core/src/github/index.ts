@@ -15,6 +15,33 @@ import { repoSchema } from "./schema.rest";
 import type { GraphqlOctokit, RestOctokit } from "./shared";
 
 export namespace Github {
+  export async function getRepoById({
+    githubRepoId,
+    octokit,
+  }: {
+    githubRepoId: string | number;
+    octokit: RestOctokit;
+  }) {
+    try {
+      // see https://github.com/octokit/octokit.js/issues/163
+      const { data } = await octokit.request("GET /repositories/:id", {
+        id: githubRepoId,
+      });
+      const repoData = repoSchema.parse(data);
+      return {
+        exists: true,
+        data: repoData,
+      };
+    } catch (error) {
+      if (error instanceof Error && "status" in error && error.status === 404) {
+        return {
+          exists: false,
+          data: null,
+        };
+      }
+      throw error;
+    }
+  }
   export async function getRepo({
     repoName,
     repoOwner,

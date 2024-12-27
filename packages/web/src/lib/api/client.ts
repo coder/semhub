@@ -16,6 +16,10 @@ export async function handleResponse<R>(
 ): Promise<R> {
   if (!res.ok) {
     const data = await res.json();
+    // redirect to homepage if 401
+    if (res.status === 401) {
+      window.location.href = "/";
+    }
     if (isErrorResponse(data)) {
       throw new Error(data.error);
     }

@@ -5,10 +5,10 @@ import { HTTPException } from "hono/http-exception";
 import { Resource } from "sst";
 
 import { createHmacDigest, verifyHmacDigest } from "@/core/util/crypto";
+import { getCookieOptions, githubLogin } from "@/auth/auth.constant";
 import { getDeps } from "@/deps";
+import type { Context } from "@/server";
 
-import type { Context } from "..";
-import { getCookieOptions, githubLogin } from "../../auth/auth.constant";
 import { subjects } from "../../subjects";
 import { createSuccessResponse } from "../response";
 
@@ -165,12 +165,11 @@ export const authRouter = new Hono<Context>()
       return c.text(e.toString());
     }
   })
-  .get("/logout", (c) => {
+  .post("/logout", (c) => {
     const { currStage } = getDeps();
-    const returnTo = c.req.query("returnTo") || "/";
     deleteCookie(c, "access_token", getCookieOptions(currStage));
     deleteCookie(c, "refresh_token", getCookieOptions(currStage));
-    return c.redirect(returnTo);
+    return c.json(createSuccessResponse("Successfully logged out"));
   });
 
 function getAuthClient() {

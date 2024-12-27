@@ -9,16 +9,15 @@ import { listRepos, subscribeRepo, unsubscribeRepo } from "@/lib/api/repo";
 import { queryKeys } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-export function useReposQuery() {
+export function useReposList() {
   return useSuspenseQuery({
     queryKey: queryKeys.repos.list,
     queryFn: listRepos,
+    refetchInterval: 1000 * 30, // 30 seconds
   });
 }
 
-export type Repo = NonNullable<
-  ReturnType<typeof useReposQuery>["data"]
->[number];
+export type Repo = NonNullable<ReturnType<typeof useReposList>["data"]>[number];
 export type RepoType = "public" | "private";
 
 export const useSubscribeRepo = () => {

@@ -51,13 +51,8 @@ export async function logout() {
     user: null,
   });
 
-  const response = await client.auth.logout.$get({
-    query: {
-      returnTo: window.location.origin + "/",
-    },
-  });
-
+  await client.auth.logout.$post();
   // Still invalidate to ensure fresh state
   await queryClient.invalidateQueries({ queryKey: [queryKeys.session] });
-  return handleResponse(response, "Failed to logout");
+  window.location.href = "/";
 }

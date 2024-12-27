@@ -7,16 +7,17 @@ import { eq } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
 import { Github } from "@/core/github";
+import { Installation } from "@/core/installation";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import { getEnvPrefix } from "@/util";
+import { getDbStepConfig } from "@/workflows/workflow.param";
 import {
   getApproximateSizeInBytes,
   type WorkflowRPC,
 } from "@/workflows/workflow.util";
 
 import {
-  getDbStepConfig,
   getNumIssues,
   getSizeLimit,
   REDUCE_ISSUES_MAX_ATTEMPTS,
@@ -29,7 +30,13 @@ interface Env extends WranglerEnv {
 
 export class IssueWorkflow extends WorkflowEntrypoint<Env> {
   async run(_: WorkflowEvent<{}>, step: WorkflowStep) {
-    const { db, graphqlOctokit, emailClient } = getDeps(this.env);
+    const {
+      db,
+      graphqlOctokit,
+      emailClient,
+      restOctokitAppFactory,
+      graphqlOctokitAppFactory,
+    } = getDeps(this.env);
     const res = await step.do(
       "get repo data and mark as syncing",
       getDbStepConfig("short"),
@@ -47,10 +54,27 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
       repoOwner,
       issuesLastEndCursor,
       repoIssuesLastUpdatedAt: repoIssuesLastUpdatedAtRaw,
+      isPrivate,
     } = res;
     const name = `${repoOwner}/${repoName}`;
     let responseSizeForDebugging = 0;
     try {
+      const octokit = await (async () => {
+        if (!isPrivate) {
+          return graphqlOctokit;
+        }
+        const installation = await Installation.getActiveGithubInstallationId({
+          userId: null,
+          repoName,
+          repoOwner,
+          db,
+          restOctokitAppFactory,
+        });
+        if (!installation) {
+          throw new NonRetryableError("Installation not found");
+        }
+        return graphqlOctokitAppFactory(installation.githubInstallationId);
+      })();
       let currentSince = repoIssuesLastUpdatedAtRaw
         ? new Date(repoIssuesLastUpdatedAtRaw)
         : null;
@@ -76,7 +100,7 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
                 repoId,
                 repoName,
                 repoOwner,
-                octokit: graphqlOctokit,
+                octokit,
                 since: currentSince,
                 numIssues,
                 after,

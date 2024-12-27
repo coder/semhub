@@ -19,10 +19,15 @@ type Env = {
 
 export default {
   async scheduled(controller: ScheduledController, env: Env) {
-    const { db, emailClient } = getDeps();
+    const { db, emailClient, currStage } = getDeps();
     switch (controller.cron) {
       case CRON_PATTERNS.INIT: {
-        await initNextRepos(db, env.REPO_INIT_WORKFLOW, emailClient);
+        await initNextRepos(
+          db,
+          env.REPO_INIT_WORKFLOW,
+          emailClient,
+          currStage.toLocaleUpperCase(),
+        );
         break;
       }
       case CRON_PATTERNS.SYNC_ISSUE: {

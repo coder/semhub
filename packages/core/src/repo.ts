@@ -1,5 +1,17 @@
 import type { DbClient } from "@/db";
-import { and, asc, count, desc, eq, inArray, isNull, lt, or, sql } from "@/db";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  lt,
+  ne,
+  or,
+  sql,
+} from "@/db";
 import { comments } from "@/db/schema/entities/comment.sql";
 import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
@@ -25,6 +37,7 @@ export namespace Repo {
     const [result] = await db
       .select({
         id: repos.id,
+        isPrivate: repos.isPrivate,
       })
       .from(repos)
       .where(and(eq(repos.ownerLogin, owner), eq(repos.name, name)));
@@ -36,12 +49,18 @@ export namespace Repo {
     return {
       exists: true,
       id: result.id,
+      isPrivate: result.isPrivate,
     } as const;
   }
-  export async function createRepo(
-    data: NonNullable<Awaited<ReturnType<typeof Github.getRepo>>["data"]>,
-    db: DbClient,
-  ) {
+  export async function createRepo({
+    data,
+    db,
+    defaultInitStatus = "ready",
+  }: {
+    data: NonNullable<Awaited<ReturnType<typeof Github.getRepo>>["data"]>;
+    db: DbClient;
+    defaultInitStatus?: "ready" | "pending";
+  }) {
     const {
       owner: { login: ownerLogin, avatar_url: ownerAvatarUrl },
       name,
@@ -58,6 +77,7 @@ export namespace Repo {
         nodeId,
         htmlUrl,
         isPrivate,
+        initStatus: defaultInitStatus,
       })
       .onConflictDoUpdate({
         target: [repos.nodeId],
@@ -89,6 +109,7 @@ export namespace Repo {
           repoName: repos.name,
           repoOwner: repos.ownerLogin,
           issuesLastEndCursor: repos.issuesLastEndCursor,
+          isPrivate: repos.isPrivate,
           repoIssuesLastUpdatedAt: sql<
             string | null
           >`(${repoIssuesLastUpdatedSql(repos, tx)})`,
@@ -313,9 +334,19 @@ export namespace Repo {
       .from(repos)
       .innerJoin(usersToRepos, eq(repos.id, usersToRepos.repoId))
       .where(
-        and(eq(usersToRepos.userId, userId), eq(usersToRepos.status, "active")),
+        and(
+          eq(usersToRepos.userId, userId),
+          eq(usersToRepos.status, "active"),
+          ne(repos.initStatus, "pending"),
+        ),
       )
       .orderBy(desc(usersToRepos.subscribedAt));
+  }
+  export async function setPrivateRepoToReady(repoId: string, db: DbClient) {
+    await db
+      .update(repos)
+      .set({ initStatus: "ready" })
+      .where(eq(repos.id, repoId));
   }
 }
 

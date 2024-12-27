@@ -13,9 +13,9 @@ import { getDeps } from "@/deps";
 import { getEnvPrefix } from "@/util";
 import {
   BATCH_SIZE_PER_EMBEDDING_CHUNK,
-  getDbStepConfig,
   NUM_ISSUES_TO_EMBED_PER_CRON,
 } from "@/workflows/sync/sync.param";
+import { getDbStepConfig } from "@/workflows/workflow.param";
 import { type WorkflowRPC } from "@/workflows/workflow.util";
 
 interface Env extends WranglerEnv {

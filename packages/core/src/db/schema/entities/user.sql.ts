@@ -1,8 +1,10 @@
 import { jsonb, pgTable, text } from "drizzle-orm/pg-core";
 
+import { type GithubScope } from "@/github/permission/oauth";
+
 import { getBaseColumns, timestamptz } from "../base.sql";
 
-export type GithubScopes = string[];
+export type GithubScopes = Array<GithubScope>;
 
 export type UserMetadata = {
   company: string | null;
@@ -15,7 +17,7 @@ export const users = pgTable("users", {
   ...getBaseColumns("users"),
   nodeId: text("node_id").notNull().unique(),
   login: text("login").notNull(),
-  name: text("name").notNull(),
+  name: text("name"),
   email: text("email").notNull(), // not unique because users can change their emails. we track the underlying Github user using nodeId
   avatarUrl: text("avatar_url"),
   htmlUrl: text("html_url").notNull(),

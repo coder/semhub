@@ -13,6 +13,8 @@ const prefixes = {
   labels: "lbl",
   issue_embeddings: "iss_emb",
   users: "usr",
+  installations: "ins",
+  organizations: "org",
 } as const;
 
 function createId(prefix: keyof typeof prefixes): string {

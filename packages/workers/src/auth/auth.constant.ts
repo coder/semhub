@@ -1,31 +1,18 @@
 import type { CookieOptions } from "hono/utils/cookie";
 
+import { GITHUB_SCOPES_PERMISSION } from "@/core/github/permission/oauth";
+
 export const githubLogin = {
   provider: "github-login" as const,
-  scopes: ["user:email", "read:user"], // actually I suspect read:user is not necessary
-};
-
-export const githubRepo = {
-  githubRepo: {
-    provider: "github-repo" as const,
-    scopes: ["repo"],
-  },
+  scopes: [
+    GITHUB_SCOPES_PERMISSION.userEmail,
+    GITHUB_SCOPES_PERMISSION.readUser, // actually I suspect read:user is not necessary
+  ],
 };
 
 export const APP_DOMAIN = "semhub.dev";
 const APP_STG_DOMAIN = `stg.${APP_DOMAIN}`;
 const LOCAL_DEV_DOMAIN = `local.${APP_DOMAIN}`;
-
-export function getFrontendHomepage(stage: string) {
-  switch (stage) {
-    case "prod":
-      return `https://${APP_DOMAIN}`;
-    case "stg":
-      return `https://${APP_STG_DOMAIN}`;
-    default:
-      return `https://${LOCAL_DEV_DOMAIN}:3001`;
-  }
-}
 
 function getCookieDomain(stage: string) {
   switch (stage) {

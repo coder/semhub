@@ -1,6 +1,4 @@
-import { and, eq } from "drizzle-orm";
-
-import type { DbClient } from "@/db";
+import { and, eq, type DbClient } from "@/db";
 import { usersToRepos } from "@/db/schema/entities/user-to-repo.sql";
 import { users } from "@/db/schema/entities/user.sql";
 import type { GithubScopes, UserMetadata } from "@/db/schema/entities/user.sql";
@@ -23,7 +21,10 @@ export namespace User {
     db: DbClient;
     githubScopes: GithubScopes;
   }) {
-    const octokit = getRestOctokit(accessToken);
+    const octokit = getRestOctokit({
+      type: "token",
+      token: accessToken,
+    });
     const { data: userData } = await octokit.rest.users.getAuthenticated();
     const userDataParsed = githubUserSchema.parse(userData);
     const {
@@ -103,10 +104,16 @@ export namespace User {
         repoId,
         userId,
         status: "active",
+        subscribedAt: new Date(), // overwrite previous subscription, if any
+        unsubscribedAt: null,
       })
       .onConflictDoUpdate({
         target: [usersToRepos.userId, usersToRepos.repoId],
-        set: conflictUpdateOnly(usersToRepos, ["status", "subscribedAt"]),
+        set: conflictUpdateOnly(usersToRepos, [
+          "status",
+          "subscribedAt",
+          "unsubscribedAt",
+        ]),
       });
   }
   export async function unsubscribeRepo({
