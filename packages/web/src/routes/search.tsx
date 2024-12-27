@@ -11,7 +11,7 @@ import { queryKeys } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IssueCard } from "@/components/IssueCard";
-import { SearchBar } from "@/components/search/PublicSearchBars";
+import { ResultsSearchBar } from "@/components/search/PublicSearchBars";
 import { issuesSearchSchema } from "@/workers/server/router/schema/issue.schema";
 
 export type SearchParams = z.infer<typeof issuesSearchSchema>;
@@ -45,10 +45,8 @@ export const Route = createFileRoute("/search")({
 
 function NothingMatched() {
   return (
-    <div className="divide-y rounded-lg border bg-background p-4 sm:p-6">
-      <div className="text-mobile-base sm:text-base">
-        No issues matched your search
-      </div>
+    <div className="rounded-lg border bg-background p-4 text-mobile-base sm:p-6 sm:text-base">
+      No issues matched your search
     </div>
   );
 }
@@ -77,13 +75,9 @@ function IssuesSkeleton() {
 function SearchLayout({ children }: { children: React.ReactNode }) {
   const { q } = Route.useSearch();
   return (
-    <div className="mx-auto max-w-4xl px-4">
-      <div className="space-y-4">
-        <div className="w-full">
-          <SearchBar query={q} />
-        </div>
-        <div className="w-full">{children}</div>
-      </div>
+    <div className="mx-auto max-w-4xl space-y-4 px-4">
+      <ResultsSearchBar query={q} />
+      {children}
     </div>
   );
 }

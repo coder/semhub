@@ -1,6 +1,5 @@
 import { SearchIcon, XIcon } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useRef, useState } from "react";
 
 import { useSearch } from "@/hooks/useSearch";
 import { useSearchBar } from "@/hooks/useSearchBar";
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchDropdownMenu } from "@/components/search/SearchDropdownMenu";
 
-export function SearchBar({ query: initialQuery }: { query: string }) {
+export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
   const { handleSearch } = useSearch();
   const {
     query,
@@ -79,58 +78,6 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
             />
           </div>
         )}
-      </form>
-    </div>
-  );
-}
-
-export function ReposPageSearchBar() {
-  const [query, setQuery] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Implement repo search logic
-  };
-
-  const handleClear = () => {
-    setQuery("");
-    inputRef.current?.focus();
-  };
-
-  return (
-    <div className="relative w-full">
-      <form onSubmit={handleSearch}>
-        <div className="relative">
-          <Input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            ref={inputRef}
-            className="pr-20"
-            placeholder="Search repositories..."
-          />
-          {query && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute right-8 top-1/2 -translate-y-1/2"
-              onClick={handleClear}
-            >
-              <XIcon className="size-4 text-muted-foreground" />
-            </Button>
-          )}
-
-          <Button
-            type="submit"
-            variant="ghost"
-            size="icon"
-            className="absolute right-0 top-1/2 -translate-y-1/2"
-          >
-            <SearchIcon className="size-4 text-muted-foreground" />
-          </Button>
-        </div>
       </form>
     </div>
   );
