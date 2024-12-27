@@ -1,54 +1,53 @@
 import {
   infiniteQueryOptions,
   useSuspenseInfiniteQuery,
-} from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
-import { Loader2Icon } from 'lucide-react'
-import type { z } from 'zod'
+} from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 
-import { searchIssues } from '@/lib/api/search'
-import { queryKeys } from '@/lib/queryClient'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import { IssueCard } from '@/components/IssueCard'
-import { MyReposResultsSearchBar } from '@/components/search/MeSearchBars'
-import { issuesSearchSchema } from '@/workers/server/router/schema/issue.schema'
+import { meSearchIssues } from "@/lib/api/search";
+import { queryKeys } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { IssueCard } from "@/components/IssueCard";
+import { MyReposResultsSearchBar } from "@/components/search/MeSearchBars";
+import {
+  meSearchSchema,
+  type MeSearchSchema,
+} from "@/workers/server/router/schema/search.schema";
 
-export type SearchParams = z.infer<typeof issuesSearchSchema>
-
-const issuesInfiniteQueryOptions = ({ q, page, lucky }: SearchParams) => {
+const issuesInfiniteQueryOptions = ({ q, page }: MeSearchSchema) => {
   return infiniteQueryOptions({
-    queryKey: queryKeys.issues.search({ q, page, lucky }),
-    queryFn: () => searchIssues({ query: q, pageParam: page, lucky }),
+    queryKey: queryKeys.issues.search.me({ q, page }),
+    queryFn: () => meSearchIssues({ query: q, pageParam: page }),
     initialPageParam: 1,
     staleTime: Infinity,
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
       if (lastPage.pagination.totalPages <= lastPageParam) {
-        return undefined
+        return undefined;
       }
-      return lastPageParam + 1
+      return lastPageParam + 1;
     },
-  })
-}
+  });
+};
 
-export const Route = createFileRoute('/repos/search')({
-  validateSearch: issuesSearchSchema,
-  loaderDeps: ({ search: { q, page, lucky } }) => ({ q, page, lucky }),
+export const Route = createFileRoute("/repos/search")({
+  validateSearch: meSearchSchema,
+  loaderDeps: ({ search: { q, page } }) => ({ q, page }),
   component: () => <ReposSearch />,
   pendingComponent: () => <SearchSkeleton />,
-  loader: ({ context, deps: { page, q, lucky } }) => {
+  loader: ({ context, deps: { page, q } }) => {
     context.queryClient.ensureInfiniteQueryData(
-      issuesInfiniteQueryOptions({ q, page, lucky }),
-    )
+      issuesInfiniteQueryOptions({ q, page }),
+    );
   },
-})
+});
 
 function NothingMatched() {
   return (
     <div className="rounded-lg border bg-background p-4 text-mobile-base sm:p-6 sm:text-base">
       No issues matched your search
     </div>
-  )
+  );
 }
 
 function IssuesSkeleton() {
@@ -69,34 +68,23 @@ function IssuesSkeleton() {
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 function SearchLayout({ children }: { children: React.ReactNode }) {
-  const { q } = Route.useSearch()
+  const { q } = Route.useSearch();
   return (
     <div className="mx-auto max-w-4xl space-y-4 px-4">
       <MyReposResultsSearchBar query={q} />
       {children}
     </div>
-  )
+  );
 }
 
 function ReposSearch() {
-  const { q, page, lucky } = Route.useSearch()
+  const { q, page} = Route.useSearch();
   const { data, isFetching, fetchNextPage, hasNextPage } =
-    useSuspenseInfiniteQuery(issuesInfiniteQueryOptions({ q, page, lucky }))
-
-  const redirectUrl = lucky === 'y' && data?.pages[0]?.data[0]?.issueUrl
-  if (redirectUrl) {
-    window.location.replace(redirectUrl)
-    return (
-      <div className="mx-auto mt-8 flex flex-col items-center justify-center">
-        <Loader2Icon className="animate-spin" />
-        <p className="mt-2 text-sm text-muted-foreground">Getting there...</p>
-      </div>
-    )
-  }
+    useSuspenseInfiniteQuery(issuesInfiniteQueryOptions({ q, page }));
 
   return (
     <SearchLayout>
@@ -118,16 +106,16 @@ function ReposSearch() {
               variant="outline"
             >
               {isFetching
-                ? 'Loading more...'
+                ? "Loading more..."
                 : hasNextPage
-                  ? 'Load more issues'
-                  : 'No more issues'}
+                  ? "Load more issues"
+                  : "No more issues"}
             </Button>
           </div>
         </>
       )}
     </SearchLayout>
-  )
+  );
 }
 
 function SearchSkeleton() {
@@ -135,5 +123,5 @@ function SearchSkeleton() {
     <SearchLayout>
       <IssuesSkeleton />
     </SearchLayout>
-  )
+  );
 }

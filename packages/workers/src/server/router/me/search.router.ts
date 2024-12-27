@@ -5,13 +5,13 @@ import { SemanticSearch } from "@/core/semsearch";
 import { getDeps } from "@/deps";
 import type { Context } from "@/server";
 import { createPaginatedResponse } from "@/server/response";
-import { publicSearchSchema } from "@/server/router/schema/search.schema";
+import { meSearchSchema } from "@/server/router/schema/search.schema";
 
 export const searchRouter = new Hono<Context>().get(
   "/",
-  zValidator("query", publicSearchSchema),
+  zValidator("query", meSearchSchema),
   async (c) => {
-    const { q: query, page, lucky } = c.req.valid("query");
+    const { q: query, page } = c.req.valid("query");
     const pageNumber = page ?? 1;
     const pageSize = 30;
 
@@ -21,17 +21,11 @@ export const searchRouter = new Hono<Context>().get(
       {
         query,
         rateLimiter: c.env.RATE_LIMITER,
-        mode: "public",
-        lucky: lucky === "y",
+        mode: "me",
       },
       db,
       openai,
     );
-    // unsure why, redirect doesn't work, redirect on client instead
-    // if (lucky === "y" && issues[0]) {
-    //   const { issueUrl } = issues[0];
-    //   return c.redirect(issueUrl);
-    // }
     const totalResults = issues.length;
     // infer type from data in future
     return c.json(

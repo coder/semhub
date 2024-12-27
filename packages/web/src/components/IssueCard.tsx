@@ -6,7 +6,7 @@ import {
   MessageSquareIcon,
 } from "lucide-react";
 
-import type { SearchIssuesResponse } from "@/lib/api/search";
+import type { PublicSearchIssuesResponse } from "@/lib/api/search";
 import { formatLocalDateTime, getTimeAgo } from "@/lib/time";
 import { Badge } from "@/components/ui/badge";
 import { FastTooltip } from "@/components/ui/fast-tooltip";
@@ -49,7 +49,7 @@ function toTitleCase(str: string | null | undefined): string {
     .join(" ");
 }
 
-type Issue = SearchIssuesResponse["data"][number];
+type Issue = PublicSearchIssuesResponse["data"][number];
 
 type IssueStateIcon = {
   icon: typeof CircleCheckIcon | typeof CircleDotIcon | typeof CircleSlashIcon;

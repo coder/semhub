@@ -26,10 +26,12 @@ export namespace SemanticSearch {
     {
       query,
       rateLimiter,
+      mode,
       lucky = false,
     }: {
       query: string;
       rateLimiter: RateLimiter;
+      mode: "public" | "me";
       lucky?: boolean;
     },
     db: DbClient,

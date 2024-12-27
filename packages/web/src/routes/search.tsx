@@ -4,22 +4,22 @@ import {
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Loader2Icon } from "lucide-react";
-import type { z } from "zod";
 
-import { searchIssues } from "@/lib/api/search";
+import { publicSearchIssues } from "@/lib/api/search";
 import { queryKeys } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IssueCard } from "@/components/IssueCard";
 import { ResultsSearchBar } from "@/components/search/PublicSearchBars";
-import { issuesSearchSchema } from "@/workers/server/router/schema/issue.schema";
+import {
+  publicSearchSchema,
+  type PublicSearchSchema,
+} from "@/workers/server/router/schema/search.schema";
 
-export type SearchParams = z.infer<typeof issuesSearchSchema>;
-
-const issuesInfiniteQueryOptions = ({ q, page, lucky }: SearchParams) => {
+const issuesInfiniteQueryOptions = ({ q, page, lucky }: PublicSearchSchema) => {
   return infiniteQueryOptions({
-    queryKey: queryKeys.issues.search({ q, page, lucky }),
-    queryFn: () => searchIssues({ query: q, pageParam: page, lucky }),
+    queryKey: queryKeys.issues.search.public({ q, page, lucky }),
+    queryFn: () => publicSearchIssues({ query: q, pageParam: page, lucky }),
     initialPageParam: 1,
     staleTime: Infinity, // only re-fetch when query changes
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
@@ -32,7 +32,7 @@ const issuesInfiniteQueryOptions = ({ q, page, lucky }: SearchParams) => {
 };
 
 export const Route = createFileRoute("/search")({
-  validateSearch: issuesSearchSchema,
+  validateSearch: publicSearchSchema,
   loaderDeps: ({ search: { q, page, lucky } }) => ({ q, page, lucky }),
   component: () => <Search />,
   pendingComponent: () => <SearchSkeleton />,
