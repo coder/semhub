@@ -38,12 +38,12 @@ function ReposPage() {
         <div className="space-y-8">
           <TooltipProvider>
             <RepoSection
-              title="Public Repositories"
+              title="Public Repos"
               type="public"
               repos={publicRepos}
             />
             <RepoSection
-              title="Private Repositories"
+              title="Private Repos"
               type="private"
               repos={privateRepos}
             />
@@ -85,10 +85,10 @@ function RepoSection({ title, type, repos }: RepoSectionProps) {
       {showInstallAlert && (
         <Alert variant="default" className="mb-4">
           <InfoIcon className="size-4" />
-          <AlertTitle>Install Semhub</AlertTitle>
+          <AlertTitle>Want to add your private repos?</AlertTitle>
           <AlertDescription>
-            Click the &ldquo;Authorize&rdquo; button to grant Semhub access to
-            your private repositories.
+            Click &ldquo;Authorize&rdquo; to grant Semhub access to your private
+            repositories.
           </AlertDescription>
         </Alert>
       )}
