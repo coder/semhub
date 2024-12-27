@@ -5,5 +5,5 @@ export const authorizePrivateRepos = async () => {
   const {
     data: { url },
   } = await handleResponse(res, "Failed to start GitHub App installation");
-  window.open(url, "_blank");
+  window.location.href = url;
 };

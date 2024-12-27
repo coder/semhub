@@ -157,7 +157,7 @@ export const repoRouter = new Hono<AuthedContext>()
       });
       return c.json(
         createSuccessResponse(
-          "Private repository subscription will be implemented",
+          "Subscription successful. Please wait for repo to be initialized.",
         ),
       );
     },

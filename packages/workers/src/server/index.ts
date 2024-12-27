@@ -56,20 +56,20 @@ const _routes = app
   // Protected user-specific routes
   .use("/me/*", authMiddleware) // Apply middleware to all /me routes
   .route("/me", meRouter) // Mount the me router
-  // Auth routes (no middleware needed)
+  // Auth routes
   .route("/auth", authRouter)
-  // Authz routes (no middleware needed)
+  // Authz routes
   .route("/authz", authzRouter)
-  // Public routes (no middleware needed)
+  // Public routes
   .route("/public", publicRouter)
-  // Webhook routes
+  // Webhook routes (secured by webhook secret)
   .route("/webhook", webhookRouter);
 
 // Export the type for client usage
 export type ApiRoutes = typeof _routes;
 
 app.onError((err, c) => {
-  if (err instanceof HTTPException && err.res) {
+  if (err instanceof HTTPException) {
     return c.json<ErrorResponse>(
       {
         success: false,

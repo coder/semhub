@@ -68,7 +68,7 @@ function RepoSection({ title, type, repos }: RepoSectionProps) {
         <div className="flex items-center gap-2">
           {isPrivate ? (
             <>
-              <AuthorizeButton />
+              <AuthorizeButton hasValidInstallation={hasValidInstallation} />
               {hasValidInstallation && <SubscribePrivateRepo />}
             </>
           ) : (

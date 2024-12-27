@@ -128,7 +128,7 @@ export function SubscribePrivateRepo() {
         <DialogHeader>
           <DialogTitle>Add Private Repository</DialogTitle>
           <DialogDescription>
-            Enter the repository in the format &ldquo;org/repo&rdquo;
+            Enter the repository in the format <code>org/repo</code>
           </DialogDescription>
         </DialogHeader>
 

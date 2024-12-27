@@ -13,7 +13,7 @@ export function useReposList() {
   return useSuspenseQuery({
     queryKey: queryKeys.repos.list,
     queryFn: listRepos,
-    refetchInterval: 1000 * 60 * 5, // 5 minutes, trivial to change
+    refetchInterval: 1000 * 30, // 30 seconds
   });
 }
 
