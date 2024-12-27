@@ -6,7 +6,7 @@ import { useSearch } from "@/hooks/useSearch";
 import { useSearchBar } from "@/hooks/useSearchBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchDropdownMenu } from "@/components/SearchDropdownMenu";
+import { SearchDropdownMenu } from "@/components/search/SearchDropdownMenu";
 
 export function SearchBar({ query: initialQuery }: { query: string }) {
   const { handleSearch } = useSearch();

@@ -11,7 +11,7 @@ import { AuthorizeButton } from "@/components/repos/AuthorizeButton";
 import { RepoCard } from "@/components/repos/RepoCard";
 import { SubscribePrivateRepo } from "@/components/repos/SubscribePrivateRepo";
 import { SubscribePublicRepo } from "@/components/repos/SubscribePublicRepo";
-import { ReposPageSearchBar } from "@/components/SearchBars";
+import { ReposPageSearchBar } from "@/components/search/PublicSearchBars";
 
 export const Route = createFileRoute("/repos")({
   component: ReposPage,

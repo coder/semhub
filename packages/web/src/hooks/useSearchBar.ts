@@ -4,12 +4,12 @@ import { SEARCH_OPERATORS } from "@/core/constants/search.constant";
 import type {
   OperatorWithIcon,
   SubmenuValue,
-} from "@/components/SearchDropdownMenu";
+} from "@/components/search/SearchDropdownMenu";
 import {
   getFilteredOperators,
   getFilteredSubmenuValues,
   OPERATOR_SUBMENU_VALUES,
-} from "@/components/SearchDropdownMenu";
+} from "@/components/search/SearchDropdownMenu";
 
 import { useCursorPosition } from "./useCursorPosition";
 
