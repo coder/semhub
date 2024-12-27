@@ -91,27 +91,23 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
     const name = `${repoOwner}/${repoName}`;
     let responseSizeForDebugging = 0;
     try {
-      const octokit = await step.do(
-        "determine which octokit to use",
-        async () => {
-          if (!isPrivate) {
-            return graphqlOctokit;
-          }
-          const installation = await step.do("get installation", async () => {
-            return await Installation.getValidGithubInstallationIdByRepo({
-              userId: null,
-              repoName,
-              repoOwner,
-              db,
-              restOctokitAppFactory,
-            });
+      const octokit = await (async () => {
+        if (!isPrivate) {
+          return graphqlOctokit;
+        }
+        const installation =
+          await Installation.getValidGithubInstallationIdByRepo({
+            userId: null,
+            repoName,
+            repoOwner,
+            db,
+            restOctokitAppFactory,
           });
-          if (!installation) {
-            throw new NonRetryableError("Installation not found");
-          }
-          return graphqlOctokitAppFactory(installation.githubInstallationId);
-        },
-      );
+        if (!installation) {
+          throw new NonRetryableError("Installation not found");
+        }
+        return graphqlOctokitAppFactory(installation.githubInstallationId);
+      })();
       const { issueIdsArray, hasMoreIssues, after } = await step.do(
         `get ${NUM_EMBEDDING_WORKERS} API calls worth of data for ${name}`,
         async () => {
