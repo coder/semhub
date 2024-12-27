@@ -17,7 +17,7 @@
     "deploy:workflows-background": "bun run deploy workflows/background",
     "deploy:workflows-background:prod": "bun run deploy workflows/background --prod",
     "deploy:all": "bun run deploy rate-limiter && bun run deploy:workflows-sync && bun run deploy:workflows-background",
-    "deploy:all:prod": "bun run deploy rate-limiter --prod && bun run deploy:workflows-sync --prod && bun run deploy:workflows-background --prod"
+    "deploy:all:prod": "bun run deploy rate-limiter --prod && bun run deploy:workflows-sync:prod && bun run deploy:workflows-background:prod"
   },
   "dependencies": {
     "@semhub/core": "workspace:*",
