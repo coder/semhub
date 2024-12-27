@@ -3,25 +3,24 @@ import {
   useSuspenseInfiniteQuery,
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Loader2Icon } from "lucide-react";
 
-import { publicSearchIssues } from "@/lib/api/search";
+import { meSearchIssues } from "@/lib/api/search";
 import { queryKeys } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IssueCard } from "@/components/IssueCard";
-import { ResultsSearchBar } from "@/components/search/PublicSearchBars";
+import { MyReposResultsSearchBar } from "@/components/search/MeSearchBars";
 import {
-  publicSearchSchema,
-  type PublicSearchSchema,
+  meSearchSchema,
+  type MeSearchSchema,
 } from "@/workers/server/router/schema/search.schema";
 
-const issuesInfiniteQueryOptions = ({ q, page, lucky }: PublicSearchSchema) => {
+const issuesInfiniteQueryOptions = ({ q, page }: MeSearchSchema) => {
   return infiniteQueryOptions({
-    queryKey: queryKeys.issues.search.public({ q, page, lucky }),
-    queryFn: () => publicSearchIssues({ query: q, pageParam: page, lucky }),
+    queryKey: queryKeys.issues.search.me({ q, page }),
+    queryFn: () => meSearchIssues({ query: q, pageParam: page }),
     initialPageParam: 1,
-    staleTime: Infinity, // only re-fetch when query changes
+    staleTime: Infinity,
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
       if (lastPage.pagination.totalPages <= lastPageParam) {
         return undefined;
@@ -31,14 +30,14 @@ const issuesInfiniteQueryOptions = ({ q, page, lucky }: PublicSearchSchema) => {
   });
 };
 
-export const Route = createFileRoute("/search")({
-  validateSearch: publicSearchSchema,
-  loaderDeps: ({ search: { q, page, lucky } }) => ({ q, page, lucky }),
-  component: () => <Search />,
+export const Route = createFileRoute("/repos/search")({
+  validateSearch: meSearchSchema,
+  loaderDeps: ({ search: { q, page } }) => ({ q, page }),
+  component: () => <ReposSearch />,
   pendingComponent: () => <SearchSkeleton />,
-  loader: ({ context, deps: { page, q, lucky } }) => {
+  loader: ({ context, deps: { page, q } }) => {
     context.queryClient.ensureInfiniteQueryData(
-      issuesInfiniteQueryOptions({ q, page, lucky }),
+      issuesInfiniteQueryOptions({ q, page }),
     );
   },
 });
@@ -76,27 +75,16 @@ function SearchLayout({ children }: { children: React.ReactNode }) {
   const { q } = Route.useSearch();
   return (
     <div className="mx-auto max-w-4xl space-y-4 px-4">
-      <ResultsSearchBar query={q} />
+      <MyReposResultsSearchBar query={q} />
       {children}
     </div>
   );
 }
 
-function Search() {
-  const { q, page, lucky } = Route.useSearch();
+function ReposSearch() {
+  const { q, page} = Route.useSearch();
   const { data, isFetching, fetchNextPage, hasNextPage } =
-    useSuspenseInfiniteQuery(issuesInfiniteQueryOptions({ q, page, lucky }));
-
-  const redirectUrl = lucky === "y" && data?.pages[0]?.data[0]?.issueUrl;
-  if (redirectUrl) {
-    window.location.replace(redirectUrl);
-    return (
-      <div className="mx-auto mt-8 flex flex-col items-center justify-center">
-        <Loader2Icon className="animate-spin" />
-        <p className="mt-2 text-sm text-muted-foreground">Getting there...</p>
-      </div>
-    );
-  }
+    useSuspenseInfiniteQuery(issuesInfiniteQueryOptions({ q, page }));
 
   return (
     <SearchLayout>

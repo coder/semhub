@@ -2,11 +2,16 @@ import { z } from "zod";
 
 import { paginationSchema } from "../../response";
 
-export const issuesSearchSchema = paginationSchema.extend({
+export const meSearchSchema = paginationSchema.extend({
   q: z.string(),
+});
+
+export type MeSearchSchema = z.infer<typeof meSearchSchema>;
+
+export const publicSearchSchema = meSearchSchema.extend({
   // don't use boolean because it will be serialized to string when passed to worker
   // if use boolean, will need two different schemas
   lucky: z.enum(["y", "n"]).optional(),
 });
 
-export type IssuesSearchSchema = z.infer<typeof issuesSearchSchema>;
+export type PublicSearchSchema = z.infer<typeof publicSearchSchema>;

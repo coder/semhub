@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
-import { HomepageSearchBar } from "./SearchBars";
+import { HomepageSearchBar } from "./search/PublicSearchBars";
 
 export function HomepageSearch() {
   return (

@@ -11,8 +11,9 @@ import { AuthorizeButton } from "@/components/repos/AuthorizeButton";
 import { RepoCard } from "@/components/repos/RepoCard";
 import { SubscribePrivateRepo } from "@/components/repos/SubscribePrivateRepo";
 import { SubscribePublicRepo } from "@/components/repos/SubscribePublicRepo";
+import { MyReposSearchBar } from "@/components/search/MeSearchBars";
 
-export const Route = createFileRoute("/repos")({
+export const Route = createFileRoute("/repos/")({
   component: ReposPage,
   pendingComponent: ReposSkeleton,
 });
@@ -29,6 +30,11 @@ function ReposPage() {
       <h1 className="mb-8 text-center text-2xl font-bold">My Repositories</h1>
       <>
         {!hasRepos && <EmptyState />}
+        {hasRepos && (
+          <div className="mb-8">
+            <MyReposSearchBar />
+          </div>
+        )}
         <div className="space-y-8">
           <TooltipProvider>
             <RepoSection
@@ -115,6 +121,9 @@ function ReposSkeleton() {
   return (
     <div className="container mx-auto max-w-3xl px-4 py-8">
       <h1 className="mb-8 text-center text-2xl font-bold">My Repositories</h1>
+      <div className="mb-8">
+        <Skeleton className="h-10 w-full rounded-md" />
+      </div>
       <div className="space-y-8">
         {/* Public Repos Section */}
         <section>

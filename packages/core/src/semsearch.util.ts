@@ -78,3 +78,11 @@ export function parseSearchQuery(inputQuery: string) {
     ownerQueries: operatorMatches.get("owner") ?? [],
   };
 }
+
+export function injectDefaultQueries(query: string) {
+  const { stateQueries } = parseSearchQuery(query);
+  if (stateQueries.length === 0) {
+    return `${query} state:open`;
+  }
+  return query;
+}

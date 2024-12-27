@@ -71,9 +71,7 @@ export function createSuccessResponse<T>({
   message: string;
 }): SuccessResponse<T>;
 export function createSuccessResponse<T = void>(
-  args:
-    | string
-    | { data?: T extends void ? never : T; message: string },
+  args: string | { data?: T extends void ? never : T; message: string },
 ): SuccessResponse<T> {
   if (typeof args === "string") {
     return { success: true, message: args } as SuccessResponse<T>;

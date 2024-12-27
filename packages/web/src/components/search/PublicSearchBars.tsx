@@ -1,14 +1,14 @@
 import { SearchIcon, XIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 
-import { useSearch } from "@/hooks/useSearch";
+import { usePublicSearch } from "@/hooks/usePublicSearch";
 import { useSearchBar } from "@/hooks/useSearchBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchDropdownMenu } from "@/components/SearchDropdownMenu";
+import { SearchDropdownMenu } from "@/components/search/SearchDropdownMenu";
 
-export function SearchBar({ query: initialQuery }: { query: string }) {
-  const { handleSearch } = useSearch();
+export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
+  const { handleSearch } = usePublicSearch();
   const {
     query,
     inputRef,
@@ -29,8 +29,8 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
   } = useSearchBar(initialQuery);
 
   return (
-    <div className="relative mx-auto w-full">
-      <form onSubmit={(e) => handleSearch(e, query)}>
+    <form onSubmit={(e) => handleSearch(e, query)}>
+      <div className="relative mx-auto w-full">
         <div className="relative">
           <Input
             type="text"
@@ -78,14 +78,14 @@ export function SearchBar({ query: initialQuery }: { query: string }) {
             />
           </div>
         )}
-      </form>
-    </div>
+      </div>
+    </form>
   );
 }
 
 export function HomepageSearchBar() {
   const { theme } = useTheme();
-  const { handleSearch, handleLuckySearch } = useSearch();
+  const { handleSearch, handleLuckySearch } = usePublicSearch();
   const {
     query,
     inputRef,
