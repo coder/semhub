@@ -3,11 +3,11 @@ import { Hono } from "hono";
 
 import { SemanticSearch } from "@/core/semsearch";
 import { getDeps } from "@/deps";
-import type { Context } from "@/server";
+import type { AuthedContext } from "@/server";
 import { createPaginatedResponse } from "@/server/response";
 import { meSearchSchema } from "@/server/router/schema/search.schema";
 
-export const searchRouter = new Hono<Context>().get(
+export const searchRouter = new Hono<AuthedContext>().get(
   "/",
   zValidator("query", meSearchSchema),
   async (c) => {
@@ -16,15 +16,16 @@ export const searchRouter = new Hono<Context>().get(
     const pageSize = 30;
 
     const { db, openai } = getDeps();
-
+    const user = c.get("user");
     const issues = await SemanticSearch.getIssues(
       {
         query,
-        rateLimiter: c.env.RATE_LIMITER,
         mode: "me",
+        userId: user.id,
       },
       db,
       openai,
+      c.env.RATE_LIMITER,
     );
     const totalResults = issues.length;
     // infer type from data in future

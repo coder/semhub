@@ -15,6 +15,7 @@ import {
 } from "./db/schema/entities/issue.sql";
 import { hasAllLabels, labels } from "./db/schema/entities/label.sql";
 import { repos } from "./db/schema/entities/repo.sql";
+import { usersToRepos } from "./db/schema/entities/user-to-repo.sql";
 import { count, lower } from "./db/utils/general";
 import { jsonAggBuildObjectFromJoin, jsonContains } from "./db/utils/json";
 import { Embedding } from "./embedding";
@@ -23,19 +24,10 @@ import { parseSearchQuery } from "./semsearch.util";
 
 export namespace SemanticSearch {
   export async function getIssues(
-    {
-      query,
-      rateLimiter,
-      mode,
-      lucky = false,
-    }: {
-      query: string;
-      rateLimiter: RateLimiter;
-      mode: "public" | "me";
-      lucky?: boolean;
-    },
+    params: SearchParams,
     db: DbClient,
     openai: OpenAIClient,
+    rateLimiter: RateLimiter,
   ) {
     const SIMILARITY_THRESHOLD = 0.15; // arbitrary threshold, to be tuned
 
@@ -48,12 +40,12 @@ export namespace SemanticSearch {
       repoQueries,
       labelQueries,
       ownerQueries,
-    } = parseSearchQuery(query);
+    } = parseSearchQuery(params.query);
 
     // Use the entire query for semantic search
     const embedding = await Embedding.createEmbedding(
       {
-        input: query,
+        input: params.query,
         rateLimiter,
       },
       openai,
@@ -108,7 +100,7 @@ export namespace SemanticSearch {
       ))
     `;
 
-    const selected = db
+    const base = db
       .select({
         id: issueTable.id,
         number: issueTable.number,
@@ -144,7 +136,22 @@ export namespace SemanticSearch {
       .from(issueTable)
       .leftJoin(repos, eq(issueTable.repoId, repos.id))
       .leftJoin(issueEmbeddings, eq(issueEmbeddings.issueId, issueTable.id))
-      .leftJoin(comments, eq(comments.issueId, issueTable.id))
+      .leftJoin(comments, eq(comments.issueId, issueTable.id));
+
+    const conditionalJoin =
+      params.mode === "public"
+        ? base
+        : base.innerJoin(
+            usersToRepos,
+            and(
+              eq(usersToRepos.repoId, repos.id),
+              eq(usersToRepos.userId, params.userId),
+              eq(usersToRepos.status, "active"),
+              // can add unsubscribedAt not null?
+            ),
+          );
+
+    const selected = conditionalJoin
       .groupBy(
         issueTable.id, // primary key covers all issues column
         repos.htmlUrl,
@@ -156,7 +163,7 @@ export namespace SemanticSearch {
       .where(
         and(
           eq(repos.initStatus, "completed"),
-          eq(repos.isPrivate, false),
+          params.mode === "public" ? eq(repos.isPrivate, false) : undefined,
           // probably should switch to ranking score?
           gt(sql`(${similarityScore})`, SIMILARITY_THRESHOLD),
           // general substring queries match either title or body
@@ -187,8 +194,23 @@ export namespace SemanticSearch {
           ...[hasAllLabels(issueTable.id, labelQueries)],
         ),
       )
-      .limit(lucky ? 1 : 50);
+      .limit(params.mode === "public" && params.lucky ? 1 : 50);
     const result = await selected;
     return result;
   }
 }
+type BaseSearchParams = {
+  query: string;
+};
+
+type PublicSearchParams = BaseSearchParams & {
+  mode: "public";
+  lucky?: boolean;
+};
+
+type MeSearchParams = BaseSearchParams & {
+  mode: "me";
+  userId: string;
+};
+
+type SearchParams = PublicSearchParams | MeSearchParams;

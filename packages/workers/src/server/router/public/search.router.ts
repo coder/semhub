@@ -20,12 +20,12 @@ export const searchRouter = new Hono<Context>().get(
     const issues = await SemanticSearch.getIssues(
       {
         query,
-        rateLimiter: c.env.RATE_LIMITER,
         mode: "public",
         lucky: lucky === "y",
       },
       db,
       openai,
+      c.env.RATE_LIMITER,
     );
     // unsure why, redirect doesn't work, redirect on client instead
     // if (lucky === "y" && issues[0]) {
