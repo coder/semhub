@@ -13,23 +13,29 @@ const ArgsSchema = z.object({
   action: ActionSchema,
   worker: WorkerSchema,
   prod: z.boolean().optional().default(false),
+  loadEnv: z.boolean().optional().default(false),
 });
 
 try {
   const args = process.argv.slice(2); // remove bun and script path
   const isProd = args.includes("--prod");
-  const cleanArgs = args.filter((arg) => arg !== "--prod");
+  const loadEnv = args.includes("--load-env");
+  const cleanArgs = args.filter(
+    (arg) => !["--prod", "--load-env"].includes(arg),
+  );
 
   const { action, worker, prod } = ArgsSchema.parse({
     action: cleanArgs[0],
     worker: cleanArgs[1],
     prod: isProd,
+    loadEnv: loadEnv,
   });
 
   const stageFlag = prod ? "--stage prod " : "";
   const envFlag = prod ? "--env prod" : "";
+  const loadEnvFlag = loadEnv ? "--load-env" : "";
   const configPath = `--config src/${worker}/wrangler.toml`;
-  const command = `sst shell ${stageFlag}-- bun scripts/wrangler.ts ${action} ${configPath} ${envFlag}`;
+  const command = `sst shell ${stageFlag}-- bun scripts/wrangler.ts ${action} ${configPath} ${envFlag} ${loadEnvFlag}`;
 
   const proc = Bun.spawn(["sh", "-c", command], {
     stdout: "inherit",
@@ -44,7 +50,7 @@ try {
       error.errors.map((e) => `- ${e.path.join(".")}: ${e.message}`).join("\n"),
     );
     console.error(
-      "\nUsage: bun worker.ts <dev|deploy|delete> <rate-limiter|workflows/path/to/worker> [--prod]",
+      "\nUsage: bun worker.ts <dev|deploy|delete> <rate-limiter|workflows/path/to/worker> [--prod] [--load-env]",
     );
   } else {
     console.error("An unexpected error occurred:", error);
