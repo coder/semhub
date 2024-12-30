@@ -20,6 +20,18 @@ export default [
   { files: ["**/*.{js,mjs,cjs,ts,jsx,tsx}"] },
   { languageOptions: { globals: globals.browser } },
   pluginJs.configs.recommended,
+  {
+    files: ["**/*.{ts,tsx}"],
+    plugins: {
+      "@typescript-eslint": tseslint.plugin,
+    },
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        project: ["./tsconfig.json"],
+      },
+    },
+  },
   ...tseslint.configs.recommended,
   pluginReact.configs.flat.recommended,
   pluginReact.configs.flat["jsx-runtime"],
@@ -39,6 +51,7 @@ export default [
       },
     },
     rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
       "react/no-unknown-property": "off",
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",

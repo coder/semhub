@@ -8,6 +8,7 @@ export default [
       "**/schema.docs.graphql.d.ts",
       "**/routeTree.gen.ts",
       "**/dist/**/*",
+      "**/build/**/*",
     ],
   },
   {
@@ -23,6 +24,12 @@ export default [
     },
     rules: {
       "@typescript-eslint/consistent-type-imports": "error",
+      "@typescript-eslint/no-explicit-any": "warn",
+      "no-console": ["warn", { allow: ["warn", "error"] }],
+      "@typescript-eslint/no-use-before-define": [
+        "error",
+        { variables: true, functions: false, classes: true },
+      ],
       "@typescript-eslint/no-unused-vars": [
         "error",
         {

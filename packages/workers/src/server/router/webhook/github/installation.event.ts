@@ -166,6 +166,7 @@ export async function handleInstallationEvent(
       // - Send email to installation owner
       // - Track suspension metrics
       // - Alert on suspicious patterns (e.g., many suspensions in short time)
+      // eslint-disable-next-line no-console
       console.log(
         `Installation suspended: id=${installation.id} account=${installation.account.login} by=${installation.suspended_by ?? "unknown"}`,
       );
@@ -185,6 +186,7 @@ export async function handleInstallationEvent(
       // TODO: Future observability improvements:
       // - Send email notifying of restoration
       // - Track time-to-unsuspend metrics
+      // eslint-disable-next-line no-console
       console.log(
         `Installation unsuspended: id=${installation.id} account=${installation.account.login}`,
       );

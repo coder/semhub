@@ -350,11 +350,11 @@ export namespace Repo {
   }
 }
 
-export const repoIssuesLastUpdatedSql = (
+export function repoIssuesLastUpdatedSql(
   repoTable: typeof repos,
   db: DbClient,
-) =>
-  db
+) {
+  return db
     .select({
       lastUpdated: issueTable.issueUpdatedAt,
     })
@@ -363,3 +363,4 @@ export const repoIssuesLastUpdatedSql = (
     .where(eq(issueTable.repoId, repoTable.id))
     .orderBy(desc(issueTable.issueUpdatedAt))
     .limit(1);
+}

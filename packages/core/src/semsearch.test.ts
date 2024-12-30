@@ -312,7 +312,6 @@ describe("parseSearchQuery", () => {
   testQueries.forEach(({ query, expected }) => {
     it(`correctly parses: ${query}`, () => {
       const result = parseSearchQuery(query);
-      console.log(query);
       expect(result).toEqual(expected);
     });
   });

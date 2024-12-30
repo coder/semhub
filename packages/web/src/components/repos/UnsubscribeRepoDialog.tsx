@@ -1,7 +1,8 @@
 import { LoaderIcon, UserXIcon } from "lucide-react";
 import { useState } from "react";
 
-import { Repo, useUnsubscribeRepo } from "@/lib/hooks/useRepo";
+import type { Repo } from "@/lib/hooks/useRepo";
+import { useUnsubscribeRepo } from "@/lib/hooks/useRepo";
 import {
   AlertDialog,
   AlertDialogAction,

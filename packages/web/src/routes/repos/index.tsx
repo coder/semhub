@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { InfoIcon } from "lucide-react";
 
 import { useInstallationStatus } from "@/lib/hooks/useInstallation";
-import { Repo, RepoType, useReposList } from "@/lib/hooks/useRepo";
+import type { Repo, RepoType } from "@/lib/hooks/useRepo";
+import { useReposList } from "@/lib/hooks/useRepo";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";

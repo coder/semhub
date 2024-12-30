@@ -21,6 +21,7 @@ async function deploy() {
   const envFlag = isProd ? "--env prod" : "";
   const cloudflareEnvVars = `CF_ACCOUNT_ID=${process.env.CLOUDFLARE_ACCOUNT_ID} CF_API_TOKEN=${process.env.CLOUDFLARE_API_TOKEN}`;
 
+  // eslint-disable-next-line no-console
   console.log(`Running wrangler ${filteredArgs} for ${env} environment`);
   try {
     // run the command: could be dev, deploy, delete
@@ -51,6 +52,7 @@ async function deploy() {
         );
       }
     }
+    // eslint-disable-next-line no-console
     console.log("Done!");
   } catch (error) {
     console.error("Error:", error);

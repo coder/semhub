@@ -56,6 +56,7 @@ export default {
         break;
       }
     }
+    // eslint-disable-next-line no-console
     console.log("cron processed");
   },
 };

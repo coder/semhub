@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Type to get nested path types
 import { type PgColumn } from "drizzle-orm/pg-core";
 

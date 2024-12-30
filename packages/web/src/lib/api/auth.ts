@@ -1,4 +1,4 @@
-import { InferResponseType } from "hono/client";
+import type { InferResponseType } from "hono/client";
 
 import { queryClient, queryKeys } from "@/lib/queryClient";
 import { storage } from "@/lib/storage";

@@ -1,7 +1,7 @@
 import { ExternalLinkIcon, HourglassIcon, XCircleIcon } from "lucide-react";
 import React from "react";
 
-import { Repo } from "@/lib/hooks/useRepo";
+import type { Repo } from "@/lib/hooks/useRepo";
 import { formatLocalDateTime, getTimeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";

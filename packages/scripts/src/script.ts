@@ -10,6 +10,7 @@ try {
     githubRepoId: "123",
     octokit: restOctokit,
   });
+  // eslint-disable-next-line no-console
   console.log(res);
 } catch (e) {
   console.error(e);

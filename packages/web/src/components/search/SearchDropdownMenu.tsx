@@ -186,17 +186,18 @@ export const OPERATOR_SUBMENU_VALUES = new Map<SearchOperator, SubmenuValue[]>([
   ],
 ]);
 
-export const getFilteredOperators = (word: string) =>
-  OPERATORS_WITH_ICONS.filter(
+export function getFilteredOperators(word: string) {
+  return OPERATORS_WITH_ICONS.filter(
     (o) =>
       o.operator.toLowerCase().startsWith(word.toLowerCase()) ||
       o.name.toLowerCase().startsWith(word.toLowerCase()),
   );
+}
 
-export const getFilteredSubmenuValues = (
+export function getFilteredSubmenuValues(
   word: string,
   subMenu: SearchOperator | null,
-) => {
+) {
   if (!subMenu) return [];
   const submenuValues = OPERATOR_SUBMENU_VALUES.get(subMenu);
   if (!submenuValues) return [];
@@ -205,4 +206,4 @@ export const getFilteredSubmenuValues = (
       s.name.toLowerCase().startsWith(word.toLowerCase()) ||
       s.value.toLowerCase().startsWith(word.toLowerCase()),
   );
-};
+}

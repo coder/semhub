@@ -66,8 +66,11 @@ export const authRouter = new Hono<Context>()
         user:
           verified.subject.type === "user" ? verified.subject.properties : null,
       } as const);
-    } catch (error: any) {
-      console.error("Error authorizing", error.toString());
+    } catch (error: unknown) {
+      console.error(
+        "Error authorizing",
+        error instanceof Error ? error.message : String(error),
+      );
       return c.json(
         {
           success: false,
@@ -160,9 +163,12 @@ export const authRouter = new Hono<Context>()
       setCookie(c, "access_token", exchanged.tokens.access, cookieOptions);
       setCookie(c, "refresh_token", exchanged.tokens.refresh, cookieOptions);
       return c.redirect(returnTo);
-    } catch (e: any) {
-      console.error("Error authorizing", e.toString());
-      return c.text(e.toString());
+    } catch (error: unknown) {
+      console.error(
+        "Error authorizing",
+        error instanceof Error ? error.message : String(error),
+      );
+      return c.text(error instanceof Error ? error.message : String(error));
     }
   })
   .post("/logout", (c) => {

@@ -39,7 +39,7 @@ export namespace Embedding {
         const millisecondsToNextRequest =
           await rateLimiter.getDurationToNextRequest(EMBEDDING_MODEL);
         if (millisecondsToNextRequest === 0) break;
-        console.log(`Rate limit hit, waiting ${millisecondsToNextRequest}ms`);
+        console.warn(`Rate limit hit, waiting ${millisecondsToNextRequest}ms`);
         await sleep(millisecondsToNextRequest);
       }
     }
@@ -84,7 +84,7 @@ export namespace Embedding {
           };
         } catch (error) {
           if (isReducePromptError(error) && attempt < TRUNCATION_MAX_ATTEMPTS) {
-            console.log(
+            console.warn(
               `Retrying issue #${issue.number} with truncation attempt ${attempt + 1}`,
             );
             attempt++;

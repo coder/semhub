@@ -82,7 +82,7 @@ function SearchLayout({ children }: { children: React.ReactNode }) {
 }
 
 function ReposSearch() {
-  const { q, page} = Route.useSearch();
+  const { q, page } = Route.useSearch();
   const { data, isFetching, fetchNextPage, hasNextPage } =
     useSuspenseInfiniteQuery(issuesInfiniteQueryOptions({ q, page }));
 

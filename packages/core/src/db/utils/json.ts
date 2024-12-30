@@ -12,6 +12,7 @@ import type {
 } from "./json.d";
 
 export function jsonContains<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TColumn extends PgColumn<any, any, any>,
   // non-nullable added to deal with JSONB columns that can be null
   TPath extends PathsToStringProperty<NonNullable<ExtractColumnData<TColumn>>>,
@@ -26,6 +27,7 @@ export function jsonContains<
 
 // jsonArraySome checks if there's ANY element in the array where the specified field exists and is not null:
 export function jsonArraySome<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TColumn extends PgColumn<any, any, any>,
   TPath extends PathsToStringPropertyInArray<
     NonNullable<ExtractColumnData<TColumn>>
@@ -44,6 +46,7 @@ export function jsonArraySome<
 
 // checks if there's ANY element in the array where the specified field EQUALS a specific value:
 export function jsonArrayContains<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TColumn extends PgColumn<any, any, any>,
   TPath extends PathsToStringPropertyInArray<
     NonNullable<ExtractColumnData<TColumn>>

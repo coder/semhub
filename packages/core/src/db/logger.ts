@@ -27,6 +27,7 @@ export class EmbeddingAwareLogger implements Logger {
       return param;
     });
 
+    // eslint-disable-next-line no-console
     console.log({ query, params: simplifiedParams });
   }
 }
