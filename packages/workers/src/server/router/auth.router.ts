@@ -7,7 +7,7 @@ import { Resource } from "sst";
 import { createHmacDigest, verifyHmacDigest } from "@/core/util/crypto";
 import { getCookieOptions, githubLogin } from "@/auth/auth.constant";
 import { getDeps } from "@/deps";
-import type { Context } from "@/server";
+import type { Context } from "@/server/app";
 
 import { subjects } from "../../subjects";
 import { createSuccessResponse } from "../response";

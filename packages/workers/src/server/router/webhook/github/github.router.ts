@@ -9,7 +9,7 @@ import {
   installationSchema,
 } from "@/core/github/schema.webhook";
 import { getDeps } from "@/deps";
-import type { Context } from "@/server";
+import type { Context } from "@/server/app";
 
 import { handleGithubAppAuthorizationEvent } from "./github-app-authorization.event";
 import { handleInstallationRepositoriesEvent } from "./installation-repositories.event";

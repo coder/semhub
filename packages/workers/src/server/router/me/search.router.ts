@@ -3,7 +3,7 @@ import { Hono } from "hono";
 
 import { SemanticSearch } from "@/core/semsearch";
 import { getDeps } from "@/deps";
-import type { AuthedContext } from "@/server";
+import type { AuthedContext } from "@/server/app";
 import { createPaginatedResponse } from "@/server/response";
 import { meSearchSchema } from "@/server/router/schema/search.schema";
 

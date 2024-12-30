@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 
 import { getDeps } from "@/deps";
-import type { Context } from "@/server";
+import type { Context } from "@/server/app";
 
 import { createSuccessResponse } from "../response";
 

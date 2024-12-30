@@ -3,7 +3,7 @@ import { Hono } from "hono";
 
 import { SemanticSearch } from "@/core/semsearch";
 import { getDeps } from "@/deps";
-import type { Context } from "@/server";
+import type { Context } from "@/server/app";
 import { createPaginatedResponse } from "@/server/response";
 import { publicSearchSchema } from "@/server/router/schema/search.schema";
 
@@ -15,7 +15,6 @@ export const searchRouter = new Hono<Context>().get(
     const pageNumber = page ?? 1;
     const pageSize = 30;
 
-    console.log({ pageNumber, pageSize });
     const { db, openai } = getDeps();
 
     const { data: issues, totalCount } = await SemanticSearch.getIssues(

@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { CURRENT_REQUESTED_PERMISSIONS } from "@/core/github/permission/github-app";
 import { Installation } from "@/core/installation";
 import { getDeps } from "@/deps";
-import type { AuthedContext } from "@/server";
+import type { AuthedContext } from "@/server/app";
 import { createSuccessResponse } from "@/server/response";
 
 export const installationRouter = new Hono<AuthedContext>().get(

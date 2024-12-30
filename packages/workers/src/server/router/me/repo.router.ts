@@ -10,7 +10,7 @@ import { Installation } from "@/core/installation";
 import { Repo } from "@/core/repo";
 import { User } from "@/core/user";
 import { getDeps } from "@/deps";
-import type { AuthedContext } from "@/server";
+import type { AuthedContext } from "@/server/app";
 import { createSuccessResponse } from "@/server/response";
 import { initNextRepos } from "@/wrangler/workflows/sync/repo-init/init.workflow.util";
 

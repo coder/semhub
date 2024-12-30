@@ -7,7 +7,7 @@ import { Resource } from "sst";
 import { githubLogin } from "@/auth/auth.constant";
 import { subjects } from "@/subjects";
 
-import type { Context } from "..";
+import type { Context } from "../app";
 
 export const authMiddleware: MiddlewareHandler<Context> = async (c, next) => {
   const accessToken = getCookie(c, "access_token");

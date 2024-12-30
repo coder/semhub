@@ -1,7 +1,7 @@
 import { hc } from "hono/client";
 import type { ClientResponse } from "hono/client";
 
-import type { ApiRoutes } from "@/workers/server";
+import type { ApiRoutes } from "@/workers/server/app";
 import { isErrorResponse } from "@/workers/server/response";
 
 const apiUrl = import.meta.env.VITE_API_URL;

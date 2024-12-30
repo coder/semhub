@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 
-import type { AuthedContext } from "@/server";
+import type { AuthedContext } from "@/server/app";
 
 import { installationRouter } from "./installation.router";
 import { repoRouter } from "./repo.router";

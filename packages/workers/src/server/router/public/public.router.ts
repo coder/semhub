@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 
-import type { Context } from "@/server";
+import type { Context } from "@/server/app";
 
 import { searchRouter } from "./search.router";
 
