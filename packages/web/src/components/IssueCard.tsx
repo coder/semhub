@@ -140,7 +140,7 @@ function IssueTitleWithLabels({ issue }: { issue: Issue }) {
     const badgeElement = (
       <Badge
         variant="secondary"
-        className="inline-flex rounded-full px-2 py-0.5"
+        className="mx-1 inline-flex rounded-full px-2 py-0.5"
         style={{
           backgroundColor: `#${label.color}`,
           color: `${parseInt(label.color, 16) > 0x7fffff ? "#000" : "#fff"}`,
@@ -183,7 +183,7 @@ function IssueTitleWithLabels({ issue }: { issue: Issue }) {
         />
       </a>
       {issue.labels && issue.labels.length > 0 && (
-        <span className="ml-2 inline-flex gap-2">
+        <span className="ml-2 gap-2">
           {issue.labels.map((label) => (
             <span key={label.name}>{renderLabel(label)}</span>
           ))}
