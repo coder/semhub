@@ -115,6 +115,26 @@ function RepoTag({ issue }: { issue: Issue }) {
   );
 }
 
+function getScoreColor(score: number): string {
+  if (score >= 0.8) return "bg-green-100 text-green-800";
+  if (score >= 0.6) return "bg-blue-100 text-blue-800";
+  if (score >= 0.4) return "bg-yellow-100 text-yellow-800";
+  return "bg-gray-100 text-gray-800";
+}
+
+function ScoreBadge({ score }: { score: number }) {
+  const colorClass = getScoreColor(score);
+  return (
+    <FastTooltip content="Match score">
+      <span
+        className={`mr-1.5 inline-flex rounded-md px-1.5 py-0.5 text-sm font-medium ${colorClass}`}
+      >
+        {(score * 100).toFixed(1)}%
+      </span>
+    </FastTooltip>
+  );
+}
+
 function IssueTitleWithLabels({ issue }: { issue: Issue }) {
   const renderLabel = (label: Issue["labels"][number]) => {
     const badgeElement = (
@@ -145,6 +165,7 @@ function IssueTitleWithLabels({ issue }: { issue: Issue }) {
 
   return (
     <div className="min-w-0 grow text-lg font-semibold">
+      <ScoreBadge score={issue.rankingScore} />
       <a
         href={issue.issueUrl}
         target="_blank"
@@ -154,13 +175,10 @@ function IssueTitleWithLabels({ issue }: { issue: Issue }) {
         <span
           className="[word-break:break-word]"
           dangerouslySetInnerHTML={{
-            __html: DOMPurify.sanitize(
-              `(${(issue.rankingScore * 100).toFixed(1)}%) ${processTitle(issue.title)}`,
-              {
-                ALLOWED_TAGS: ["code"],
-                ALLOWED_ATTR: [],
-              },
-            ),
+            __html: DOMPurify.sanitize(processTitle(issue.title), {
+              ALLOWED_TAGS: ["code"],
+              ALLOWED_ATTR: [],
+            }),
           }}
         />
       </a>
