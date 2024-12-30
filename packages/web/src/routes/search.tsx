@@ -16,10 +16,14 @@ import {
   type PublicSearchSchema,
 } from "@/workers/server/router/schema/search.schema";
 
-const issuesInfiniteQueryOptions = ({ q, page, lucky }: PublicSearchSchema) => {
+const issuesInfiniteQueryOptions = ({
+  q,
+  lucky,
+}: Omit<PublicSearchSchema, "page">) => {
   return infiniteQueryOptions({
-    queryKey: queryKeys.issues.search.public({ q, page, lucky }),
-    queryFn: () => publicSearchIssues({ query: q, pageParam: page, lucky }),
+    queryKey: queryKeys.issues.search.public({ q, lucky }),
+    queryFn: ({ pageParam = 1 }) =>
+      publicSearchIssues({ query: q, pageParam, lucky }),
     initialPageParam: 1,
     staleTime: Infinity, // only re-fetch when query changes
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
@@ -33,12 +37,12 @@ const issuesInfiniteQueryOptions = ({ q, page, lucky }: PublicSearchSchema) => {
 
 export const Route = createFileRoute("/search")({
   validateSearch: publicSearchSchema,
-  loaderDeps: ({ search: { q, page, lucky } }) => ({ q, page, lucky }),
+  loaderDeps: ({ search: { q, lucky } }) => ({ q, lucky }),
   component: () => <Search />,
   pendingComponent: () => <SearchSkeleton />,
-  loader: ({ context, deps: { page, q, lucky } }) => {
+  loader: ({ context, deps: { q, lucky } }) => {
     context.queryClient.ensureInfiniteQueryData(
-      issuesInfiniteQueryOptions({ q, page, lucky }),
+      issuesInfiniteQueryOptions({ q, lucky }),
     );
   },
 });
@@ -83,9 +87,9 @@ function SearchLayout({ children }: { children: React.ReactNode }) {
 }
 
 function Search() {
-  const { q, page, lucky } = Route.useSearch();
+  const { q, lucky } = Route.useSearch();
   const { data, isFetching, fetchNextPage, hasNextPage } =
-    useSuspenseInfiniteQuery(issuesInfiniteQueryOptions({ q, page, lucky }));
+    useSuspenseInfiniteQuery(issuesInfiniteQueryOptions({ q, lucky }));
 
   const redirectUrl = lucky === "y" && data?.pages[0]?.data[0]?.issueUrl;
   if (redirectUrl) {

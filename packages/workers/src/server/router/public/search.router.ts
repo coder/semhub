@@ -15,13 +15,16 @@ export const searchRouter = new Hono<Context>().get(
     const pageNumber = page ?? 1;
     const pageSize = 30;
 
+    console.log({ pageNumber, pageSize });
     const { db, openai } = getDeps();
 
-    const issues = await SemanticSearch.getIssues(
+    const { data: issues, totalCount } = await SemanticSearch.getIssues(
       {
         query,
         mode: "public",
         lucky: lucky === "y",
+        page: pageNumber,
+        pageSize,
       },
       db,
       openai,
@@ -32,13 +35,12 @@ export const searchRouter = new Hono<Context>().get(
     //   const { issueUrl } = issues[0];
     //   return c.redirect(issueUrl);
     // }
-    const totalResults = issues.length;
     // infer type from data in future
     return c.json(
       createPaginatedResponse(
         issues,
         pageNumber,
-        Math.ceil(totalResults / pageSize),
+        Math.ceil(totalCount / pageSize),
         "Search results",
       ),
       200,

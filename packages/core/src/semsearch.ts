@@ -5,7 +5,17 @@ import {
   TIME_CONSTANTS,
 } from "./constants/search.constant";
 import type { DbClient } from "./db";
-import { and, cosineDistance, desc, eq, gt, ilike, or, sql } from "./db";
+import {
+  and,
+  cosineDistance,
+  count as countFn,
+  desc,
+  eq,
+  gt,
+  ilike,
+  or,
+  sql,
+} from "./db";
 import { comments } from "./db/schema/entities/comment.sql";
 import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
 import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
@@ -30,6 +40,7 @@ export namespace SemanticSearch {
     rateLimiter: RateLimiter,
   ) {
     const SIMILARITY_THRESHOLD = 0.15; // arbitrary threshold, to be tuned
+    const offset = (params.page - 1) * params.pageSize;
 
     const {
       substringQueries,
@@ -151,7 +162,7 @@ export namespace SemanticSearch {
             ),
           );
 
-    const selected = conditionalJoin
+    const baseQuery = conditionalJoin
       .groupBy(
         issueTable.id, // primary key covers all issues column
         repos.htmlUrl,
@@ -193,14 +204,33 @@ export namespace SemanticSearch {
           ...stateQueries.map((state) => convertToIssueStateSql(state)),
           ...[hasAllLabels(issueTable.id, labelQueries)],
         ),
-      )
-      .limit(params.mode === "public" && params.lucky ? 1 : 50);
-    const result = await selected;
-    return result;
+      );
+
+    // Get total count first
+    const [countResult] = await db
+      .select({ count: countFn() })
+      .from(baseQuery.as("countQuery"));
+
+    if (!countResult) {
+      throw new Error("Failed to get total count");
+    }
+    const totalCount = countResult.count;
+
+    // Get paginated results
+    const result = await (params.mode === "public" && params.lucky
+      ? baseQuery.limit(1)
+      : baseQuery.limit(params.pageSize).offset(offset));
+
+    return {
+      data: result,
+      totalCount: totalCount ?? 0,
+    };
   }
 }
 type BaseSearchParams = {
   query: string;
+  page: number;
+  pageSize: number;
 };
 
 type PublicSearchParams = BaseSearchParams & {

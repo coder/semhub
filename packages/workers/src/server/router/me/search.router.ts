@@ -17,23 +17,24 @@ export const searchRouter = new Hono<AuthedContext>().get(
 
     const { db, openai } = getDeps();
     const user = c.get("user");
-    const issues = await SemanticSearch.getIssues(
+    const { data: issues, totalCount } = await SemanticSearch.getIssues(
       {
         query,
         mode: "me",
         userId: user.id,
+        page: pageNumber,
+        pageSize,
       },
       db,
       openai,
       c.env.RATE_LIMITER,
     );
-    const totalResults = issues.length;
-    // infer type from data in future
+
     return c.json(
       createPaginatedResponse(
         issues,
         pageNumber,
-        Math.ceil(totalResults / pageSize),
+        Math.ceil(totalCount / pageSize),
         "Search results",
       ),
       200,
