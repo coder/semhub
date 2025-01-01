@@ -28,17 +28,17 @@ import { repos } from "./db/schema/entities/repo.sql";
 import { usersToRepos } from "./db/schema/entities/user-to-repo.sql";
 import { count, lower } from "./db/utils/general";
 import { jsonAggBuildObjectFromJoin, jsonContains } from "./db/utils/json";
-import { Embedding } from "./embedding";
+import { createEmbedding } from "./embedding";
 import type { OpenAIClient } from "./openai";
 import { parseSearchQuery } from "./semsearch.util";
 
-export namespace SemanticSearch {
-  export async function getIssues(
+export const SemanticSearch = {
+  getIssues: async (
     params: SearchParams,
     db: DbClient,
     openai: OpenAIClient,
     rateLimiter: RateLimiter,
-  ) {
+  ) => {
     const SIMILARITY_THRESHOLD = 0.15; // arbitrary threshold, to be tuned
     const offset = (params.page - 1) * params.pageSize;
 
@@ -54,7 +54,7 @@ export namespace SemanticSearch {
     } = parseSearchQuery(params.query);
 
     // Use the entire query for semantic search
-    const embedding = await Embedding.createEmbedding(
+    const embedding = await createEmbedding(
       {
         input: params.query,
         rateLimiter,
@@ -225,8 +225,9 @@ export namespace SemanticSearch {
       data: result,
       totalCount: totalCount ?? 0,
     };
-  }
-}
+  },
+};
+
 type BaseSearchParams = {
   query: string;
   page: number;

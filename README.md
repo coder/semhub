@@ -10,24 +10,7 @@ To develop using this repo, make sure you have installed the following:
 
 1. `core/`
 
-   This is for any shared code. It's defined as namespaces. For example, there's
-   the `Example` namespace.
-
-   ```ts
-   export namespace Example {
-     export function hello() {
-       return "Hello, world!";
-     }
-   }
-   ```
-
-   That you can use across other packages using.
-
-   ```ts
-   import { Example } from "@aws-monorepo/core/example";
-
-   Example.hello();
-   ```
+   This is for any shared code.
 
 2. `workers/`
 

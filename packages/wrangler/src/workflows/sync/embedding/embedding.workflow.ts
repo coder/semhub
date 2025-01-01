@@ -7,7 +7,12 @@ import { eq, inArray } from "@/core/db";
 import { issueEmbeddings } from "@/core/db/schema/entities/issue-embedding.sql";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
-import { Embedding } from "@/core/embedding";
+import {
+  createEmbeddings,
+  selectIssuesForEmbeddingCron,
+  selectIssuesForEmbeddingInit,
+  upsertIssueEmbeddings,
+} from "@/core/embedding";
 import { chunkArray } from "@/core/util/truncate";
 import { getDeps } from "@/deps";
 import { getEnvPrefix } from "@/util";
@@ -49,11 +54,8 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
       getDbStepConfig("medium"),
       async () => {
         return mode === "init"
-          ? await Embedding.selectIssuesForEmbeddingInit(
-              event.payload.issueIds,
-              db,
-            )
-          : await Embedding.selectIssuesForEmbeddingCron(
+          ? await selectIssuesForEmbeddingInit(event.payload.issueIds, db)
+          : await selectIssuesForEmbeddingCron(
               db,
               NUM_ISSUES_TO_EMBED_PER_CRON,
             );
@@ -74,7 +76,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         const embeddings = await step.do(
           `create embeddings for selected issues from API (batch ${idx + 1})`,
           async () => {
-            return await Embedding.createEmbeddings({
+            return await createEmbeddings({
               issues,
               rateLimiter: null,
               openai,
@@ -85,7 +87,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
           `upsert issue embeddings in db (batch ${idx + 1})`,
           getDbStepConfig("medium"),
           async () => {
-            await Embedding.upsertIssueEmbeddings(embeddings, db);
+            await upsertIssueEmbeddings(embeddings, db);
           },
         );
       };

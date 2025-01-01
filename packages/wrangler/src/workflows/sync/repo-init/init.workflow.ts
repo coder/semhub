@@ -6,7 +6,7 @@ import type { WranglerEnv } from "@/core/constants/wrangler.constant";
 import { eq, sql } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
-import { Github } from "@/core/github";
+import { getLatestGithubRepoIssues } from "@/core/github";
 import { Installation } from "@/core/installation";
 import { Repo, repoIssuesLastUpdatedSql } from "@/core/repo";
 import { getDeps } from "@/deps";
@@ -132,7 +132,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                   attempt++
                 ) {
                   const numIssues = getNumIssues(attempt);
-                  const result = await Github.getLatestRepoIssues({
+                  const result = await getLatestGithubRepoIssues({
                     repoId,
                     repoName,
                     repoOwner,

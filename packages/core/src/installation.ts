@@ -13,8 +13,8 @@ import { users } from "@/db/schema/entities/user.sql";
 import { repos } from "./db/schema/entities/repo.sql";
 import type { RestOctokit } from "./github/shared";
 
-export namespace Installation {
-  export async function getActiveGithubInstallationId({
+export const Installation = {
+  getActiveGithubInstallationId: async ({
     repoName,
     repoOwner,
     db,
@@ -27,7 +27,7 @@ export namespace Installation {
     repoName: string;
     repoOwner: string;
     restOctokitAppFactory: (installationId: number) => RestOctokit;
-  }) {
+  }) => {
     const [installation] = await db
       .select({
         repoId: repos.id,
@@ -122,8 +122,9 @@ export namespace Installation {
           `Unexpected installation target type: ${installationTargetType}`,
         );
     }
-  }
-  export function mapGithubTargetType(githubType: "Organization" | "User") {
+  },
+
+  mapGithubTargetType: (githubType: "Organization" | "User") => {
     switch (githubType) {
       case "Organization":
         return "organization" as const;
@@ -133,9 +134,9 @@ export namespace Installation {
         githubType satisfies never;
         throw new Error(`Unexpected GitHub target type: ${githubType}`);
     }
-  }
+  },
 
-  export async function getTargetId({
+  getTargetId: async ({
     targetType,
     nodeId,
     db,
@@ -143,7 +144,7 @@ export namespace Installation {
     targetType: "Organization" | "User";
     nodeId: string;
     db: DbClient;
-  }) {
+  }) => {
     switch (targetType) {
       case "Organization": {
         const [org] = await db
@@ -163,9 +164,9 @@ export namespace Installation {
         targetType satisfies never;
         throw new Error(`Not supported target type: ${targetType}`);
     }
-  }
+  },
 
-  export async function getInstallerUserId({
+  getInstallerUserId: async ({
     nodeId,
     installerType,
     db,
@@ -173,7 +174,7 @@ export namespace Installation {
     nodeId: string;
     installerType: "User" | "Organization" | "Bot";
     db: DbClient;
-  }) {
+  }) => {
     switch (installerType) {
       case "User": {
         const [user] = await db
@@ -190,9 +191,9 @@ export namespace Installation {
         installerType satisfies never;
         throw new Error(`Unexpected installer type: ${installerType}`);
     }
-  }
+  },
 
-  export async function userHasValidInstallation({
+  userHasValidInstallation: async ({
     userId,
     requiredPermissions,
     db,
@@ -200,7 +201,7 @@ export namespace Installation {
     userId: string;
     requiredPermissions: InstallationPermissions;
     db: DbClient;
-  }): Promise<boolean> {
+  }): Promise<boolean> => {
     // Build permission checks for the SQL query
     const permissionChecks = Object.entries(requiredPermissions).map(
       ([scope, requiredLevel]) => {
@@ -257,5 +258,5 @@ export namespace Installation {
       .limit(1);
 
     return !!validInstallation;
-  }
-}
+  },
+};

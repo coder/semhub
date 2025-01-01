@@ -1,4 +1,4 @@
-import { Github } from "@/core/github";
+import { getGithubRepoById } from "@/core/github";
 import { getDeps } from "@/deps";
 
 const { restOctokit } = getDeps();
@@ -6,7 +6,7 @@ const { restOctokit } = getDeps();
 try {
   // TODO: test and figure out response shape
   // const restOctokit = restOctokitAppFactory(1);
-  const res = await Github.getRepoById({
+  const res = await getGithubRepoById({
     githubRepoId: "123",
     octokit: restOctokit,
   });

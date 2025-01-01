@@ -7,7 +7,7 @@ import type { WranglerEnv } from "@/core/constants/wrangler.constant";
 import { installationsToRepos } from "@/core/db/schema/entities/installation-to-repo.sql";
 import { installations } from "@/core/db/schema/entities/installation.sql";
 import { sendEmail } from "@/core/email";
-import { Github } from "@/core/github";
+import { getGithubRepoById } from "@/core/github";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import { getEnvPrefix } from "@/util";
@@ -78,7 +78,7 @@ export class InstallationWorkflow extends WorkflowEntrypoint<
     // Process each pending repo
     for (const { githubRepoId } of pendingRepos) {
       const res = await step.do("get repo by id", async () => {
-        return await Github.getRepoById({
+        return await getGithubRepoById({
           githubRepoId,
           octokit: restOctokit,
         });

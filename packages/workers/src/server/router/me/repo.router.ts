@@ -4,7 +4,7 @@ import { HTTPException } from "hono/http-exception";
 
 import { and, eq } from "@/core/db";
 import { usersToRepos } from "@/core/db/schema/entities/user-to-repo.sql";
-import { Github } from "@/core/github";
+import { getGithubRepo } from "@/core/github";
 import { repoValidationSchema } from "@/core/github/schema.validation";
 import { Installation } from "@/core/installation";
 import { Repo } from "@/core/repo";
@@ -44,7 +44,7 @@ export const repoRouter = new Hono<AuthedContext>()
       });
     }
     const octokit = restOctokitAppFactory(res.githubInstallationId);
-    const retrieved = await Github.getRepo({
+    const retrieved = await getGithubRepo({
       repoName: repo,
       repoOwner: owner,
       octokit,
@@ -96,7 +96,7 @@ export const repoRouter = new Hono<AuthedContext>()
         );
       }
       // repo does not exist in db
-      const repoData = await Github.getRepo({
+      const repoData = await getGithubRepo({
         repoName: repo,
         repoOwner: owner,
         octokit: restOctokit,

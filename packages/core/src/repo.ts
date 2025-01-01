@@ -20,12 +20,12 @@ import { repos } from "@/db/schema/entities/repo.sql";
 import { usersToRepos } from "@/db/schema/entities/user-to-repo.sql";
 import { conflictUpdateOnly } from "@/db/utils/conflict";
 import { sanitizeForPg } from "@/db/utils/string";
-import type { Github } from "@/github";
 
 import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
+import type { getGithubRepo, getLatestGithubRepoIssues } from "./github";
 
-export namespace Repo {
-  export async function exists({
+export const Repo = {
+  exists: async ({
     owner,
     name,
     db,
@@ -33,7 +33,7 @@ export namespace Repo {
     owner: string;
     name: string;
     db: DbClient;
-  }) {
+  }) => {
     const [result] = await db
       .select({
         id: repos.id,
@@ -51,16 +51,17 @@ export namespace Repo {
       id: result.id,
       isPrivate: result.isPrivate,
     } as const;
-  }
-  export async function createRepo({
+  },
+
+  createRepo: async ({
     data,
     db,
     defaultInitStatus = "ready",
   }: {
-    data: NonNullable<Awaited<ReturnType<typeof Github.getRepo>>["data"]>;
+    data: NonNullable<Awaited<ReturnType<typeof getGithubRepo>>["data"]>;
     db: DbClient;
     defaultInitStatus?: "ready" | "pending";
-  }) {
+  }) => {
     const {
       owner: { login: ownerLogin, avatar_url: ownerAvatarUrl },
       name,
@@ -100,8 +101,9 @@ export namespace Repo {
       throw new Error("Failed to create repo");
     }
     return result;
-  }
-  export async function getNextEnqueuedRepo(db: DbClient) {
+  },
+
+  getNextEnqueuedRepo: async (db: DbClient) => {
     return await db.transaction(async (tx) => {
       const [repo] = await tx
         .select({
@@ -134,8 +136,9 @@ export namespace Repo {
         .where(eq(repos.id, repo.repoId));
       return repo;
     });
-  }
-  export async function enqueueReposForIssueSync(db: DbClient) {
+  },
+
+  enqueueReposForIssueSync: async (db: DbClient) => {
     return await db
       .update(repos)
       .set({
@@ -155,19 +158,19 @@ export namespace Repo {
       .returning({
         repoId: repos.id,
       });
-  }
-  // return issueIds to be used for embeddings update
-  export async function upsertIssuesCommentsLabels(
+  },
+
+  upsertIssuesCommentsLabels: async (
     {
       issuesToInsert,
       commentsToInsert,
       labelsToInsert,
       issueToLabelRelationsToInsertNodeIds,
     }: Awaited<
-      ReturnType<typeof Github.getLatestRepoIssues>
+      ReturnType<typeof getLatestGithubRepoIssues>
     >["issuesAndCommentsLabels"],
     db: DbClient,
-  ) {
+  ) => {
     const sanitizedIssuesToInsert = issuesToInsert.map((issue) => ({
       ...issue,
       title: sanitizeForPg(issue.title),
@@ -278,9 +281,9 @@ export namespace Repo {
       }
       return insertedIssueIds.map(({ id }) => id);
     });
-  }
+  },
 
-  export async function getInitInProgressCount(db: DbClient) {
+  getInitInProgressCount: async (db: DbClient) => {
     const [countRes] = await db
       .select({
         count: count(),
@@ -289,9 +292,9 @@ export namespace Repo {
       .where(eq(repos.initStatus, "in_progress"));
 
     return countRes?.count ?? 0;
-  }
+  },
 
-  export async function getInitReadyRepos(db: DbClient, numRepos: number) {
+  getInitReadyRepos: async (db: DbClient, numRepos: number) => {
     const result = await db
       .select({
         repoId: repos.id,
@@ -305,16 +308,16 @@ export namespace Repo {
       .limit(numRepos);
 
     return result;
-  }
+  },
 
-  export async function markInitInProgress(db: DbClient, repoIds: string[]) {
+  markInitInProgress: async (db: DbClient, repoIds: string[]) => {
     await db
       .update(repos)
       .set({ initStatus: "in_progress" })
       .where(inArray(repos.id, repoIds));
-  }
+  },
 
-  export async function getSubscribedRepos(userId: string, db: DbClient) {
+  getSubscribedRepos: async (userId: string, db: DbClient) => {
     return db
       .select({
         id: repos.id,
@@ -341,14 +344,15 @@ export namespace Repo {
         ),
       )
       .orderBy(desc(usersToRepos.subscribedAt));
-  }
-  export async function setPrivateRepoToReady(repoId: string, db: DbClient) {
+  },
+
+  setPrivateRepoToReady: async (repoId: string, db: DbClient) => {
     await db
       .update(repos)
       .set({ initStatus: "ready" })
       .where(eq(repos.id, repoId));
-  }
-}
+  },
+};
 
 export function repoIssuesLastUpdatedSql(
   repoTable: typeof repos,
