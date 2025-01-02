@@ -80,6 +80,7 @@ export const SemanticSearch = {
         })
         .from(issueEmbeddings)
         .orderBy(cosineDistance(issueEmbeddings.embedding, embedding))
+        .limit(5000) // important to have limit to get postgres to use HNSW index
         .as("vector_search");
 
       // Exponential decay for recency score
