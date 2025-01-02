@@ -25,7 +25,6 @@ import {
 import { hasAllLabels, labels } from "./db/schema/entities/label.sql";
 import { repos } from "./db/schema/entities/repo.sql";
 import { usersToRepos } from "./db/schema/entities/user-to-repo.sql";
-import { explainAnalyze } from "./db/utils/explain";
 import { count, lower } from "./db/utils/general";
 import { jsonAggBuildObjectFromJoin, jsonContains } from "./db/utils/json";
 import { createEmbedding } from "./embedding";
@@ -238,7 +237,7 @@ export const SemanticSearch = {
           ? baseQuery.limit(1)
           : baseQuery.limit(params.pageSize).offset(offset);
 
-      const result = await explainAnalyze(tx, finalQuery);
+      const result = await finalQuery;
       return {
         data: result,
         totalCount: totalCount ?? 0,
@@ -248,7 +247,6 @@ export const SemanticSearch = {
       data,
       totalCount,
     };
-    // const result = await finalQuery;
   },
 };
 
