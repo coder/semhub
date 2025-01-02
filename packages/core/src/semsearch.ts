@@ -66,6 +66,8 @@ export const SemanticSearch = {
     const { data, totalCount } = await db.transaction(async (tx) => {
       // Increase ef_search to get more candidates from HNSW
       await tx.execute(sql`SET LOCAL hnsw.ef_search = 1000;`);
+      // Enable iterative index scanning for better result quality
+      await tx.execute(sql`SET LOCAL hnsw.iterative_scan = 'strict_order';`);
 
       // Stage 1: Vector search using HNSW index with increased ef_search
       const vectorSearchSubquery = tx
