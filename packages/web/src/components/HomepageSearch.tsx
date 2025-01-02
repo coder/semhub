@@ -22,10 +22,10 @@ export function HomepageSearch() {
             </h1>
             {/* Dark mode version */}
             <h1 className="absolute inset-0 hidden items-center justify-center rounded px-4 py-2 font-sans text-6xl dark:flex">
-              <span className="font-semibold text-white">Sem</span>
               <span className="ml-1 rounded-lg bg-[#F0931B] px-2 py-1 font-semibold text-black">
-                Hub
+                Sem
               </span>
+              <span className="font-semibold text-white">Hub</span>
             </h1>
           </div>
         </Link>
