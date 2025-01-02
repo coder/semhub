@@ -38,8 +38,7 @@ export const SemanticSearch = {
     openai: OpenAIClient,
     rateLimiter: RateLimiter,
   ) => {
-    // const SIMILARITY_THRESHOLD = 0.0001; // Lowered from 0.15 to get more candidates
-    // const SIMILARITY_LIMIT = 5000; // Limit for first-stage vector search
+    const SIMILARITY_LIMIT = 5000; // Limit for first-stage vector search
     const offset = (params.page - 1) * params.pageSize;
 
     const {
@@ -79,7 +78,7 @@ export const SemanticSearch = {
         })
         .from(issueEmbeddings)
         .orderBy(cosineDistance(issueEmbeddings.embedding, embedding))
-        .limit(5000) // important to have limit to get postgres to use HNSW index
+        .limit(SIMILARITY_LIMIT) // important to have limit to get postgres to use HNSW index
         .as("vector_search");
 
       // Exponential decay for recency score
