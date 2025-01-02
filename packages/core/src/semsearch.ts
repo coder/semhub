@@ -25,7 +25,7 @@ import {
 import { hasAllLabels, labels } from "./db/schema/entities/label.sql";
 import { repos } from "./db/schema/entities/repo.sql";
 import { usersToRepos } from "./db/schema/entities/user-to-repo.sql";
-import { count, lower } from "./db/utils/general";
+import { lower } from "./db/utils/general";
 import { jsonAggBuildObjectFromJoin, jsonContains } from "./db/utils/json";
 import { createEmbedding } from "./embedding";
 import type { OpenAIClient } from "./openai";
@@ -38,7 +38,7 @@ export const SemanticSearch = {
     openai: OpenAIClient,
     rateLimiter: RateLimiter,
   ) => {
-    const SIMILARITY_LIMIT = 5000; // Limit for first-stage vector search
+    const SIMILARITY_LIMIT = 1000; // Limit for first-stage vector search - reduced from 1000 to get fewer candidates while still having enough for reranking
     const offset = (params.page - 1) * params.pageSize;
 
     const {
@@ -106,7 +106,7 @@ export const SemanticSearch = {
       // 50 comments ≈ 3.9
       // Then normalize to 0-1 range by dividing by ln(50 + 1)
       const commentScore = sql<number>`
-      LN(GREATEST(count(${comments.id})::float + 1, 1)) /
+      LN(GREATEST((SELECT count(*) FROM ${comments} WHERE ${comments.issueId} = ${issueTable.id})::float + 1, 1)) /
       LN(51)  -- ln(50 + 1) ≈ 3.93 as normalizing factor
     `;
 
@@ -156,14 +156,16 @@ export const SemanticSearch = {
           repoUrl: repos.htmlUrl,
           repoOwnerName: repos.ownerLogin,
           repoLastSyncedAt: repos.lastSyncedAt,
-          commentCount: count(comments.id).as("comment_count"),
+          commentCount:
+            sql<number>`(SELECT count(*) FROM ${comments} WHERE ${comments.issueId} = ${issueTable.id})`.as(
+              "comment_count",
+            ),
           similarityScore,
           rankingScore,
         })
         .from(vectorSearchSubquery)
         .innerJoin(issueTable, eq(vectorSearchSubquery.issueId, issueTable.id))
-        .leftJoin(repos, eq(issueTable.repoId, repos.id))
-        .leftJoin(comments, eq(comments.issueId, issueTable.id));
+        .leftJoin(repos, eq(issueTable.repoId, repos.id));
 
       const conditionalJoin =
         params.mode === "public"
@@ -178,47 +180,37 @@ export const SemanticSearch = {
               ),
             );
 
-      const baseQuery = conditionalJoin
-        .groupBy(
-          issueTable.id, // primary key covers all issues column
-          repos.htmlUrl,
-          repos.name,
-          repos.ownerLogin,
-          repos.lastSyncedAt,
-          vectorSearchSubquery.distance,
-        )
-        .orderBy(desc(rankingScore))
-        .where(
-          and(
-            eq(repos.initStatus, "completed"),
-            params.mode === "public" ? eq(repos.isPrivate, false) : undefined,
-            ...substringQueries.map((subQuery) =>
-              or(
-                ilike(issueTable.title, `%${subQuery}%`),
-                ilike(issueTable.body, `%${subQuery}%`),
-              ),
-            ),
-            ...titleQueries.map((subQuery) =>
+      const baseQuery = conditionalJoin.orderBy(desc(rankingScore)).where(
+        and(
+          eq(repos.initStatus, "completed"),
+          params.mode === "public" ? eq(repos.isPrivate, false) : undefined,
+          ...substringQueries.map((subQuery) =>
+            or(
               ilike(issueTable.title, `%${subQuery}%`),
-            ),
-            ...bodyQueries.map((subQuery) =>
               ilike(issueTable.body, `%${subQuery}%`),
             ),
-            ...authorQueries.map((subQuery) =>
-              // cannot use ILIKE because name is stored in JSONB
-              eq(
-                lower(jsonContains(issueTable.author, "name")),
-                subQuery.toLowerCase(),
-              ),
-            ),
-            ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
-            ...ownerQueries.map((subQuery) =>
-              ilike(repos.ownerLogin, `${subQuery}`),
-            ),
-            ...stateQueries.map((state) => convertToIssueStateSql(state)),
-            ...[hasAllLabels(issueTable.id, labelQueries)],
           ),
-        );
+          ...titleQueries.map((subQuery) =>
+            ilike(issueTable.title, `%${subQuery}%`),
+          ),
+          ...bodyQueries.map((subQuery) =>
+            ilike(issueTable.body, `%${subQuery}%`),
+          ),
+          ...authorQueries.map((subQuery) =>
+            // cannot use ILIKE because name is stored in JSONB
+            eq(
+              lower(jsonContains(issueTable.author, "name")),
+              subQuery.toLowerCase(),
+            ),
+          ),
+          ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
+          ...ownerQueries.map((subQuery) =>
+            ilike(repos.ownerLogin, `${subQuery}`),
+          ),
+          ...stateQueries.map((state) => convertToIssueStateSql(state)),
+          ...[hasAllLabels(issueTable.id, labelQueries)],
+        ),
+      );
 
       // Get total count first
       const [countResult] = await tx
