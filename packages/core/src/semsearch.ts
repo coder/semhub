@@ -39,7 +39,6 @@ export const SemanticSearch = {
     openai: OpenAIClient,
     rateLimiter: RateLimiter,
   ) => {
-    const SIMILARITY_LIMIT = 1000; // Limit for first-stage vector search - reduced from 1000 to get fewer candidates while still having enough for reranking
     const offset = (params.page - 1) * params.pageSize;
 
     const {
@@ -63,13 +62,18 @@ export const SemanticSearch = {
     );
 
     const { data, totalCount } = await db.transaction(async (tx) => {
-      // Increase ef_search to get more candidates from HNSW
-      await tx.execute(sql`SET LOCAL hnsw.ef_search = 1000;`);
-      // tried modifying `hnsw.iterative_scan` but this resulted in sequential scans
-      // for more results, probably should try IVFFlat index instead of HNSW
-      // see https://github.com/pgvector/pgvector/issues/560
+      // current search DOES NOT rely on HNSW index
+      // rather, it applies deterministic filters first, then uses vector comparisons
+      // the time taken scales linearly with number of candidates
+      // which is not great but currently takes 500ms or so (which is a small part of the total time)
+      // the issue with HNSW solution is that, after applying filters, it returns very few results
 
-      // Stage 1: Vector search using HNSW index with increased ef_search
+      // other possible solutions are:
+      // (1) look into using hnsw.iterative_scan (previous attempt idd not work well)
+      // (2) try IVFFlat index instead of HNSW (see https://github.com/pgvector/pgvector/issues/560)
+      // the code prior to this change actually made use of HNSW index
+      // see : https://github.com/coder/semhub/pull/32 for
+
       const vectorSearchSubquery = tx
         .select({
           id: issueTable.id,
@@ -161,7 +165,6 @@ export const SemanticSearch = {
           ),
         )
         .orderBy(cosineDistance(issueEmbeddings.embedding, embedding))
-        .limit(SIMILARITY_LIMIT) // important to have limit to get postgres to use HNSW index
         .as("vector_search");
 
       // Exponential decay for recency score
