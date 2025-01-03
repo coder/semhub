@@ -25,7 +25,6 @@ import {
 import { hasAllLabels, labels } from "./db/schema/entities/label.sql";
 import { repos } from "./db/schema/entities/repo.sql";
 import { usersToRepos } from "./db/schema/entities/user-to-repo.sql";
-import { explainAnalyze } from "./db/utils/explain";
 import { lower } from "./db/utils/general";
 import { jsonAggBuildObjectFromJoin, jsonContains } from "./db/utils/json";
 import { createEmbedding } from "./embedding";
@@ -539,7 +538,7 @@ async function filterBeforeVectorSearch(
         ? joinedQuery.limit(1)
         : joinedQuery.limit(params.pageSize).offset(offset);
 
-    const result = await explainAnalyze(tx, finalQuery);
+    const result = await finalQuery;
     return {
       data: result,
       totalCount: totalCount ?? 0,
