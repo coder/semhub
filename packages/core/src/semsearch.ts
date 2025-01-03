@@ -1,10 +1,5 @@
 import type { RateLimiter } from "./constants/rate-limit.constant";
-import {
-  RANKING_WEIGHTS,
-  SCORE_MULTIPLIERS,
-  TIME_CONSTANTS,
-} from "./constants/search.constant";
-import type { DbClient } from "./db";
+import type { DbClient, SQL } from "./db";
 import {
   and,
   cosineDistance,
@@ -29,6 +24,13 @@ import { lower } from "./db/utils/general";
 import { jsonAggBuildObjectFromJoin, jsonContains } from "./db/utils/json";
 import { createEmbedding } from "./embedding";
 import type { OpenAIClient } from "./openai";
+import {
+  calculateCommentScore,
+  calculateRankingScore,
+  calculateRecencyScore,
+  calculateSimilarityScore,
+} from "./semsearch.ranking";
+import type { SearchParams } from "./semsearch.types";
 import { parseSearchQuery } from "./semsearch.util";
 
 export async function searchIssues(
@@ -51,6 +53,7 @@ export async function searchIssues(
     ),
   ]);
   const useHnswIndex = matchingCount > ISSUE_COUNT_THRESHOLD;
+  console.log({ matchingCount, useHnswIndex });
   // we are currently doing a hybrid search
   // if matchingCount is greater than ISSUE_COUNT_THRESHOLD, we search across all issues
   // using HNSW index and apply the filter afterwards
@@ -169,9 +172,6 @@ async function filterAfterVectorSearch(
   return await db.transaction(async (tx) => {
     // Increase ef_search to get more candidates from HNSW
     await tx.execute(sql`SET LOCAL hnsw.ef_search = 1000;`);
-    // tried modifying `hnsw.iterative_scan` but this resulted in sequential scans
-    // for more results, probably should try IVFFlat index instead of HNSW
-    // see https://github.com/pgvector/pgvector/issues/560
 
     // Stage 1: Vector search using HNSW index with increased ef_search
     const vectorSearchSubquery = tx
@@ -183,53 +183,20 @@ async function filterAfterVectorSearch(
       })
       .from(issueEmbeddings)
       .orderBy(cosineDistance(issueEmbeddings.embedding, embedding))
-      .limit(SIMILARITY_LIMIT) // important to have limit to get postgres to use HNSW index
+      .limit(SIMILARITY_LIMIT)
       .as("vector_search");
 
-    // Exponential decay for recency score
-    // exp(-t/τ) where:
-    // t is time elapsed in days
-    // τ (tau) is the characteristic decay time in days
-    // After 30 days (RECENCY_BASE_DAYS), score will be ~0.37 (1/e)
-    // After 60 days, score will be ~0.14 (1/e²)
-    // Score approaches but never reaches 0
-    const recencyScore = sql<number>`
-      EXP(
-        -1.0 *
-        EXTRACT(EPOCH FROM (NOW() - ${issueTable.issueUpdatedAt}))::float /
-        (86400 * ${TIME_CONSTANTS.RECENCY_BASE_DAYS})  -- Convert decay time to seconds
-      )::float
-    `;
-
-    // Logarithmic comment score normalization
-    // ln(x + 1) gives us:
-    // 0 comments = 0.0
-    // 4 comments ≈ 1.6
-    // 5 comments ≈ 1.8
-    // 10 comments ≈ 2.4
-    // 20 comments ≈ 3.0
-    // 50 comments ≈ 3.9
-    // Then normalize to 0-1 range by dividing by ln(50 + 1)
-    const commentScore = sql<number>`
-      LN(GREATEST((SELECT count(*) FROM ${comments} WHERE ${comments.issueId} = ${issueTable.id})::float + 1, 1)) /
-      LN(51)  -- ln(50 + 1) ≈ 3.93 as normalizing factor
-    `;
-
-    // Convert vector distance to similarity score (1 - distance)
-    const similarityScore = sql<number>`(1 - ${vectorSearchSubquery.distance})::float`;
-
-    // Combined ranking score
-    const rankingScore = sql<number>`
-      (${RANKING_WEIGHTS.SEMANTIC_SIMILARITY}::float * ${similarityScore}) +
-      (${RANKING_WEIGHTS.RECENCY}::float * ${recencyScore}) +
-      (${RANKING_WEIGHTS.COMMENT_COUNT}::float * ${commentScore}) +
-      (${RANKING_WEIGHTS.ISSUE_STATE}::float * (
-        CASE
-          WHEN ${issueTable.issueState} = 'OPEN' THEN ${SCORE_MULTIPLIERS.OPEN_ISSUE}::float
-          ELSE ${SCORE_MULTIPLIERS.CLOSED_ISSUE}::float
-        END
-      ))
-    `;
+    const recencyScore = calculateRecencyScore(issueTable.issueUpdatedAt);
+    const commentScore = calculateCommentScore(issueTable.id);
+    const similarityScore = calculateSimilarityScore(
+      vectorSearchSubquery.distance,
+    );
+    const rankingScore = calculateRankingScore({
+      similarityScore,
+      recencyScore,
+      commentScore,
+      issueState: issueTable.issueState,
+    });
 
     // Stage 2: Join and re-rank with additional features
     const base = tx
@@ -281,41 +248,41 @@ async function filterAfterVectorSearch(
               eq(usersToRepos.repoId, repos.id),
               eq(usersToRepos.userId, params.userId),
               eq(usersToRepos.status, "active"),
-              // can add unsubscribedAt not null?
             ),
           );
 
-    const baseQuery = conditionalJoin.orderBy(desc(rankingScore)).where(
-      and(
-        eq(repos.initStatus, "completed"),
-        params.mode === "public" ? eq(repos.isPrivate, false) : undefined,
-        ...substringQueries.map((subQuery) =>
-          or(
+    const baseQuery = conditionalJoin
+      .orderBy(desc(rankingScore))
+      .where(
+        and(
+          eq(repos.initStatus, "completed"),
+          params.mode === "public" ? eq(repos.isPrivate, false) : undefined,
+          ...substringQueries.map((subQuery) =>
+            or(
+              ilike(issueTable.title, `%${subQuery}%`),
+              ilike(issueTable.body, `%${subQuery}%`),
+            ),
+          ),
+          ...titleQueries.map((subQuery) =>
             ilike(issueTable.title, `%${subQuery}%`),
+          ),
+          ...bodyQueries.map((subQuery) =>
             ilike(issueTable.body, `%${subQuery}%`),
           ),
-        ),
-        ...titleQueries.map((subQuery) =>
-          ilike(issueTable.title, `%${subQuery}%`),
-        ),
-        ...bodyQueries.map((subQuery) =>
-          ilike(issueTable.body, `%${subQuery}%`),
-        ),
-        ...authorQueries.map((subQuery) =>
-          // cannot use ILIKE because name is stored in JSONB
-          eq(
-            lower(jsonContains(issueTable.author, "name")),
-            subQuery.toLowerCase(),
+          ...authorQueries.map((subQuery) =>
+            eq(
+              lower(jsonContains(issueTable.author, "name")),
+              subQuery.toLowerCase(),
+            ),
           ),
+          ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
+          ...ownerQueries.map((subQuery) =>
+            ilike(repos.ownerLogin, `${subQuery}`),
+          ),
+          ...stateQueries.map((state) => convertToIssueStateSql(state)),
+          ...[hasAllLabels(issueTable.id, labelQueries)],
         ),
-        ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
-        ...ownerQueries.map((subQuery) =>
-          ilike(repos.ownerLogin, `${subQuery}`),
-        ),
-        ...stateQueries.map((state) => convertToIssueStateSql(state)),
-        ...[hasAllLabels(issueTable.id, labelQueries)],
-      ),
-    );
+      );
 
     // Get total count first
     const [countResult] = await tx
@@ -336,7 +303,7 @@ async function filterAfterVectorSearch(
     const result = await finalQuery;
     return {
       data: result,
-      totalCount: totalCount ?? 0,
+      totalCount,
     };
   });
 }
@@ -416,9 +383,9 @@ async function filterBeforeVectorSearch(
               eq(usersToRepos.repoId, repos.id),
               eq(usersToRepos.userId, params.userId),
               eq(usersToRepos.status, "active"),
-              // can add unsubscribedAt not null?
             ),
           );
+
     const finalVectorSearchSubquery = conditionalJoin
       .where(
         and(
@@ -435,7 +402,6 @@ async function filterBeforeVectorSearch(
             ilike(issueTable.body, `%${subQuery}%`),
           ),
           ...authorQueries.map((subQuery) =>
-            // cannot use ILIKE because name is stored in JSONB
             eq(
               lower(jsonContains(issueTable.author, "name")),
               subQuery.toLowerCase(),
@@ -452,50 +418,19 @@ async function filterBeforeVectorSearch(
       .orderBy(cosineDistance(issueEmbeddings.embedding, embedding))
       .as("vector_search");
 
-    // Exponential decay for recency score
-    // exp(-t/τ) where:
-    // t is time elapsed in days
-    // τ (tau) is the characteristic decay time in days
-    // After 30 days (RECENCY_BASE_DAYS), score will be ~0.37 (1/e)
-    // After 60 days, score will be ~0.14 (1/e²)
-    // Score approaches but never reaches 0
-    const recencyScore = sql<number>`
-      EXP(
-        -1.0 *
-        EXTRACT(EPOCH FROM (NOW() - ${finalVectorSearchSubquery.issueUpdatedAt}))::float /
-        (86400 * ${TIME_CONSTANTS.RECENCY_BASE_DAYS})  -- Convert decay time to seconds
-      )::float
-    `;
-
-    // Logarithmic comment score normalization
-    // ln(x + 1) gives us:
-    // 0 comments = 0.0
-    // 4 comments ≈ 1.6
-    // 5 comments ≈ 1.8
-    // 10 comments ≈ 2.4
-    // 20 comments ≈ 3.0
-    // 50 comments ≈ 3.9
-    // Then normalize to 0-1 range by dividing by ln(50 + 1)
-    const commentScore = sql<number>`
-      LN(GREATEST((${finalVectorSearchSubquery.commentCount})::float + 1, 1)) /
-      LN(51)  -- ln(50 + 1) ≈ 3.93 as normalizing factor
-    `;
-
-    // Convert vector distance to similarity score (1 - distance)
-    const similarityScore = sql<number>`(1 - ${finalVectorSearchSubquery.distance})::float`;
-
-    // Combined ranking score
-    const rankingScore = sql<number>`
-      (${RANKING_WEIGHTS.SEMANTIC_SIMILARITY}::float * ${similarityScore}) +
-      (${RANKING_WEIGHTS.RECENCY}::float * ${recencyScore}) +
-      (${RANKING_WEIGHTS.COMMENT_COUNT}::float * ${commentScore}) +
-      (${RANKING_WEIGHTS.ISSUE_STATE}::float * (
-        CASE
-          WHEN ${finalVectorSearchSubquery.issueState} = 'OPEN' THEN ${SCORE_MULTIPLIERS.OPEN_ISSUE}::float
-          ELSE ${SCORE_MULTIPLIERS.CLOSED_ISSUE}::float
-        END
-      ))
-    `;
+    const recencyScore = calculateRecencyScore(
+      finalVectorSearchSubquery.issueUpdatedAt,
+    );
+    const commentScore = calculateCommentScore(finalVectorSearchSubquery.id);
+    const similarityScore = calculateSimilarityScore(
+      finalVectorSearchSubquery.distance,
+    );
+    const rankingScore = calculateRankingScore({
+      similarityScore,
+      recencyScore,
+      commentScore,
+      issueState: finalVectorSearchSubquery.issueState,
+    });
 
     // Stage 2: Join and re-rank with additional features
     const joinedQuery = tx
@@ -541,24 +476,7 @@ async function filterBeforeVectorSearch(
     const result = await finalQuery;
     return {
       data: result,
-      totalCount: totalCount ?? 0,
+      totalCount,
     };
   });
 }
-type BaseSearchParams = {
-  query: string;
-  page: number;
-  pageSize: number;
-};
-
-type PublicSearchParams = BaseSearchParams & {
-  mode: "public";
-  lucky?: boolean;
-};
-
-type MeSearchParams = BaseSearchParams & {
-  mode: "me";
-  userId: string;
-};
-
-type SearchParams = PublicSearchParams | MeSearchParams;
