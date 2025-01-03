@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 
-import { SemanticSearch } from "@/core/semsearch";
+import { searchIssues } from "@/core/semsearch";
 import { getDeps } from "@/deps";
 import type { AuthedContext } from "@/server/app";
 import { createPaginatedResponse } from "@/server/response";
@@ -17,7 +17,7 @@ export const searchRouter = new Hono<AuthedContext>().get(
 
     const { db, openai } = getDeps();
     const user = c.get("user");
-    const { data: issues, totalCount } = await SemanticSearch.getIssues(
+    const { data: issues, totalCount } = await searchIssues(
       {
         query,
         mode: "me",
