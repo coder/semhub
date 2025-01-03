@@ -25,6 +25,7 @@ import {
 import { hasAllLabels, labels } from "./db/schema/entities/label.sql";
 import { repos } from "./db/schema/entities/repo.sql";
 import { usersToRepos } from "./db/schema/entities/user-to-repo.sql";
+import { explainAnalyze } from "./db/utils/explain";
 import { lower } from "./db/utils/general";
 import { jsonAggBuildObjectFromJoin, jsonContains } from "./db/utils/json";
 import { createEmbedding } from "./embedding";
@@ -71,64 +72,6 @@ export const SemanticSearch = {
       // Stage 1: Vector search using HNSW index with increased ef_search
       const vectorSearchSubquery = tx
         .select({
-          issueId: issueEmbeddings.issueId,
-          distance: cosineDistance(issueEmbeddings.embedding, embedding).as(
-            "distance",
-          ),
-        })
-        .from(issueEmbeddings)
-        .orderBy(cosineDistance(issueEmbeddings.embedding, embedding))
-        .limit(SIMILARITY_LIMIT) // important to have limit to get postgres to use HNSW index
-        .as("vector_search");
-
-      // Exponential decay for recency score
-      // exp(-t/τ) where:
-      // t is time elapsed in days
-      // τ (tau) is the characteristic decay time in days
-      // After 30 days (RECENCY_BASE_DAYS), score will be ~0.37 (1/e)
-      // After 60 days, score will be ~0.14 (1/e²)
-      // Score approaches but never reaches 0
-      const recencyScore = sql<number>`
-      EXP(
-        -1.0 *
-        EXTRACT(EPOCH FROM (NOW() - ${issueTable.issueUpdatedAt}))::float /
-        (86400 * ${TIME_CONSTANTS.RECENCY_BASE_DAYS})  -- Convert decay time to seconds
-      )::float
-    `;
-
-      // Logarithmic comment score normalization
-      // ln(x + 1) gives us:
-      // 0 comments = 0.0
-      // 4 comments ≈ 1.6
-      // 5 comments ≈ 1.8
-      // 10 comments ≈ 2.4
-      // 20 comments ≈ 3.0
-      // 50 comments ≈ 3.9
-      // Then normalize to 0-1 range by dividing by ln(50 + 1)
-      const commentScore = sql<number>`
-      LN(GREATEST((SELECT count(*) FROM ${comments} WHERE ${comments.issueId} = ${issueTable.id})::float + 1, 1)) /
-      LN(51)  -- ln(50 + 1) ≈ 3.93 as normalizing factor
-    `;
-
-      // Convert vector distance to similarity score (1 - distance)
-      const similarityScore = sql<number>`(1 - ${vectorSearchSubquery.distance})::float`;
-
-      // Combined ranking score
-      const rankingScore = sql<number>`
-      (${RANKING_WEIGHTS.SEMANTIC_SIMILARITY}::float * ${similarityScore}) +
-      (${RANKING_WEIGHTS.RECENCY}::float * ${recencyScore}) +
-      (${RANKING_WEIGHTS.COMMENT_COUNT}::float * ${commentScore}) +
-      (${RANKING_WEIGHTS.ISSUE_STATE}::float * (
-        CASE
-          WHEN ${issueTable.issueState} = 'OPEN' THEN ${SCORE_MULTIPLIERS.OPEN_ISSUE}::float
-          ELSE ${SCORE_MULTIPLIERS.CLOSED_ISSUE}::float
-        END
-      ))
-    `;
-
-      // Stage 2: Join and re-rank with additional features
-      const base = tx
-        .select({
           id: issueTable.id,
           number: issueTable.number,
           title: issueTable.title,
@@ -144,8 +87,8 @@ export const SemanticSearch = {
               joinCondition: eq(labels.id, issuesToLabels.labelId),
               whereCondition: eq(issuesToLabels.issueId, issueTable.id),
             },
-          ),
-          issueUrl: issueTable.htmlUrl,
+          ).as("labels"),
+          issueUrl: sql<string>`${issueTable.htmlUrl}`.as("issueUrl"),
           author: issueTable.author,
           issueState: issueTable.issueState,
           issueStateReason: issueTable.issueStateReason,
@@ -153,24 +96,32 @@ export const SemanticSearch = {
           issueClosedAt: issueTable.issueClosedAt,
           issueUpdatedAt: issueTable.issueUpdatedAt,
           repoName: repos.name,
-          repoUrl: repos.htmlUrl,
+          repoUrl: sql<string>`${repos.htmlUrl}`.as("repoUrl"),
           repoOwnerName: repos.ownerLogin,
           repoLastSyncedAt: repos.lastSyncedAt,
           commentCount:
             sql<number>`(SELECT count(*) FROM ${comments} WHERE ${comments.issueId} = ${issueTable.id})`.as(
               "comment_count",
             ),
-          similarityScore,
-          rankingScore,
+          distance: cosineDistance(issueEmbeddings.embedding, embedding).as(
+            "distance",
+          ),
         })
-        .from(vectorSearchSubquery)
-        .innerJoin(issueTable, eq(vectorSearchSubquery.issueId, issueTable.id))
-        .leftJoin(repos, eq(issueTable.repoId, repos.id));
+        .from(issueTable)
+        .innerJoin(issueEmbeddings, eq(issueTable.id, issueEmbeddings.issueId))
+        .leftJoin(
+          repos,
+          and(
+            eq(issueTable.repoId, repos.id),
+            eq(repos.initStatus, "completed"),
+            params.mode === "public" ? eq(repos.isPrivate, false) : undefined,
+          ),
+        );
 
       const conditionalJoin =
         params.mode === "public"
-          ? base
-          : base.innerJoin(
+          ? vectorSearchSubquery
+          : vectorSearchSubquery.innerJoin(
               usersToRepos,
               and(
                 eq(usersToRepos.repoId, repos.id),
@@ -179,43 +130,114 @@ export const SemanticSearch = {
                 // can add unsubscribedAt not null?
               ),
             );
-
-      const baseQuery = conditionalJoin.orderBy(desc(rankingScore)).where(
-        and(
-          eq(repos.initStatus, "completed"),
-          params.mode === "public" ? eq(repos.isPrivate, false) : undefined,
-          ...substringQueries.map((subQuery) =>
-            or(
+      const finalVectorSearchSubquery = conditionalJoin
+        .where(
+          and(
+            ...substringQueries.map((subQuery) =>
+              or(
+                ilike(issueTable.title, `%${subQuery}%`),
+                ilike(issueTable.body, `%${subQuery}%`),
+              ),
+            ),
+            ...titleQueries.map((subQuery) =>
               ilike(issueTable.title, `%${subQuery}%`),
+            ),
+            ...bodyQueries.map((subQuery) =>
               ilike(issueTable.body, `%${subQuery}%`),
             ),
-          ),
-          ...titleQueries.map((subQuery) =>
-            ilike(issueTable.title, `%${subQuery}%`),
-          ),
-          ...bodyQueries.map((subQuery) =>
-            ilike(issueTable.body, `%${subQuery}%`),
-          ),
-          ...authorQueries.map((subQuery) =>
-            // cannot use ILIKE because name is stored in JSONB
-            eq(
-              lower(jsonContains(issueTable.author, "name")),
-              subQuery.toLowerCase(),
+            ...authorQueries.map((subQuery) =>
+              // cannot use ILIKE because name is stored in JSONB
+              eq(
+                lower(jsonContains(issueTable.author, "name")),
+                subQuery.toLowerCase(),
+              ),
             ),
+            ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
+            ...ownerQueries.map((subQuery) =>
+              ilike(repos.ownerLogin, `${subQuery}`),
+            ),
+            ...stateQueries.map((state) => convertToIssueStateSql(state)),
+            ...[hasAllLabels(issueTable.id, labelQueries)],
           ),
-          ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
-          ...ownerQueries.map((subQuery) =>
-            ilike(repos.ownerLogin, `${subQuery}`),
-          ),
-          ...stateQueries.map((state) => convertToIssueStateSql(state)),
-          ...[hasAllLabels(issueTable.id, labelQueries)],
-        ),
-      );
+        )
+        .orderBy(cosineDistance(issueEmbeddings.embedding, embedding))
+        .limit(SIMILARITY_LIMIT) // important to have limit to get postgres to use HNSW index
+        .as("vector_search");
+
+      // Exponential decay for recency score
+      // exp(-t/τ) where:
+      // t is time elapsed in days
+      // τ (tau) is the characteristic decay time in days
+      // After 30 days (RECENCY_BASE_DAYS), score will be ~0.37 (1/e)
+      // After 60 days, score will be ~0.14 (1/e²)
+      // Score approaches but never reaches 0
+      const recencyScore = sql<number>`
+      EXP(
+        -1.0 *
+        EXTRACT(EPOCH FROM (NOW() - ${finalVectorSearchSubquery.issueUpdatedAt}))::float /
+        (86400 * ${TIME_CONSTANTS.RECENCY_BASE_DAYS})  -- Convert decay time to seconds
+      )::float
+    `;
+
+      // Logarithmic comment score normalization
+      // ln(x + 1) gives us:
+      // 0 comments = 0.0
+      // 4 comments ≈ 1.6
+      // 5 comments ≈ 1.8
+      // 10 comments ≈ 2.4
+      // 20 comments ≈ 3.0
+      // 50 comments ≈ 3.9
+      // Then normalize to 0-1 range by dividing by ln(50 + 1)
+      const commentScore = sql<number>`
+      LN(GREATEST((${finalVectorSearchSubquery.commentCount})::float + 1, 1)) /
+      LN(51)  -- ln(50 + 1) ≈ 3.93 as normalizing factor
+    `;
+
+      // Convert vector distance to similarity score (1 - distance)
+      const similarityScore = sql<number>`(1 - ${finalVectorSearchSubquery.distance})::float`;
+
+      // Combined ranking score
+      const rankingScore = sql<number>`
+      (${RANKING_WEIGHTS.SEMANTIC_SIMILARITY}::float * ${similarityScore}) +
+      (${RANKING_WEIGHTS.RECENCY}::float * ${recencyScore}) +
+      (${RANKING_WEIGHTS.COMMENT_COUNT}::float * ${commentScore}) +
+      (${RANKING_WEIGHTS.ISSUE_STATE}::float * (
+        CASE
+          WHEN ${finalVectorSearchSubquery.issueState} = 'OPEN' THEN ${SCORE_MULTIPLIERS.OPEN_ISSUE}::float
+          ELSE ${SCORE_MULTIPLIERS.CLOSED_ISSUE}::float
+        END
+      ))
+    `;
+
+      // Stage 2: Join and re-rank with additional features
+      const joinedQuery = tx
+        .select({
+          id: finalVectorSearchSubquery.id,
+          number: finalVectorSearchSubquery.number,
+          title: finalVectorSearchSubquery.title,
+          labels: finalVectorSearchSubquery.labels,
+          issueUrl: finalVectorSearchSubquery.issueUrl,
+          author: finalVectorSearchSubquery.author,
+          issueState: finalVectorSearchSubquery.issueState,
+          issueStateReason: finalVectorSearchSubquery.issueStateReason,
+          issueCreatedAt: finalVectorSearchSubquery.issueCreatedAt,
+          issueClosedAt: finalVectorSearchSubquery.issueClosedAt,
+          issueUpdatedAt: finalVectorSearchSubquery.issueUpdatedAt,
+          repoName: finalVectorSearchSubquery.repoName,
+          repoUrl: finalVectorSearchSubquery.repoUrl,
+          repoOwnerName: finalVectorSearchSubquery.repoOwnerName,
+          repoLastSyncedAt: finalVectorSearchSubquery.repoLastSyncedAt,
+          commentCount: finalVectorSearchSubquery.commentCount,
+          similarityScore,
+          rankingScore,
+        })
+        .from(finalVectorSearchSubquery)
+        .orderBy(desc(rankingScore));
 
       // Get total count first
       const [countResult] = await tx
         .select({ count: countFn() })
-        .from(baseQuery.as("countQuery"));
+        .from(joinedQuery.as("countQuery"));
 
       if (!countResult) {
         throw new Error("Failed to get total count");
@@ -225,10 +247,10 @@ export const SemanticSearch = {
       // Get paginated results
       const finalQuery =
         params.mode === "public" && params.lucky
-          ? baseQuery.limit(1)
-          : baseQuery.limit(params.pageSize).offset(offset);
+          ? joinedQuery.limit(1)
+          : joinedQuery.limit(params.pageSize).offset(offset);
 
-      const result = await finalQuery;
+      const result = await explainAnalyze(tx, finalQuery);
       return {
         data: result,
         totalCount: totalCount ?? 0,
