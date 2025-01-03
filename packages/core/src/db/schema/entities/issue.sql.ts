@@ -83,3 +83,5 @@ export const convertToIssueStateSql = (state: StateSubmenuValue) => {
       return sql`true`;
   }
 };
+
+export type IssueTable = typeof issueTable;

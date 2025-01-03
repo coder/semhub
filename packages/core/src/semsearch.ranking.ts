@@ -47,6 +47,7 @@ export function calculateCommentScore(issueId: SQL | AnyColumn) {
 /**
  * Converts vector distance to similarity score (1 - distance)
  */
+// TODO: not super type-safe, could fix in the future
 export function calculateSimilarityScore(distance: unknown) {
   return sql<number>`(1 - ${distance})::float`;
 }
