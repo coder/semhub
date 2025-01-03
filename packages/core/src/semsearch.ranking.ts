@@ -1,12 +1,26 @@
-import {
-  RANKING_WEIGHTS,
-  SCORE_MULTIPLIERS,
-  TIME_CONSTANTS,
-} from "./constants/search.constant";
 import type { AnyColumn, SQL } from "./db";
 import { sql } from "./db";
 import { comments } from "./db/schema/entities/comment.sql";
 
+// Ranking weights (should sum to 1)
+const RANKING_WEIGHTS = {
+  SEMANTIC_SIMILARITY: 0.5, // Start with higher weight for semantic search
+  COMMENT_COUNT: 0.25, // Activity level
+  RECENCY: 0.2, // Recent updates
+  ISSUE_STATE: 0.05, // Small bonus for open issues
+} as const;
+
+// Time-based constants
+const TIME_CONSTANTS = {
+  // Base time unit in days for recency calculation
+  RECENCY_BASE_DAYS: 30,
+} as const;
+
+// Score multipliers
+const SCORE_MULTIPLIERS = {
+  OPEN_ISSUE: 1.0,
+  CLOSED_ISSUE: 0.8,
+} as const;
 /**
  * Calculates recency score using exponential decay
  * exp(-t/τ) where:
@@ -47,8 +61,7 @@ export function calculateCommentScore(issueId: SQL | AnyColumn) {
 /**
  * Converts vector distance to similarity score (1 - distance)
  */
-// TODO: not super type-safe, could fix in the future
-export function calculateSimilarityScore(distance: unknown) {
+export function calculateSimilarityScore(distance: SQL.Aliased<number>) {
   return sql<number>`(1 - ${distance})::float`;
 }
 

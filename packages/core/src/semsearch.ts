@@ -1,9 +1,10 @@
 import type { RateLimiter } from "./constants/rate-limit.constant";
 import type { DbClient } from "./db";
-import { and, cosineDistance, count as countFn, desc, eq, sql } from "./db";
+import { and, count as countFn, desc, eq, sql } from "./db";
 import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
 import { issueTable } from "./db/schema/entities/issue.sql";
 import { repos } from "./db/schema/entities/repo.sql";
+import { cosineDistance } from "./db/utils/vector";
 import { createEmbedding } from "./embedding";
 import type { OpenAIClient } from "./openai";
 import {
@@ -104,9 +105,10 @@ async function filterAfterVectorSearch(
     const vectorSearchSubquery = tx
       .select({
         issueId: issueEmbeddings.issueId,
-        distance: cosineDistance(issueEmbeddings.embedding, embedding).as(
-          "distance",
-        ),
+        distance: cosineDistance<number>(
+          issueEmbeddings.embedding,
+          embedding,
+        ).as("distance"),
       })
       .from(issueEmbeddings)
       .orderBy(cosineDistance(issueEmbeddings.embedding, embedding))
@@ -145,19 +147,17 @@ async function filterAfterVectorSearch(
       .orderBy(desc(rankingScore))
       .where(and(...getOperatorsWhere(parsedSearchQuery)));
 
-    // Get total count (todo: concurrent)
-    const [countResult] = await tx
-      .select({ count: countFn() })
-      .from(baseQuery.as("countQuery"));
+    const finalQuery = applyPaginationAndLimit(baseQuery, params, offset);
+    const [[countResult], result] = await Promise.all([
+      tx.select({ count: countFn() }).from(baseQuery.as("countQuery")),
+      finalQuery,
+    ]);
 
     if (!countResult) {
       throw new Error("Failed to get total count");
     }
     const totalCount = countResult.count;
 
-    // Get paginated results
-    const finalQuery = applyPaginationAndLimit(baseQuery, params, offset);
-    const result = await finalQuery;
     // const result = await explainAnalyze(tx, finalQuery);
     return {
       data: result,
@@ -178,19 +178,16 @@ async function filterBeforeVectorSearch(
     const vectorSearchSubquery = tx
       .select({
         ...getBaseSelect(issueTable),
-        distance: cosineDistance(issueEmbeddings.embedding, embedding).as(
-          "distance",
-        ),
+        distance: cosineDistance<number>(
+          issueEmbeddings.embedding,
+          embedding,
+        ).as("distance"),
       })
       .from(issueTable)
       .innerJoin(issueEmbeddings, eq(issueTable.id, issueEmbeddings.issueId))
       .leftJoin(
         repos,
-        and(
-          eq(issueTable.repoId, repos.id),
-          eq(repos.initStatus, "completed"),
-          params.mode === "public" ? eq(repos.isPrivate, false) : undefined,
-        ),
+        and(eq(issueTable.repoId, repos.id), eq(repos.initStatus, "completed")),
       );
 
     const conditionalJoin = applyAccessControl(
