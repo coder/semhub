@@ -1,5 +1,5 @@
-import { authorizer } from "@openauthjs/openauth";
-import { GithubAdapter } from "@openauthjs/openauth/adapter/github";
+import { issuer } from "@openauthjs/openauth";
+import { GithubProvider } from "@openauthjs/openauth/provider/github";
 import { CloudflareStorage } from "@openauthjs/openauth/storage/cloudflare";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -20,13 +20,13 @@ app.use("*", async (c, next) => {
 });
 
 app.all("*", async (c) => {
-  return authorizer({
+  return issuer({
     storage: CloudflareStorage({
       namespace: Resource.AuthKv,
     }),
     subjects,
     providers: {
-      [githubLogin.provider]: GithubAdapter({
+      [githubLogin.provider]: GithubProvider({
         clientID: Resource.SEMHUB_GITHUB_APP_CLIENT_ID.value,
         clientSecret: Resource.SEMHUB_GITHUB_APP_CLIENT_SECRET.value,
         scopes: githubLogin.scopes,

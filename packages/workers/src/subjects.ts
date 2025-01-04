@@ -1,4 +1,4 @@
-import { createSubjects } from "@openauthjs/openauth";
+import { createSubjects } from "@openauthjs/openauth/subject";
 import { z } from "zod";
 
 export const subjects = createSubjects({
