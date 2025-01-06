@@ -1,6 +1,7 @@
 import { SearchIcon, XIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 
+import { usePlaceholderAnimation } from "@/hooks/usePlaceholderAnimation";
 import { usePublicSearch } from "@/hooks/usePublicSearch";
 import { useSearchBar } from "@/hooks/useSearchBar";
 import { Button } from "@/components/ui/button";
@@ -104,6 +105,7 @@ export function HomepageSearchBar() {
     commandValue,
     setCommandValue,
   } = useSearchBar();
+  const placeholderText = usePlaceholderAnimation();
 
   return (
     <form onSubmit={(e) => handleSearch(e, query)}>
@@ -117,6 +119,7 @@ export function HomepageSearchBar() {
           onFocus={handleFocus}
           onBlur={handleBlur}
           className="rounded-full border-gray-300 pl-10 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+          placeholder={placeholderText}
         />
         <SearchIcon
           className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
