@@ -9,8 +9,9 @@
     "test:watch": "vitest watch",
     "dev": "bun scripts/worker.ts dev",
     "deploy": "bun scripts/deploy.ts",
-    "deploy:all": "bun scripts/deploy.ts all --load-env",
-    "deploy:all:prod": "bun scripts/deploy.ts all --prod --load-env",
+    "deploy:all": "bun scripts/deploy.ts all",
+    "deploy:all:prod": "bun scripts/deploy.ts all --prod",
+    "deploy:all:prod:load-env": "bun scripts/deploy.ts all --prod --load-env",
     "delete": "bun scripts/worker.ts delete",
     "delete:prod": "bun scripts/worker.ts delete --prod"
   },

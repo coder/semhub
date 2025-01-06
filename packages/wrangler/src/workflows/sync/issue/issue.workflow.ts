@@ -37,28 +37,33 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
       restOctokitAppFactory,
       graphqlOctokitAppFactory,
     } = getDeps(this.env);
-    const res = await step.do(
-      "get repo data and mark as syncing",
-      getDbStepConfig("short"),
-      async () => {
-        return await Repo.getNextEnqueuedRepo(db);
-      },
-    );
-    if (!res) {
-      // all repos have been synced, return early
-      return;
-    }
-    const {
-      repoId,
-      repoName,
-      repoOwner,
-      issuesLastEndCursor,
-      repoIssuesLastUpdatedAt: repoIssuesLastUpdatedAtRaw,
-      isPrivate,
-    } = res;
-    const name = `${repoOwner}/${repoName}`;
     let responseSizeForDebugging = 0;
+    let caughtName: string | null = null;
+    let caughtRepoId: string | null = null;
     try {
+      // have observed workflow strangely ending after this step
+      const res = await step.do(
+        "get repo data and mark as in progress",
+        getDbStepConfig("short"),
+        async () => {
+          return await Repo.markNextEnqueuedRepoInProgress(db);
+        },
+      );
+      if (!res) {
+        // all repos have been synced, return early
+        return;
+      }
+      const {
+        repoId,
+        repoName,
+        repoOwner,
+        issuesLastEndCursor,
+        repoIssuesLastUpdatedAt: repoIssuesLastUpdatedAtRaw,
+        isPrivate,
+      } = res;
+      const name = `${repoOwner}/${repoName}`;
+      caughtName = name;
+      caughtRepoId = repoId;
       const octokit = await (async () => {
         if (!isPrivate) {
           return graphqlOctokit;
@@ -173,7 +178,7 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
         await sendEmail(
           {
             to: "warren@coder.com",
-            subject: `${name} sync failed`,
+            subject: `${caughtName} sync failed`,
             html: `<p>Sync failed, error: ${errorMessageWithResponseSize}</p>`,
           },
           emailClient,
@@ -182,13 +187,16 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
       });
       // mark repo as error
       await step.do(
-        `mark ${name} as error`,
+        `mark ${caughtName} as error`,
         getDbStepConfig("short"),
         async () => {
+          if (!caughtRepoId) {
+            throw new NonRetryableError("caughtRepoId is undefined");
+          }
           await db
             .update(repos)
             .set({ syncStatus: "error" })
-            .where(eq(repos.id, repoId));
+            .where(eq(repos.id, caughtRepoId));
         },
       );
     }

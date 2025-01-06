@@ -103,7 +103,8 @@ export const Repo = {
     return result;
   },
 
-  getNextEnqueuedRepo: async (db: DbClient) => {
+  markNextEnqueuedRepoInProgress: async (db: DbClient) => {
+    // wrapped in a single transaction to prevent race condition
     return await db.transaction(async (tx) => {
       const [repo] = await tx
         .select({
