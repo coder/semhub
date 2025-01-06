@@ -10,8 +10,21 @@ export function Navbar() {
   return (
     <div className="flex h-16 w-full items-center justify-between px-4">
       <div className="flex items-center gap-2">
-        <Link to="/" className="text-lg font-semibold">
-          SemHub
+        <Link to="/" className="flex items-center">
+          <h1 className="flex items-center font-sans text-2xl dark:hidden">
+            <span className="font-semibold text-blue-500">S</span>
+            <span className="font-semibold text-red-500">e</span>
+            <span className="font-semibold text-yellow-500">m</span>
+            <span className="font-semibold text-blue-500">H</span>
+            <span className="font-semibold text-green-500">u</span>
+            <span className="font-semibold text-red-500">b</span>
+          </h1>
+          <h1 className="hidden items-center font-sans text-2xl dark:flex">
+            <span className="rounded-lg bg-[#F0931B] font-semibold text-black">
+              Sem
+            </span>
+            <span className="font-semibold text-white">Hub</span>
+          </h1>
         </Link>
       </div>
       <nav className="flex items-center gap-4">
