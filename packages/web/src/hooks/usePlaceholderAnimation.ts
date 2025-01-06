@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 // TODO: ideas
 // show how we can do search across orgs and specify repos and otherwise make use of operators
-// when collections are ready, have "← click this to search across a "
+// when collections are ready, have "← click this to search across a different collection"
 const PLACEHOLDER_TEXTS = [
   "Semantic search for your GitHub repositories",
   "Networking issues in Kubernetes",
