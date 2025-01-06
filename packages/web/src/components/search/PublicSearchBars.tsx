@@ -1,5 +1,4 @@
 import {
-  BuildingIcon,
   ChevronDownIcon,
   CodeIcon,
   GlobeIcon,
@@ -33,11 +32,24 @@ const collections = [
   { value: "languages", label: "Programming languages", icon: CodeIcon },
 ];
 
+// TODO: hard-coded for now, fetch from API eventually
 const owners = [
   { value: "all", label: "All orgs", icon: GlobeIcon },
-  { value: "microsoft", label: "Microsoft", icon: BuildingIcon },
-  { value: "vercel", label: "Vercel", icon: BuildingIcon },
-  { value: "coder", label: "Coder", icon: BuildingIcon },
+  {
+    value: "microsoft",
+    label: "Microsoft",
+    avatarUrl: "https://avatars.githubusercontent.com/u/6154722?v=4",
+  },
+  {
+    value: "vercel",
+    label: "Vercel",
+    avatarUrl: "https://avatars.githubusercontent.com/u/14985020?v=4",
+  },
+  {
+    value: "coder",
+    label: "Coder",
+    avatarUrl: "https://avatars.githubusercontent.com/u/95932066?v=4",
+  },
 ];
 
 function FilterDropdown({
@@ -45,12 +57,12 @@ function FilterDropdown({
   value,
   onChange,
 }: {
-  options: typeof collections;
+  options: typeof collections | typeof owners;
   value: string;
   onChange: (value: string) => void;
 }) {
   const selectedItem = options.find((item) => item.value === value);
-  const Icon = selectedItem?.icon || GlobeIcon;
+  const Icon = selectedItem?.icon;
 
   return (
     <DropdownMenu>
@@ -59,22 +71,45 @@ function FilterDropdown({
           variant="ghost"
           className="flex items-center gap-2 px-2 py-1 text-sm font-normal hover:bg-accent"
         >
-          <Icon className="size-4" />
+          {Icon ? (
+            <Icon className="size-4" />
+          ) : (
+            selectedItem?.avatarUrl && (
+              <img
+                src={selectedItem.avatarUrl}
+                alt={selectedItem.label}
+                className="size-4 rounded-full"
+              />
+            )
+          )}
           <span>{selectedItem?.label}</span>
           <ChevronDownIcon className="size-4 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[200px]">
-        {options.map(({ value: optionValue, label, icon: ItemIcon }) => (
-          <DropdownMenuItem
-            key={optionValue}
-            onClick={() => onChange(optionValue)}
-            className="flex items-center gap-2"
-          >
-            <ItemIcon className="size-4" />
-            <span>{label}</span>
-          </DropdownMenuItem>
-        ))}
+        {options.map((item) => {
+          const Icon = item.icon;
+          return (
+            <DropdownMenuItem
+              key={item.value}
+              onClick={() => onChange(item.value)}
+              className="flex items-center gap-2"
+            >
+              {Icon ? (
+                <Icon className="size-4" />
+              ) : (
+                item.avatarUrl && (
+                  <img
+                    src={item.avatarUrl}
+                    alt={item.label}
+                    className="size-4 rounded-full"
+                  />
+                )
+              )}
+              <span>{item.label}</span>
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );
