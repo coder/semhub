@@ -124,6 +124,9 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
   return (
     <form onSubmit={(e) => handleSearch(e, query)}>
       <div className="relative mx-auto w-full">
+        <div className="mb-2 flex items-center gap-1">
+          <SearchFilters />
+        </div>
         <div className="relative">
           <Input
             type="text"

@@ -1,5 +1,6 @@
 import { HomepageSearchBar } from "./search/PublicSearchBars";
 
+// TODO: modify
 const suggestedSearches = [
   "a short article about the early days of Google",
   "Start ups working on genetic sequencing",
