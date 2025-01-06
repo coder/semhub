@@ -117,7 +117,7 @@ function FilterDropdown({
 
 function SearchFilters() {
   const [selectedCollection, setSelectedCollection] = useState("all");
-  const [selectedOwner, setSelectedOwner] = useState("all");
+  const [selectedOrg, setSelectedOrg] = useState("all");
 
   return (
     <div className="flex gap-1">
@@ -128,8 +128,8 @@ function SearchFilters() {
       />
       <FilterDropdown
         options={owners}
-        value={selectedOwner}
-        onChange={setSelectedOwner}
+        value={selectedOrg}
+        onChange={setSelectedOrg}
       />
     </div>
   );

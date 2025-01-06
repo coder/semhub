@@ -159,7 +159,7 @@ const OPERATORS_WITH_ICONS = [
     icon: <FolderGit2Icon />,
   },
   {
-    name: "Owner",
+    name: "Org",
     ...SEARCH_OPERATORS[6],
     icon: <Building2Icon />,
   },
