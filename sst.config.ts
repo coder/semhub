@@ -6,6 +6,7 @@ export default $config({
     return {
       name: "semhub",
       removal: input.stage === "prod" ? "retain" : "remove",
+      protected: input.stage === "prod",
       home: "cloudflare",
       providers: {
         random: true,
