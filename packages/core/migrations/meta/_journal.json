@@ -211,6 +211,13 @@
       "when": 1736228714296,
       "tag": "0029_familiar_pretty_boy",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1736242382198,
+      "tag": "0030_parallel_red_shift",
+      "breakpoints": true
     }
   ]
 }

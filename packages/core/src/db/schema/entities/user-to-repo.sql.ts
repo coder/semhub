@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { pgEnum, pgTable, primaryKey, text, unique } from "drizzle-orm/pg-core";
+import {
+  index,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  unique,
+} from "drizzle-orm/pg-core";
 
 import { getTimestampColumns, timestamptz } from "../base.sql";
 import { repos } from "./repo.sql";
@@ -32,6 +39,12 @@ export const usersToRepos = pgTable(
     pk: primaryKey({ columns: [t.userId, t.repoId] }),
     // big brain reverse unique index, see https://stackoverflow.com/a/60248297
     reversePk: unique().on(t.repoId, t.userId),
+    // Add index to optimize user subscription lookups
+    userStatusIdx: index("user_status_idx").on(
+      t.userId,
+      t.status,
+      t.subscribedAt.desc(),
+    ),
   }),
 );
 
