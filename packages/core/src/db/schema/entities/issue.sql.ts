@@ -64,8 +64,11 @@ export const issueTable = pgTable(
     issueStateOpenIdx: index("issue_state_open_idx")
       .on(table.issueState)
       .where(sql`issue_state = 'OPEN'`),
-    // for order desc check
-    issueUpdatedAtIdx: index("issue_updated_at_idx").on(table.issueUpdatedAt),
+    // Composite index for efficient "latest issue per repo" lookup
+    repoLastUpdatedIdx: index("repo_last_updated_idx").on(
+      table.repoId,
+      table.issueUpdatedAt.desc(),
+    ),
   }),
 );
 
