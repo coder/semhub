@@ -3,12 +3,12 @@ import { WorkflowEntrypoint } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
 
 import type { WranglerEnv } from "@/core/constants/wrangler.constant";
-import { eq, sql } from "@/core/db";
+import { eq } from "@/core/db";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
 import { getLatestGithubRepoIssues } from "@/core/github";
 import { Installation } from "@/core/installation";
-import { Repo, repoIssuesLastUpdatedSql } from "@/core/repo";
+import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import { getEnvPrefix } from "@/util";
 import {
@@ -65,9 +65,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             repoOwner: repos.ownerLogin,
             issuesLastEndCursor: repos.issuesLastEndCursor,
             isPrivate: repos.isPrivate,
-            repoIssuesLastUpdatedAt: sql<
-              string | null
-            >`(${repoIssuesLastUpdatedSql(repos, db)})`,
+            repoIssuesLastUpdatedAt: repos.issuesLastUpdatedAt,
           })
           .from(repos)
           .where(eq(repos.id, repoId))

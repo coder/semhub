@@ -113,9 +113,7 @@ export const Repo = {
           repoOwner: repos.ownerLogin,
           issuesLastEndCursor: repos.issuesLastEndCursor,
           isPrivate: repos.isPrivate,
-          repoIssuesLastUpdatedAt: sql<
-            string | null
-          >`(${repoIssuesLastUpdatedSql(repos, tx)})`,
+          repoIssuesLastUpdatedAt: repos.issuesLastUpdatedAt,
         })
         .from(repos)
         .where(
@@ -342,9 +340,7 @@ export const Repo = {
         initStatus: repos.initStatus,
         syncStatus: repos.syncStatus,
         lastSyncedAt: repos.lastSyncedAt,
-        issueLastUpdatedAt: sql<
-          string | null
-        >`(${repoIssuesLastUpdatedSql(repos, db)})`,
+        issueLastUpdatedAt: repos.issuesLastUpdatedAt,
         repoSubscribedAt: usersToRepos.subscribedAt,
       })
       .from(repos)
@@ -365,19 +361,24 @@ export const Repo = {
       .set({ initStatus: "ready" })
       .where(eq(repos.id, repoId));
   },
-};
 
-export function repoIssuesLastUpdatedSql(
-  repoTable: typeof repos,
-  db: DbClient,
-) {
-  return db
-    .select({
-      lastUpdated: issueTable.issueUpdatedAt,
-    })
-    .from(issueTable)
-    .innerJoin(issueEmbeddings, eq(issueEmbeddings.issueId, issueTable.id))
-    .where(eq(issueTable.repoId, repoTable.id))
-    .orderBy(desc(issueTable.issueUpdatedAt))
-    .limit(1);
-}
+  setIssuesLastUpdatedAt: async (repoId: string, db: DbClient) => {
+    const [result] = await db
+      .select({
+        lastUpdated: issueTable.issueUpdatedAt,
+      })
+      .from(issueTable)
+      // only count issues that have embeddings
+      .innerJoin(issueEmbeddings, eq(issueEmbeddings.issueId, issueTable.id))
+      .where(eq(issueTable.repoId, repoId))
+      .orderBy(desc(issueTable.issueUpdatedAt))
+      .limit(1);
+    if (!result) {
+      return;
+    }
+    await db
+      .update(repos)
+      .set({ issuesLastUpdatedAt: result.lastUpdated })
+      .where(eq(repos.id, repoId));
+  },
+};

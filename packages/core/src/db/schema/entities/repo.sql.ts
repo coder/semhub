@@ -35,6 +35,7 @@ export const repos = pgTable(
     initStatus: initStatusEnum("init_status").notNull().default("ready"),
     initializedAt: timestamptz("initialized_at"),
     issuesLastEndCursor: text("issues_last_end_cursor"),
+    issuesLastUpdatedAt: timestamptz("issues_last_updated_at"),
   },
   (table) => ({
     // probably could be unique index, but small chance that org / repo names can change

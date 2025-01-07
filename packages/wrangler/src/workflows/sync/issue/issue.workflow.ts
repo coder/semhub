@@ -159,6 +159,13 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
           }
         },
       );
+      await step.do(
+        "set issuesLastUpdatedAt",
+        getDbStepConfig("short"),
+        async () => {
+          await Repo.setIssuesLastUpdatedAt(repoId, db);
+        },
+      );
       // mark repo as synced
       await step.do(
         `mark ${name} as synced`,
