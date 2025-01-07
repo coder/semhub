@@ -15,6 +15,7 @@ const prefixes = {
   users: "usr",
   installations: "ins",
   organizations: "org",
+  public_collections: "pub_col",
 } as const;
 
 function createId(prefix: keyof typeof prefixes): string {

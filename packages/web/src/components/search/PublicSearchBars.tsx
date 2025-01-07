@@ -26,7 +26,7 @@ import { SearchDropdownMenu } from "@/components/search/SearchDropdownMenu";
 
 const collections = [
   { value: "all", label: "All collections", icon: GlobeIcon },
-  { value: "ides", label: "IDEs", icon: MonitorIcon },
+  { value: "editor", label: "Text editors", icon: MonitorIcon },
   { value: "terminal", label: "Terminal emulators", icon: TerminalIcon },
   { value: "frontend", label: "Frontend frameworks", icon: LayoutIcon },
   { value: "languages", label: "Programming languages", icon: CodeIcon },
@@ -115,21 +115,51 @@ function FilterDropdown({
   );
 }
 
-function SearchFilters() {
-  const [selectedCollection, setSelectedCollection] = useState("all");
-  const [selectedOrg, setSelectedOrg] = useState("all");
+// Shared function to handle filter changes
+function updateQueryWithFilter(
+  query: string,
+  filterType: "org" | "collection",
+  value: string,
+  prependOperator = false,
+) {
+  // Remove any existing operators of this type
+  const pattern = new RegExp(
+    `${filterType}:"[^"]*"\\s*|${filterType}:[^\\s]*\\s*`,
+    "g",
+  );
+  const queryWithoutFilter = query.replace(pattern, "").trim();
 
+  // Add new operator if a specific value is selected
+  if (value !== "all") {
+    return prependOperator
+      ? `${filterType}:${value} ${queryWithoutFilter}`.trim()
+      : `${queryWithoutFilter} ${filterType}:${value}`.trim();
+  }
+  return queryWithoutFilter;
+}
+
+function SearchFilters({
+  selectedOrg,
+  selectedCollection,
+  onOrgChange,
+  onCollectionChange,
+}: {
+  selectedOrg: string;
+  selectedCollection: string;
+  onOrgChange: (org: string) => void;
+  onCollectionChange: (collection: string) => void;
+}) {
   return (
     <div className="flex gap-1">
       <FilterDropdown
         options={collections}
         value={selectedCollection}
-        onChange={setSelectedCollection}
+        onChange={onCollectionChange}
       />
       <FilterDropdown
         options={owners}
         value={selectedOrg}
-        onChange={setSelectedOrg}
+        onChange={onOrgChange}
       />
     </div>
   );
@@ -137,6 +167,8 @@ function SearchFilters() {
 
 export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
   const { handleSearch } = usePublicSearch();
+  const [selectedOrg, setSelectedOrg] = useState("all");
+  const [selectedCollection, setSelectedCollection] = useState("all");
   const {
     query,
     inputRef,
@@ -154,13 +186,29 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
     handleBlur,
     commandValue,
     setCommandValue,
+    setQuery,
   } = useSearchBar(initialQuery);
+
+  const handleOrgChange = (org: string) => {
+    setSelectedOrg(org);
+    setQuery(updateQueryWithFilter(query, "org", org));
+  };
+
+  const handleCollectionChange = (collection: string) => {
+    setSelectedCollection(collection);
+    setQuery(updateQueryWithFilter(query, "collection", collection));
+  };
 
   return (
     <form onSubmit={(e) => handleSearch(e, query)}>
       <div className="relative mx-auto w-full">
         <div className="mb-2 flex items-center gap-1">
-          <SearchFilters />
+          <SearchFilters
+            selectedOrg={selectedOrg}
+            selectedCollection={selectedCollection}
+            onOrgChange={handleOrgChange}
+            onCollectionChange={handleCollectionChange}
+          />
         </div>
         <div className="relative">
           <Input
@@ -217,6 +265,8 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
 export function HomepageSearchBar() {
   const { theme } = useTheme();
   const { handleSearch, handleLuckySearch } = usePublicSearch();
+  const [selectedOrg, setSelectedOrg] = useState("all");
+  const [selectedCollection, setSelectedCollection] = useState("all");
   const {
     query,
     inputRef,
@@ -234,15 +284,31 @@ export function HomepageSearchBar() {
     handleBlur,
     commandValue,
     setCommandValue,
+    setQuery,
   } = useSearchBar();
   const placeholderText = usePlaceholderAnimation();
+
+  const handleOrgChange = (org: string) => {
+    setSelectedOrg(org);
+    setQuery(updateQueryWithFilter(query, "org", org, true));
+  };
+
+  const handleCollectionChange = (collection: string) => {
+    setSelectedCollection(collection);
+    setQuery(updateQueryWithFilter(query, "collection", collection, true));
+  };
 
   return (
     <form onSubmit={(e) => handleSearch(e, query)}>
       <div className="flex flex-col items-center">
         <div className="relative mx-auto w-full max-w-xl">
           <div className="mb-2 flex items-center gap-1">
-            <SearchFilters />
+            <SearchFilters
+              selectedOrg={selectedOrg}
+              selectedCollection={selectedCollection}
+              onOrgChange={handleOrgChange}
+              onCollectionChange={handleCollectionChange}
+            />
           </div>
           <div className="relative">
             <SearchIcon

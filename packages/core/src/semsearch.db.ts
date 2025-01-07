@@ -9,6 +9,8 @@ import {
   issueTable,
 } from "./db/schema/entities/issue.sql";
 import { hasAllLabels, labels } from "./db/schema/entities/label.sql";
+import { publicCollectionToRepos } from "./db/schema/entities/public-collection-to-repo.sql";
+import { publicCollections } from "./db/schema/entities/public-collection.sql";
 import { repos } from "./db/schema/entities/repo.sql";
 import { usersToRepos } from "./db/schema/entities/user-to-repo.sql";
 import { lower } from "./db/utils/general";
@@ -120,4 +122,37 @@ export function applyPaginationAndLimit<T extends PgSelect>(
   return params.mode === "public" && params.lucky
     ? query.limit(1)
     : query.limit(params.pageSize).offset(offset);
+}
+
+export function applyCollectionFilter<T extends PgSelect>(
+  query: T,
+  collectionQueries: string[],
+  params: SearchParams,
+) {
+  if (collectionQueries.length === 0) {
+    return query;
+  }
+
+  switch (params.mode) {
+    case "public":
+      return query
+        .innerJoin(
+          publicCollectionToRepos,
+          eq(publicCollectionToRepos.repoId, repos.id),
+        )
+        .innerJoin(
+          publicCollections,
+          and(
+            eq(publicCollections.id, publicCollectionToRepos.collectionId),
+            // Match any of the collection names from the query
+            or(
+              ...collectionQueries.map((name) =>
+                eq(publicCollections.name, name),
+              ),
+            ),
+          ),
+        );
+    default:
+      return query;
+  }
 }

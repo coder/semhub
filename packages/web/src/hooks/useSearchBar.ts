@@ -307,6 +307,7 @@ export function useSearchBar(initialQuery = "") {
 
   return {
     query,
+    setQuery,
     inputRef,
     commandInputRef,
     commandRef,
