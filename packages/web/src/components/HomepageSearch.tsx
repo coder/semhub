@@ -1,3 +1,6 @@
+import { usePublicSearch } from "@/hooks/usePublicSearch";
+import { Button } from "@/components/ui/button";
+
 import { HomepageSearchBar } from "./search/PublicSearchBars";
 
 // TODO: modify
@@ -7,6 +10,20 @@ const suggestedSearches = [
   "Similar to https://waitbutwhy.com",
   "Samsung earnings report",
 ];
+
+function SuggestedSearchCard({ search }: { search: string }) {
+  const { handleSearch } = usePublicSearch();
+
+  return (
+    <Button
+      variant="outline"
+      className="w-full justify-start p-4 text-left hover:bg-muted/50"
+      onClick={(e) => handleSearch(e, search)}
+    >
+      {search}
+    </Button>
+  );
+}
 
 export function HomepageSearch() {
   return (
@@ -24,15 +41,7 @@ export function HomepageSearch() {
           </h2>
           <div className="mx-auto flex max-w-lg flex-col items-center gap-2">
             {suggestedSearches.map((search) => (
-              <button
-                key={search}
-                className="w-full rounded-lg border border-gray-200 bg-background px-4 py-2 text-left text-sm hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900"
-                onClick={() => {
-                  // TODO: Implement search functionality
-                }}
-              >
-                {search}
-              </button>
+              <SuggestedSearchCard key={search} search={search} />
             ))}
           </div>
         </div>
