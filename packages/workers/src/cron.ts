@@ -31,6 +31,10 @@ export default {
         break;
       }
       case CRON_PATTERNS.SYNC_ISSUE: {
+        // strictly speaking, this should not be necessary
+        // BUT we are observing a bug where a repo is stuck in "in_progress"
+        // and this workflow doesn't show up in Cloudflare Workflow's dashboard
+        await Repo.unstuckReposForIssueSync(db);
         await db.transaction(
           async (tx) => {
             await Repo.enqueueReposForIssueSync(tx);

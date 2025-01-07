@@ -161,6 +161,18 @@ export const Repo = {
       });
   },
 
+  unstuckReposForIssueSync: async (db: DbClient) => {
+    await db
+      .update(repos)
+      .set({ syncStatus: "ready" })
+      .where(
+        and(
+          eq(repos.syncStatus, "in_progress"),
+          lt(repos.lastSyncedAt, sql`NOW() - INTERVAL '1 hour'`),
+        ),
+      );
+  },
+
   upsertIssuesCommentsLabels: async (
     {
       issuesToInsert,
