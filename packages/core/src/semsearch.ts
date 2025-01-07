@@ -37,7 +37,8 @@ export async function searchIssues(
     createEmbedding(
       {
         // embed query without operators, not sure if this gets better results
-        input: parsedSearchQuery.remainingQuery,
+        // if remainingQuery is empty, pass the whole original query
+        input: parsedSearchQuery.remainingQuery ?? params.query,
         rateLimiter,
       },
       openai,
