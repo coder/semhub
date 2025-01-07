@@ -36,7 +36,8 @@ export async function searchIssues(
     getIssuesCount(params, parsedSearchQuery, db),
     createEmbedding(
       {
-        input: params.query,
+        // embed query without operators, not sure if this gets better results
+        input: parsedSearchQuery.remainingQuery,
         rateLimiter,
       },
       openai,

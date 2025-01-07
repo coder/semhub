@@ -5,7 +5,7 @@ import { getTimestampColumns } from "../base.sql";
 import { publicCollections } from "./public-collection.sql";
 import { repos } from "./repo.sql";
 
-export const publicCollectionToRepos = pgTable(
+export const publicCollectionsToRepos = pgTable(
   "public_collections_to_repos",
   {
     collectionId: text("collection_id")
@@ -27,14 +27,14 @@ export const publicCollectionToRepos = pgTable(
 );
 
 export const publicCollectionToReposRelations = relations(
-  publicCollectionToRepos,
+  publicCollectionsToRepos,
   ({ one }) => ({
     collection: one(publicCollections, {
-      fields: [publicCollectionToRepos.collectionId],
+      fields: [publicCollectionsToRepos.collectionId],
       references: [publicCollections.id],
     }),
     repo: one(repos, {
-      fields: [publicCollectionToRepos.repoId],
+      fields: [publicCollectionsToRepos.repoId],
       references: [repos.id],
     }),
   }),

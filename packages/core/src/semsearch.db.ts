@@ -9,7 +9,7 @@ import {
   issueTable,
 } from "./db/schema/entities/issue.sql";
 import { hasAllLabels, labels } from "./db/schema/entities/label.sql";
-import { publicCollectionToRepos } from "./db/schema/entities/public-collection-to-repo.sql";
+import { publicCollectionsToRepos } from "./db/schema/entities/public-collection-to-repo.sql";
 import { publicCollections } from "./db/schema/entities/public-collection.sql";
 import { repos } from "./db/schema/entities/repo.sql";
 import { usersToRepos } from "./db/schema/entities/user-to-repo.sql";
@@ -137,13 +137,13 @@ export function applyCollectionFilter<T extends PgSelect>(
     case "public":
       return query
         .innerJoin(
-          publicCollectionToRepos,
-          eq(publicCollectionToRepos.repoId, repos.id),
+          publicCollectionsToRepos,
+          eq(publicCollectionsToRepos.repoId, repos.id),
         )
         .innerJoin(
           publicCollections,
           and(
-            eq(publicCollections.id, publicCollectionToRepos.collectionId),
+            eq(publicCollections.id, publicCollectionsToRepos.collectionId),
             // Match any of the collection names from the query
             or(
               ...collectionQueries.map((name) =>

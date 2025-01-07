@@ -77,6 +77,7 @@ export function parseSearchQuery(inputQuery: string) {
     repoQueries: operatorMatches.get("repo") ?? [],
     ownerQueries: operatorMatches.get("org") ?? [],
     collectionQueries: operatorMatches.get("collection") ?? [],
+    remainingQuery: remainingQuery.trim(),
   };
 }
 
