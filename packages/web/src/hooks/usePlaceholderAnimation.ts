@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
 
-// TODO: ideas
-// show how we can do search across orgs and specify repos and otherwise make use of operators
-// when collections are ready, have "← click this to search across a different collection"
 const PLACEHOLDER_TEXTS = [
-  "Networking issues in Kubernetes",
-  "Memory leaks in production",
-  "Authentication bugs in React",
-  "Performance bottlenecks in API",
+  "Search issues across multiple repos",
+  "Semhub understands what you mean, not just what you type",
+  "Login to add your private repos",
+  "You can create your own collections of repos",
 ] as const;
 
 const TYPING_DELAY_MS = 20;

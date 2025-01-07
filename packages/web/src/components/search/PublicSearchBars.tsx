@@ -23,6 +23,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { SearchDropdownMenu } from "@/components/search/SearchDropdownMenu";
+import {
+  SEARCH_OPERATORS,
+  type SearchOperator,
+} from "@/../../core/src/constants/search.constant";
 
 const collections = [
   { value: "all", label: "All collections", icon: GlobeIcon },
@@ -120,7 +124,6 @@ function updateQueryWithFilter(
   query: string,
   filterType: "org" | "collection",
   value: string,
-  prependOperator = false,
 ) {
   // Remove any existing operators of this type
   const pattern = new RegExp(
@@ -131,9 +134,12 @@ function updateQueryWithFilter(
 
   // Add new operator if a specific value is selected
   if (value !== "all") {
-    return prependOperator
-      ? `${filterType}:${value} ${queryWithoutFilter}`.trim()
-      : `${queryWithoutFilter} ${filterType}:${value}`.trim();
+    // Check if the operator should be enclosed in quotes based on SEARCH_OPERATORS
+    const operator = SEARCH_OPERATORS.find(
+      (op: { operator: SearchOperator }) => op.operator === filterType,
+    );
+    const formattedValue = operator?.enclosedInQuotes ? `"${value}"` : value;
+    return `${filterType}:${formattedValue} ${queryWithoutFilter}`.trim();
   }
   return queryWithoutFilter;
 }
@@ -290,12 +296,12 @@ export function HomepageSearchBar() {
 
   const handleOrgChange = (org: string) => {
     setSelectedOrg(org);
-    setQuery(updateQueryWithFilter(query, "org", org, true));
+    setQuery(updateQueryWithFilter(query, "org", org));
   };
 
   const handleCollectionChange = (collection: string) => {
     setSelectedCollection(collection);
-    setQuery(updateQueryWithFilter(query, "collection", collection, true));
+    setQuery(updateQueryWithFilter(query, "collection", collection));
   };
 
   return (

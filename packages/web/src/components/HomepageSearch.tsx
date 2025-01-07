@@ -5,10 +5,9 @@ import { HomepageSearchBar } from "./search/PublicSearchBars";
 
 // TODO: modify
 const suggestedSearches = [
-  "a short article about the early days of Google",
-  "Start ups working on genetic sequencing",
-  "Similar to https://waitbutwhy.com",
-  "Samsung earnings report",
+  'extensions label:"good first issue" repo:vscode',
+  "networking issues org:coder",
+  'label:"bug" web components',
 ];
 
 function SuggestedSearchCard({ search }: { search: string }) {
@@ -31,7 +30,10 @@ export function HomepageSearch() {
       <div className="w-full max-w-screen-xl px-4 text-center">
         <h1 className="mb-4 font-serif text-5xl tracking-tight">
           <span className="text-blue-600 dark:text-blue-500">Sem</span>antic
-          search for Git<span className="text-orange-500">Hub</span>{" "}
+          search for Git<span className="text-orange-500">Hub</span>
+          <span className="animate-cursor text-blue-600 dark:text-blue-500">
+            _
+          </span>
         </h1>
         <HomepageSearchBar />
 
