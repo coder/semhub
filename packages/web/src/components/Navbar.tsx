@@ -20,10 +20,10 @@ export function Navbar() {
             <span className="font-semibold text-red-500">b</span>
           </h1>
           <h1 className="hidden items-center font-sans text-2xl dark:flex">
+            <span className="font-semibold text-white">Sem</span>
             <span className="rounded-lg bg-[#F0931B] font-semibold text-black">
-              Sem
+              Hub
             </span>
-            <span className="font-semibold text-white">Hub</span>
           </h1>
         </Link>
       </div>
