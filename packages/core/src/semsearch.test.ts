@@ -15,6 +15,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: ["content"],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: '"simple quote"',
       },
     },
     {
@@ -29,6 +31,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: ["more content"],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: 'normal text  "general quote"',
       },
     },
     {
@@ -42,6 +46,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: [],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: "no quotes here",
       },
     },
     {
@@ -55,6 +61,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: ["firefox", "console"],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: "",
       },
     },
     {
@@ -69,6 +77,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: ["steps"],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: '"general search"    "another general"',
       },
     },
     {
@@ -82,6 +92,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: ["first", "third"],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: '"fifth"',
       },
     },
     {
@@ -95,6 +107,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: ["multiple    spaces"],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: "",
       },
     },
     {
@@ -108,6 +122,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: [],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: "",
       },
     },
     {
@@ -121,6 +137,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: [],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: '"urgent fix"',
       },
     },
     {
@@ -134,6 +152,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: [],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: "",
       },
     },
     {
@@ -148,6 +168,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: [],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: "",
       },
     },
     {
@@ -161,6 +183,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: [],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: "",
       },
     },
     {
@@ -174,6 +198,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: [],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: "",
       },
     },
     {
@@ -187,6 +213,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: [],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: "",
       },
     },
     {
@@ -200,6 +228,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: [],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: "",
       },
     },
     {
@@ -213,6 +243,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: [],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: "",
       },
     },
     {
@@ -226,6 +258,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: ["UPPER CASE"],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: "",
       },
     },
     {
@@ -239,6 +273,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: [],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: "open",
       },
     },
     {
@@ -253,6 +289,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: [],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: 'space" title:"unterminated',
       },
     },
     {
@@ -266,6 +304,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: [],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: "title:  padded",
       },
     },
     {
@@ -279,10 +319,12 @@ describe("parseSearchQuery", () => {
         bodyQueries: [],
         labelQueries: [],
         ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: '""',
       },
     },
     {
-      query: 'owner:microsoft repo:vscode title:"bug"',
+      query: 'org:microsoft repo:vscode title:"bug"',
       expected: {
         authorQueries: [],
         repoQueries: ["vscode"],
@@ -292,10 +334,12 @@ describe("parseSearchQuery", () => {
         bodyQueries: [],
         labelQueries: [],
         ownerQueries: ["microsoft"],
+        collectionQueries: [],
+        remainingQuery: "",
       },
     },
     {
-      query: "owner:facebook owner:google repo:react",
+      query: "org:facebook org:google repo:react",
       expected: {
         authorQueries: [],
         repoQueries: ["react"],
@@ -305,6 +349,8 @@ describe("parseSearchQuery", () => {
         bodyQueries: [],
         labelQueries: [],
         ownerQueries: ["facebook", "google"],
+        collectionQueries: [],
+        remainingQuery: "",
       },
     },
   ];

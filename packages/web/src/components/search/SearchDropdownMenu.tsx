@@ -4,6 +4,7 @@ import {
   CircleDashedIcon,
   FolderGit2Icon,
   Heading1Icon,
+  LibraryBigIcon,
   TagIcon,
   UserIcon,
 } from "lucide-react";
@@ -159,9 +160,14 @@ const OPERATORS_WITH_ICONS = [
     icon: <FolderGit2Icon />,
   },
   {
-    name: "Owner",
+    name: "Org",
     ...SEARCH_OPERATORS[6],
     icon: <Building2Icon />,
+  },
+  {
+    name: "Collection",
+    ...SEARCH_OPERATORS[7],
+    icon: <LibraryBigIcon />,
   },
 ] as const;
 

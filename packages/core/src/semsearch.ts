@@ -9,6 +9,7 @@ import { createEmbedding } from "./embedding";
 import type { OpenAIClient } from "./openai";
 import {
   applyAccessControl,
+  applyCollectionFilter,
   applyPaginationAndLimit,
   getBaseSelect,
   getOperatorsWhere,
@@ -35,7 +36,9 @@ export async function searchIssues(
     getIssuesCount(params, parsedSearchQuery, db),
     createEmbedding(
       {
-        input: params.query,
+        // embed query without operators, not sure if this gets better results
+        // if remainingQuery is empty, pass the whole original query
+        input: parsedSearchQuery.remainingQuery ?? params.query,
         rateLimiter,
       },
       openai,
@@ -73,12 +76,18 @@ async function getIssuesCount(
         and(eq(issueTable.repoId, repos.id), eq(repos.initStatus, "completed")),
       );
 
-    const conditionalJoin = applyAccessControl(
+    const appliedAccessControl = applyAccessControl(
       baseQuery.$dynamic(),
       searchParams,
     );
 
-    const getCountQuery = conditionalJoin.where(
+    const appliedCollectionFilter = applyCollectionFilter(
+      appliedAccessControl.$dynamic(),
+      parsedSearchQuery.collectionQueries,
+      searchParams,
+    );
+
+    const getCountQuery = appliedCollectionFilter.where(
       and(...getOperatorsWhere(parsedSearchQuery)),
     );
 
@@ -142,8 +151,13 @@ async function filterAfterVectorSearch(
       );
 
     // Step 3: apply various filters
-    const conditionalJoin = applyAccessControl(base.$dynamic(), params);
-    const baseQuery = conditionalJoin
+    const appliedAccessControl = applyAccessControl(base.$dynamic(), params);
+    const appliedCollectionFilter = applyCollectionFilter(
+      appliedAccessControl.$dynamic(),
+      parsedSearchQuery.collectionQueries,
+      params,
+    );
+    const baseQuery = appliedCollectionFilter
       .orderBy(desc(rankingScore))
       .where(and(...getOperatorsWhere(parsedSearchQuery)));
 
@@ -190,12 +204,18 @@ async function filterBeforeVectorSearch(
         and(eq(issueTable.repoId, repos.id), eq(repos.initStatus, "completed")),
       );
 
-    const conditionalJoin = applyAccessControl(
+    const appliedAccessControl = applyAccessControl(
       vectorSearchSubquery.$dynamic(),
       params,
     );
 
-    const finalVectorSearchSubquery = conditionalJoin
+    const appliedCollectionFilter = applyCollectionFilter(
+      appliedAccessControl.$dynamic(),
+      parsedSearchQuery.collectionQueries,
+      params,
+    );
+
+    const finalVectorSearchSubquery = appliedCollectionFilter
       .where(and(...getOperatorsWhere(parsedSearchQuery)))
       .orderBy(cosineDistance(issueEmbeddings.embedding, embedding))
       .as("vector_search");

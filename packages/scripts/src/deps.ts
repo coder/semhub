@@ -10,10 +10,11 @@ import {
 } from "@/core/github/shared";
 import { createOpenAIClient } from "@/core/openai";
 
-export function getDeps(withLogging = true) {
+export function getDeps() {
+  const currStage = Resource.App.stage;
   const { db, closeConnection } = createDb({
     connectionString: Resource.DATABASE_URL.value,
-    isProd: !withLogging,
+    isProd: currStage === "prod",
   });
 
   const openai = createOpenAIClient(Resource.OPENAI_API_KEY.value);
@@ -42,6 +43,7 @@ export function getDeps(withLogging = true) {
 
   return {
     db,
+    currStage,
     closeConnection,
     emailClient,
     graphqlOctokit,

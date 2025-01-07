@@ -1,18 +1,15 @@
 import { useEffect, useState } from "react";
 
-// TODO: ideas
-// show how we can do search across orgs and specify repos and otherwise make use of operators
-// when collections are ready, have "← click this to search across a different collection"
+// need to be short for entire text to fit in mobile
 const PLACEHOLDER_TEXTS = [
-  "Semantic search for your GitHub repositories",
-  "Networking issues in Kubernetes",
-  "Memory leaks in production",
-  "Authentication bugs in React",
-  "Performance bottlenecks in API",
+  "Semhub understands what you mean",
+  "Search issues across multiple repos",
+  "Login to add your private repos",
+  "Create your own repo collections",
 ] as const;
 
 const TYPING_DELAY_MS = 20;
-const DELAY_BEFORE_DELETE_MS = 2000;
+const DELAY_BEFORE_DELETE_MS = 5000;
 const DELAY_BEFORE_TYPE_MS = 1000;
 
 export function usePlaceholderAnimation() {

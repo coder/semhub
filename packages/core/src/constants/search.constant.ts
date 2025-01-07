@@ -5,7 +5,8 @@ export const SEARCH_OPERATORS = [
   { operator: "state", enclosedInQuotes: false },
   { operator: "repo", enclosedInQuotes: false },
   { operator: "label", enclosedInQuotes: true },
-  { operator: "owner", enclosedInQuotes: false },
+  { operator: "org", enclosedInQuotes: false },
+  { operator: "collection", enclosedInQuotes: true },
 ] as const;
 
 export type SearchOperator = (typeof SEARCH_OPERATORS)[number]["operator"];
