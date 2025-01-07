@@ -97,6 +97,17 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
     } catch (e) {
       if (mode === "init") {
         const { repoId, repoName } = event.payload;
+        await step.do(
+          `sync unsuccessful, mark repo ${repoName} init status to error`,
+          getDbStepConfig("short"),
+          async () => {
+            await db
+              .update(repos)
+              // this prevents the repo from being re-init again
+              .set({ initStatus: "error" })
+              .where(eq(repos.id, repoId));
+          },
+        );
         await step.do("send email notification", async () => {
           const errorMessage =
             e instanceof Error ? e.message : JSON.stringify(e);
@@ -110,33 +121,8 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
             getEnvPrefix(this.env.ENVIRONMENT),
           );
         });
-        await step.do(
-          `sync unsuccessful, mark repo ${repoName} init status to error`,
-          getDbStepConfig("short"),
-          async () => {
-            await db
-              .update(repos)
-              // this prevents the repo from being re-init again
-              .set({ initStatus: "error" })
-              .where(eq(repos.id, repoId));
-          },
-        );
       }
       if (mode === "cron") {
-        await step.do("send email notification", async () => {
-          const errorMessage =
-            e instanceof Error ? e.message : JSON.stringify(e);
-          const affectedIssueIds = issuesToEmbed.map((i) => i.id).join(", ");
-          await sendEmail(
-            {
-              to: "warren@coder.com",
-              subject: `Embedding failed`,
-              html: `<p>Embedding failed, error: ${errorMessage}. Affected issue IDs: ${affectedIssueIds}</p>`,
-            },
-            emailClient,
-            getEnvPrefix(this.env.ENVIRONMENT),
-          );
-        });
         await step.do(
           "update issue embedding sync status to error",
           getDbStepConfig("short"),
@@ -153,6 +139,20 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
               );
           },
         );
+        await step.do("send email notification", async () => {
+          const errorMessage =
+            e instanceof Error ? e.message : JSON.stringify(e);
+          const affectedIssueIds = issuesToEmbed.map((i) => i.id).join(", ");
+          await sendEmail(
+            {
+              to: "warren@coder.com",
+              subject: `Embedding failed`,
+              html: `<p>Embedding failed, error: ${errorMessage}. Affected issue IDs: ${affectedIssueIds}</p>`,
+            },
+            emailClient,
+            getEnvPrefix(this.env.ENVIRONMENT),
+          );
+        });
       }
       throw e;
     }

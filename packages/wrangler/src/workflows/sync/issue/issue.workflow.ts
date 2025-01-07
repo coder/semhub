@@ -41,7 +41,6 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
     let caughtName: string | null = null;
     let caughtRepoId: string | null = null;
     try {
-      // have observed workflow strangely ending after this step
       const res = await step.do(
         "get repo data and mark as in progress",
         getDbStepConfig("short"),
@@ -172,19 +171,6 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
         },
       );
     } catch (e) {
-      await step.do("send email notification", async () => {
-        const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
-        const errorMessageWithResponseSize = `${errorMessage} (response size: ${responseSizeForDebugging} bytes)`;
-        await sendEmail(
-          {
-            to: "warren@coder.com",
-            subject: `${caughtName} sync failed`,
-            html: `<p>Sync failed, error: ${errorMessageWithResponseSize}</p>`,
-          },
-          emailClient,
-          getEnvPrefix(this.env.ENVIRONMENT),
-        );
-      });
       // mark repo as error
       await step.do(
         `mark ${caughtName} as error`,
@@ -199,6 +185,19 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
             .where(eq(repos.id, caughtRepoId));
         },
       );
+      await step.do("send email notification", async () => {
+        const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
+        const errorMessageWithResponseSize = `${errorMessage} (response size: ${responseSizeForDebugging} bytes)`;
+        await sendEmail(
+          {
+            to: "warren@coder.com",
+            subject: `${caughtName} sync failed`,
+            html: `<p>Sync failed, error: ${errorMessageWithResponseSize}</p>`,
+          },
+          emailClient,
+          getEnvPrefix(this.env.ENVIRONMENT),
+        );
+      });
     }
     // even if there is an error with one repo, we still want to sync the rest
     // call itself recursively to sync next repo

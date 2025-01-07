@@ -264,6 +264,16 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         });
       }
     } catch (e) {
+      await step.do(
+        "sync unsuccessful, mark repo init status to error",
+        getDbStepConfig("short"),
+        async () => {
+          await db
+            .update(repos)
+            .set({ initStatus: "error" })
+            .where(eq(repos.id, repoId));
+        },
+      );
       await step.do("send email notification", async () => {
         const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
         const errorMessageWithResponseSize = `${errorMessage} (response size: ${responseSizeForDebugging} bytes)`;
@@ -277,16 +287,6 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           getEnvPrefix(this.env.ENVIRONMENT),
         );
       });
-      await step.do(
-        "sync unsuccessful, mark repo init status to error",
-        getDbStepConfig("short"),
-        async () => {
-          await db
-            .update(repos)
-            .set({ initStatus: "error" })
-            .where(eq(repos.id, repoId));
-        },
-      );
       throw e;
     }
   }
