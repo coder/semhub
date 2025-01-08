@@ -9,6 +9,7 @@ const PLACEHOLDER_TEXTS = [
 ] as const;
 
 const TYPING_DELAY_MS = 20;
+const DELETION_DELAY_MS = 10;
 const DELAY_BEFORE_DELETE_MS = 5000;
 const DELAY_BEFORE_TYPE_MS = 1000;
 
@@ -40,7 +41,7 @@ export function usePlaceholderAnimation() {
         if (placeholderText.length > 0) {
           timeoutId = setTimeout(() => {
             setPlaceholderText(placeholderText.slice(0, -1));
-          }, TYPING_DELAY_MS);
+          }, DELETION_DELAY_MS);
         } else {
           setCurrentIndex(
             (prevIndex) => (prevIndex + 1) % PLACEHOLDER_TEXTS.length,

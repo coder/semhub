@@ -5,6 +5,8 @@ export const subjects = createSubjects({
   user: z.object({
     id: z.string(),
     email: z.string(),
+    avatarUrl: z.string().url(),
+    name: z.string().nullable(),
   }),
 });
 

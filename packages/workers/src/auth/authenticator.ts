@@ -42,7 +42,7 @@ app.all("*", async (c) => {
         const data = tokensetRawSchema.parse(value.tokenset.raw);
         const { access_token: accessToken } = data;
         const { db } = getDeps();
-        const { userId, primaryEmail } = await User.upsert({
+        const { userId, primaryEmail, avatarUrl, name } = await User.upsert({
           accessToken,
           db,
           githubScopes: githubLogin.scopes,
@@ -50,6 +50,8 @@ app.all("*", async (c) => {
         return ctx.subject("user", {
           id: userId,
           email: primaryEmail,
+          avatarUrl,
+          name,
         });
       }
       throw new Error("Invalid provider");

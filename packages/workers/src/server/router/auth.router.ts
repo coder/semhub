@@ -60,11 +60,22 @@ export const authRouter = new Hono<Context>()
         );
       }
       // Return the session data
+      const user =
+        verified.subject.type === "user" ? verified.subject.properties : null;
+      if (!user) {
+        return c.json(
+          {
+            success: true,
+            authenticated: false,
+            message: "No user",
+          } as const,
+          401,
+        );
+      }
       return c.json({
         success: true,
         authenticated: true,
-        user:
-          verified.subject.type === "user" ? verified.subject.properties : null,
+        user,
       } as const);
     } catch (error: unknown) {
       console.error(

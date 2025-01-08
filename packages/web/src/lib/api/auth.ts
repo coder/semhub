@@ -13,11 +13,9 @@ type NullableUserData = Extract<
 >["user"];
 export type UserData = NonNullable<NullableUserData>;
 
-// Add new function to handle session fetching
 export async function fetchSession() {
   const res = await client.auth.$get();
   const data = await res.json();
-  // Update localStorage with fresh data
   storage.setAuthStatus(data.authenticated);
   if (data.authenticated && data.user) {
     storage.setUserData(data.user);
@@ -31,7 +29,7 @@ export async function fetchSession() {
 export async function login() {
   const res = await client.auth.authorize.$get({
     query: {
-      returnTo: window.location.origin + "/",
+      returnTo: window.location.origin + "/repos",
     },
   });
   const {

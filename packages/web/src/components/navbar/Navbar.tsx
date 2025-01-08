@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
 
-import { useSession } from "../lib/hooks/useSession";
-import { DarkModeToggle } from "./DarkModeToggle";
-import { SignInButton } from "./SignInButton";
+import { useSession } from "@/lib/hooks/useSession";
+import { DarkModeToggle } from "@/components/navbar/DarkModeToggle";
+import { LoginButton } from "@/components/navbar/LoginButton";
+import { UserNav } from "@/components/navbar/UserNav";
 
 export function Navbar() {
-  const { isAuthenticated } = useSession();
+  const { isAuthenticated, user } = useSession();
 
   return (
     <div className="flex h-16 w-full items-center justify-between px-4">
@@ -28,16 +29,22 @@ export function Navbar() {
         </Link>
       </div>
       <nav className="flex items-center gap-4">
-        {isAuthenticated && (
-          <Link
-            to="/repos"
-            className="rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-          >
-            My Repos
-          </Link>
+        {isAuthenticated ? (
+          <>
+            <Link
+              to="/repos"
+              className="rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+            >
+              My Repos
+            </Link>
+            <UserNav user={user} />
+          </>
+        ) : (
+          <>
+            <LoginButton />
+            <DarkModeToggle />
+          </>
         )}
-        <SignInButton />
-        <DarkModeToggle />
       </nav>
     </div>
   );
