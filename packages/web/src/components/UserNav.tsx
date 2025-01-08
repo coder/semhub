@@ -1,9 +1,8 @@
 import { LogOutIcon } from "lucide-react";
 
-import { login, logout } from "@/lib/api/auth";
-import { useSession } from "@/lib/hooks/useSession";
+import { logout } from "@/lib/api/auth";
+import { User } from "@/workers/subjects";
 
-import { GithubIcon } from "./icons/GithubIcon";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import {
@@ -14,17 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 
-export function SignInButton() {
-  const session = useSession();
-
-  const handleLogin = async () => {
-    try {
-      await login();
-    } catch (error) {
-      console.error("Login failed:", error);
-    }
-  };
-
+export function UserNav({ user }: { user: User }) {
   const handleLogout = async () => {
     try {
       await logout();
@@ -33,16 +22,6 @@ export function SignInButton() {
     }
   };
 
-  if (!session.isAuthenticated) {
-    return (
-      <Button variant="outline" onClick={handleLogin} className="gap-2">
-        <GithubIcon className="size-4" />
-        Sign in
-      </Button>
-    );
-  }
-
-  const { user } = session;
   const initials = user.name
     ? user.name.slice(0, 2).toUpperCase()
     : user.email.slice(0, 2).toUpperCase();
