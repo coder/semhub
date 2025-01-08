@@ -4,7 +4,7 @@
 //* Parameters for init workflow *//
 export const NUM_CONCURRENT_INITS = 5;
 // for GitHub API calls
-export const NUM_EMBEDDING_WORKERS = 5; // also corresponds to number of consecutive API calls + upserts before spinning up workers
+export const NUM_EMBEDDING_WORKERS = 3; // also corresponds to number of consecutive API calls + upserts before spinning up workers
 
 // duration for parent worker to sleep before checking if workers have finished
 export const PARENT_WORKER_SLEEP_DURATION = "30 seconds";

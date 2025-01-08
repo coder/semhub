@@ -52,7 +52,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
     // this prevents race condition where in_progress status has not been committed yet
     await step.sleep(
       "wait for in_progress status to be committed",
-      "10 seconds",
+      "30 seconds",
     );
     const result = await step.do(
       "get repo info from db",
@@ -107,6 +107,14 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
       })();
       const { issueIdsArray, hasMoreIssues, after } = await step.do(
         `get ${NUM_EMBEDDING_WORKERS} API calls worth of data for ${name}`,
+        {
+          timeout: "12 minutes",
+          retries: {
+            limit: 10,
+            backoff: "constant",
+            delay: "20 seconds",
+          },
+        },
         async () => {
           const issueIdsArray = [];
           let currentSince = repoIssuesLastUpdatedAt

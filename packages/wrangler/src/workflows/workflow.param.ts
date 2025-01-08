@@ -12,7 +12,7 @@ export const getDbStepConfig = (
       case "medium":
         return "20 seconds";
       case "long":
-        return "150 seconds";
+        return "200 seconds";
     }
   })(),
   retries: {
