@@ -9,7 +9,7 @@ import { publicSearchIssues } from "@/lib/api/search";
 import { queryKeys } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { IssueCard } from "@/components/IssueCard";
+import { IssueCard } from "@/components/search/IssueCard";
 import { ResultsSearchBar } from "@/components/search/PublicSearchBars";
 import {
   publicSearchSchema,

@@ -1,17 +1,16 @@
 import { LogOutIcon } from "lucide-react";
 
 import { logout } from "@/lib/api/auth";
-import { User } from "@/workers/subjects";
-
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Button } from "./ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
+import { User } from "@/workers/subjects";
 
 export function UserNav({ user }: { user: User }) {
   const handleLogout = async () => {

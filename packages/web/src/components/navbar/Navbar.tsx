@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
 
-import { useSession } from "../lib/hooks/useSession";
-import { DarkModeToggle } from "./DarkModeToggle";
-import { LoginButton } from "./LoginButton";
-import { UserNav } from "./UserNav";
+import { useSession } from "@/lib/hooks/useSession";
+import { DarkModeToggle } from "@/components/navbar/DarkModeToggle";
+import { LoginButton } from "@/components/navbar/LoginButton";
+import { UserNav } from "@/components/navbar/UserNav";
 
 export function Navbar() {
   const { isAuthenticated, user } = useSession();

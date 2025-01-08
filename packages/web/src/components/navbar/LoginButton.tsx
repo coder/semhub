@@ -1,7 +1,6 @@
 import { login } from "@/lib/api/auth";
-
-import { GithubIcon } from "./icons/GithubIcon";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
+import { GithubIcon } from "@/components/icons/GithubIcon";
 
 export function LoginButton() {
   const handleLogin = async () => {

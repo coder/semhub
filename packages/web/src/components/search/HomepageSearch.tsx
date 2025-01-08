@@ -1,7 +1,7 @@
 import { usePublicSearch } from "@/hooks/usePublicSearch";
 import { Button } from "@/components/ui/button";
 
-import { HomepageSearchBar } from "./search/PublicSearchBars";
+import { HomepageSearchBar } from "./PublicSearchBars";
 
 // TODO: modify
 const suggestedSearches = [
