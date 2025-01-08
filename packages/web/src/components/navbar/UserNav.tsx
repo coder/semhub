@@ -1,6 +1,7 @@
 import { LogOutIcon } from "lucide-react";
 
 import { logout } from "@/lib/api/auth";
+import { useThemeToggle } from "@/lib/hooks/useThemeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,8 @@ import {
 import { User } from "@/workers/subjects";
 
 export function UserNav({ user }: { user: User }) {
+  const { ThemeIcon, themeText, handleThemeChange } = useThemeToggle();
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -53,7 +56,15 @@ export function UserNav({ user }: { user: User }) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <div className="p-2">
+        <div className="flex flex-col gap-1 p-2">
+          <Button
+            variant="ghost"
+            onClick={handleThemeChange}
+            className="w-full justify-start gap-2 pl-2 text-muted-foreground hover:text-foreground"
+          >
+            <ThemeIcon className="size-4" />
+            {themeText}
+          </Button>
           <Button
             variant="ghost"
             onClick={handleLogout}

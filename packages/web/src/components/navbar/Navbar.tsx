@@ -29,16 +29,22 @@ export function Navbar() {
         </Link>
       </div>
       <nav className="flex items-center gap-4">
-        {isAuthenticated && (
-          <Link
-            to="/repos"
-            className="rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-          >
-            My Repos
-          </Link>
+        {isAuthenticated ? (
+          <>
+            <Link
+              to="/repos"
+              className="rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+            >
+              My Repos
+            </Link>
+            <UserNav user={user} />
+          </>
+        ) : (
+          <>
+            <LoginButton />
+            <DarkModeToggle />
+          </>
         )}
-        {isAuthenticated ? <UserNav user={user} /> : <LoginButton />}
-        <DarkModeToggle />
       </nav>
     </div>
   );
