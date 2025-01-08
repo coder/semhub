@@ -95,12 +95,13 @@ export function applyAccessControl<T extends PgSelect>(
   params: SearchParams,
 ) {
   const { mode } = params;
+  const onlyInitCompletedRepos = query.where(eq(repos.initStatus, "completed"));
   switch (mode) {
     case "public":
-      return query.where(eq(repos.isPrivate, false));
+      return onlyInitCompletedRepos.where(eq(repos.isPrivate, false));
     case "me":
       const userId = params.userId;
-      return query.innerJoin(
+      return onlyInitCompletedRepos.innerJoin(
         usersToRepos,
         and(
           eq(usersToRepos.repoId, repos.id),
@@ -133,7 +134,8 @@ export function applyCollectionFilter<T extends PgSelect>(
     return query;
   }
 
-  switch (params.mode) {
+  const { mode } = params;
+  switch (mode) {
     case "public":
       return query
         .innerJoin(
@@ -152,7 +154,11 @@ export function applyCollectionFilter<T extends PgSelect>(
             ),
           ),
         );
-    default:
+    case "me":
+      // TODO:
       return query;
+    default:
+      mode satisfies never;
+      throw new Error("Invalid mode");
   }
 }

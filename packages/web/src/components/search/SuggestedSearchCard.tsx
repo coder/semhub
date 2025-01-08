@@ -8,26 +8,25 @@ import { Button } from "@/components/ui/button";
 // Pool of suggested searches covering different use cases and operators
 const ALL_SUGGESTED_SEARCHES = [
   // Editor related
-  'label:"good first issue" state:open repo:vscode',
-  'collection:"editor" label:"good first issue"',
-  'repo:helix "vim mode" state:open',
-  'repo:emacs title:"package" state:open',
+  'label:"good first issue" state:open repo:vscode renderer',
+  'collection:"editor" label:"good first issue" bug',
+  'collection:"editor" vim mode',
 
   // Terminal related
-  'collection:"terminal" label:"enhancement"',
-  'repo:wezterm title:"performance"',
-  'repo:alacritty label:"bug"',
+  'collection:"terminal" label:"enhancement" speed',
+  'collection:"terminal" title:"performance" scroll',
+  'repo:ghostty label:"input" modifier',
 
   // Frontend frameworks
   'collection:"frontend" label:"help wanted"',
-  'repo:next.js title:"api routes"',
+  'collection:"frontend" title:"api routes"',
   'repo:svelte label:"bug" state:open',
-  'org:vercel label:"documentation"',
+  'org:vercel label:"documentation" Nextjs15',
 
   // Programming languages
-  'collection:"languages" label:"help wanted"',
-  'repo:TypeScript "compiler"',
-  'repo:rust title:"async"',
+  'collection:"languages" label:"help wanted" bug',
+  'collection:"languages" "compiler"',
+  'repo:rust title:"lifetime"',
   'repo:go "performance"',
 
   // General queries

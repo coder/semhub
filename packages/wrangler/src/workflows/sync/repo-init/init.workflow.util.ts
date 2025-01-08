@@ -1,5 +1,4 @@
 import type { DbClient } from "@/core/db";
-import { sendEmail, type EmailClient } from "@/core/email";
 import { Repo } from "@/core/repo";
 import type { RepoInitParams } from "@/workflows/sync/repo-init/init.workflow";
 import { NUM_CONCURRENT_INITS } from "@/workflows/sync/sync.param";
@@ -10,8 +9,6 @@ import { generateSyncWorkflowId } from "../sync.util";
 export async function initNextRepos(
   db: DbClient,
   workflow: WorkflowRPC<RepoInitParams>,
-  email: EmailClient,
-  stage: string,
 ) {
   const res = await db.transaction(
     async (tx) => {
@@ -44,18 +41,5 @@ export async function initNextRepos(
       isolationLevel: "serializable",
     },
   );
-  if (res.success) {
-    await sendEmail(
-      {
-        to: "warren@coder.com",
-        subject: "Repo init started",
-        html: `<p>Started initializing the following repos: ${res.repos
-          .map(({ repoName, repoOwner }) => `${repoOwner}/${repoName}`)
-          .join(", ")}</p>`,
-      },
-      email,
-      stage,
-    );
-  }
   return res;
 }

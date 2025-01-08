@@ -74,7 +74,7 @@ export const repoRouter = new Hono<AuthedContext>()
     zValidator("json", repoValidationSchema),
     async (c) => {
       const user = c.get("user");
-      const { db, restOctokit, emailClient, currStage } = getDeps();
+      const { db, restOctokit } = getDeps();
       const { owner, repo } = c.req.valid("json");
       // first, check whether repo is already in db, if so, associate with user and return
       const repoExists = await Repo.exists({ owner, name: repo, db });
@@ -117,12 +117,7 @@ export const repoRouter = new Hono<AuthedContext>()
           userId: user.id,
           db: tx,
         });
-        await initNextRepos(
-          tx,
-          c.env.REPO_INIT_WORKFLOW,
-          emailClient,
-          currStage.toLocaleUpperCase(),
-        );
+        await initNextRepos(tx, c.env.REPO_INIT_WORKFLOW);
       });
       return c.json(createSuccessResponse("Repository created and subscribed"));
     },
@@ -134,7 +129,7 @@ export const repoRouter = new Hono<AuthedContext>()
     zValidator("json", repoValidationSchema),
     async (c) => {
       const user = c.get("user");
-      const { db, emailClient, restOctokitAppFactory, currStage } = getDeps();
+      const { db, restOctokitAppFactory } = getDeps();
       const { owner, repo } = c.req.valid("json");
       // in theory, should have been validated by preview
       // but always validate
@@ -166,12 +161,7 @@ export const repoRouter = new Hono<AuthedContext>()
         });
         if (repoInitStatus === "pending") {
           await Repo.setPrivateRepoToReady(repoId, tx);
-          await initNextRepos(
-            tx,
-            c.env.REPO_INIT_WORKFLOW,
-            emailClient,
-            currStage.toLocaleUpperCase(),
-          );
+          await initNextRepos(tx, c.env.REPO_INIT_WORKFLOW);
         }
       });
       return c.json(
