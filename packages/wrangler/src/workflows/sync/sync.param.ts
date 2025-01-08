@@ -2,7 +2,7 @@
 // where we truncate body size and code blocks
 
 //* Parameters for init workflow *//
-export const NUM_CONCURRENT_INITS = 3;
+export const NUM_CONCURRENT_INITS = 5;
 // for GitHub API calls
 export const NUM_EMBEDDING_WORKERS = 5; // also corresponds to number of consecutive API calls + upserts before spinning up workers
 
@@ -56,7 +56,7 @@ export const getSizeLimit = (repoName: string) => {
 export const BATCH_SIZE_PER_EMBEDDING_CHUNK = 25; // clearly linked to DEFAULT_NUM_ISSUES_PER_GITHUB_API_CALL
 export const NUM_ISSUES_TO_EMBED_PER_CRON = 100;
 // for now, only one cron per issue embedding workflow because
-export const NUM_CONCURRENT_EMBEDDING_CRONS = 1;
+export const NUM_CONCURRENT_EMBEDDING_CRONS = 2;
 
 //* Parameters for issue sync workflow *//
-export const NUM_CONCURRENT_ISSUE_CRONS = 1;
+export const NUM_CONCURRENT_ISSUE_CRONS = 2;
