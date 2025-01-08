@@ -28,22 +28,22 @@ export function useSession() {
     }
   }, [data]);
 
-  if (error) {
+  const { isAuthenticated, user } = localAuth;
+  if (error || !isAuthenticated || !user) {
     return {
       isAuthenticated: false,
       user: null,
-      message: error.message,
+      message: error?.message ?? "Not authenticated",
       isLoading,
       refresh: refetch,
-    };
+    } as const;
   }
 
-  // Return local state instead of derived state
   return {
-    isAuthenticated: localAuth.isAuthenticated,
-    user: localAuth.user,
+    isAuthenticated,
+    user,
     message: null,
     isLoading,
     refresh: refetch,
-  };
+  } as const;
 }
