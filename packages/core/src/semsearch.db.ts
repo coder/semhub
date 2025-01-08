@@ -62,47 +62,59 @@ export function applyFilters<T extends PgSelect>(
   offset?: number,
 ) {
   let result = query as PgSelect;
-  let conditions: Array<SQL<unknown> | undefined> = [];
+  // undefined necessary because of `or` function's return type
+  let whereClauses: Array<SQL<unknown> | undefined> = [];
 
   // ===== Access Control =====
-  // Public mode: filter out private repos
-  // Me mode: join with usersToRepos to get only repos user has access to
-  if (params.mode === "public") {
-    conditions.push(eq(repos.isPrivate, false));
-  } else if (params.mode === "me") {
-    result = result.innerJoin(
-      usersToRepos,
-      and(
-        eq(usersToRepos.repoId, repos.id),
-        eq(usersToRepos.userId, params.userId),
-        eq(usersToRepos.status, "active"),
-      ),
-    );
+  // Handle access control based on mode
+  const { mode } = params;
+  switch (mode) {
+    case "public":
+      whereClauses.push(eq(repos.isPrivate, false));
+      break;
+    case "me":
+      result = result.innerJoin(
+        usersToRepos,
+        and(
+          eq(usersToRepos.repoId, repos.id),
+          eq(usersToRepos.userId, params.userId),
+          eq(usersToRepos.status, "active"),
+        ),
+      );
+      break;
+    default:
+      mode satisfies never;
   }
 
   // ===== Collection Filter =====
   // Only apply if collection queries exist
   const { collectionQueries } = parsedSearchQuery;
   if (collectionQueries.length > 0) {
-    if (params.mode === "public") {
-      result = result
-        .innerJoin(
-          publicCollectionsToRepos,
-          eq(publicCollectionsToRepos.repoId, repos.id),
-        )
-        .innerJoin(
-          publicCollections,
-          and(
-            eq(publicCollections.id, publicCollectionsToRepos.collectionId),
-            or(
-              ...collectionQueries.map((name) =>
-                eq(publicCollections.name, name),
+    switch (mode) {
+      case "public":
+        result = result
+          .innerJoin(
+            publicCollectionsToRepos,
+            eq(publicCollectionsToRepos.repoId, repos.id),
+          )
+          .innerJoin(
+            publicCollections,
+            and(
+              eq(publicCollections.id, publicCollectionsToRepos.collectionId),
+              or(
+                ...collectionQueries.map((name) =>
+                  eq(publicCollections.name, name),
+                ),
               ),
             ),
-          ),
-        );
+          );
+        break;
+      case "me":
+        // TODO: Handle 'me' mode collections
+        break;
+      default:
+        mode satisfies never;
     }
-    // TODO: Handle 'me' mode collections
   }
 
   // ===== Search Operators =====
@@ -118,7 +130,7 @@ export function applyFilters<T extends PgSelect>(
     ownerQueries,
   } = parsedSearchQuery;
 
-  conditions.push(
+  whereClauses.push(
     ...substringQueries.map((subQuery) =>
       or(
         ilike(issueTable.title, `%${subQuery}%`),
@@ -139,13 +151,14 @@ export function applyFilters<T extends PgSelect>(
   );
 
   if (labelQueries.length > 0) {
-    conditions.push(hasAllLabels(issueTable.id, labelQueries));
+    whereClauses.push(hasAllLabels(issueTable.id, labelQueries));
   }
 
-  // Apply all conditions in a single where clause
-  const validConditions = conditions.filter(
+  // just for type safety
+  const validConditions = whereClauses.filter(
     (c): c is SQL<unknown> => c !== undefined,
   );
+  // need to apply all conditions in a single where clause to avoid overwriting previous conditions
   if (validConditions.length > 0) {
     result = result.where(and(...validConditions));
   }
