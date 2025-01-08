@@ -1,3 +1,4 @@
+import type { SQL } from "drizzle-orm";
 import type { PgSelect } from "drizzle-orm/pg-core";
 
 import { and, eq, ilike, or, sql } from "./db";
@@ -17,42 +18,6 @@ import { lower } from "./db/utils/general";
 import { jsonAggBuildObjectFromJoin, jsonContains } from "./db/utils/json";
 import type { SearchParams } from "./semsearch.types";
 import type { parseSearchQuery } from "./semsearch.util";
-
-export function getOperatorsWhere(
-  parsedSearchQuery: ReturnType<typeof parseSearchQuery>,
-) {
-  const {
-    substringQueries,
-    titleQueries,
-    authorQueries,
-    bodyQueries,
-    stateQueries,
-    repoQueries,
-    labelQueries,
-    ownerQueries,
-  } = parsedSearchQuery;
-
-  return [
-    ...substringQueries.map((subQuery) =>
-      or(
-        ilike(issueTable.title, `%${subQuery}%`),
-        ilike(issueTable.body, `%${subQuery}%`),
-      ),
-    ),
-    ...titleQueries.map((subQuery) => ilike(issueTable.title, `%${subQuery}%`)),
-    ...bodyQueries.map((subQuery) => ilike(issueTable.body, `%${subQuery}%`)),
-    ...authorQueries.map((subQuery) =>
-      eq(
-        lower(jsonContains(issueTable.author, "name")),
-        subQuery.toLowerCase(),
-      ),
-    ),
-    ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
-    ...ownerQueries.map((subQuery) => ilike(repos.ownerLogin, `${subQuery}`)),
-    ...stateQueries.map((state) => convertToIssueStateSql(state)),
-    hasAllLabels(issueTable.id, labelQueries),
-  ];
-}
 
 export function getBaseSelect(issueTable: IssueTable) {
   return {
@@ -90,75 +55,122 @@ export function getBaseSelect(issueTable: IssueTable) {
   };
 }
 
-export function applyAccessControl<T extends PgSelect>(
+export function applyFilters<T extends PgSelect>(
   query: T,
   params: SearchParams,
+  parsedSearchQuery: ReturnType<typeof parseSearchQuery>,
+  offset?: number,
 ) {
+  let result = query as PgSelect;
+  // undefined necessary because of `or` function's return type
+  let whereClauses: Array<SQL<unknown> | undefined> = [];
+
+  // ===== Access Control =====
+  // Handle access control based on mode
   const { mode } = params;
-  const onlyInitCompletedRepos = query.where(eq(repos.initStatus, "completed"));
   switch (mode) {
     case "public":
-      return onlyInitCompletedRepos.where(eq(repos.isPrivate, false));
+      whereClauses.push(eq(repos.isPrivate, false));
+      break;
     case "me":
-      const userId = params.userId;
-      return onlyInitCompletedRepos.innerJoin(
+      result = result.innerJoin(
         usersToRepos,
         and(
           eq(usersToRepos.repoId, repos.id),
-          eq(usersToRepos.userId, userId),
+          eq(usersToRepos.userId, params.userId),
           eq(usersToRepos.status, "active"),
         ),
       );
+      break;
     default:
       mode satisfies never;
-      throw new Error("Invalid mode");
-  }
-}
-
-export function applyPaginationAndLimit<T extends PgSelect>(
-  query: T,
-  params: SearchParams,
-  offset: number,
-) {
-  return params.mode === "public" && params.lucky
-    ? query.limit(1)
-    : query.limit(params.pageSize).offset(offset);
-}
-
-export function applyCollectionFilter<T extends PgSelect>(
-  query: T,
-  collectionQueries: string[],
-  params: SearchParams,
-) {
-  if (collectionQueries.length === 0) {
-    return query;
   }
 
-  const { mode } = params;
-  switch (mode) {
-    case "public":
-      return query
-        .innerJoin(
-          publicCollectionsToRepos,
-          eq(publicCollectionsToRepos.repoId, repos.id),
-        )
-        .innerJoin(
-          publicCollections,
-          and(
-            eq(publicCollections.id, publicCollectionsToRepos.collectionId),
-            // Match any of the collection names from the query
-            or(
-              ...collectionQueries.map((name) =>
-                eq(publicCollections.name, name),
+  // ===== Collection Filter =====
+  // Only apply if collection queries exist
+  const { collectionQueries } = parsedSearchQuery;
+  if (collectionQueries.length > 0) {
+    switch (mode) {
+      case "public":
+        result = result
+          .innerJoin(
+            publicCollectionsToRepos,
+            eq(publicCollectionsToRepos.repoId, repos.id),
+          )
+          .innerJoin(
+            publicCollections,
+            and(
+              eq(publicCollections.id, publicCollectionsToRepos.collectionId),
+              or(
+                ...collectionQueries.map((name) =>
+                  eq(publicCollections.name, name),
+                ),
               ),
             ),
-          ),
-        );
-    case "me":
-      // TODO:
-      return query;
-    default:
-      mode satisfies never;
-      throw new Error("Invalid mode");
+          );
+        break;
+      case "me":
+        // TODO: Handle 'me' mode collections
+        break;
+      default:
+        mode satisfies never;
+    }
   }
+
+  // ===== Search Operators =====
+  // Apply all search operators (title, body, author, state, etc.)
+  const {
+    substringQueries,
+    titleQueries,
+    authorQueries,
+    bodyQueries,
+    stateQueries,
+    repoQueries,
+    labelQueries,
+    ownerQueries,
+  } = parsedSearchQuery;
+
+  whereClauses.push(
+    ...substringQueries.map((subQuery) =>
+      or(
+        ilike(issueTable.title, `%${subQuery}%`),
+        ilike(issueTable.body, `%${subQuery}%`),
+      ),
+    ),
+    ...titleQueries.map((subQuery) => ilike(issueTable.title, `%${subQuery}%`)),
+    ...bodyQueries.map((subQuery) => ilike(issueTable.body, `%${subQuery}%`)),
+    ...authorQueries.map((subQuery) =>
+      eq(
+        lower(jsonContains(issueTable.author, "name")),
+        subQuery.toLowerCase(),
+      ),
+    ),
+    ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
+    ...ownerQueries.map((subQuery) => ilike(repos.ownerLogin, `${subQuery}`)),
+    ...stateQueries.map((state) => convertToIssueStateSql(state)),
+  );
+
+  if (labelQueries.length > 0) {
+    whereClauses.push(hasAllLabels(issueTable.id, labelQueries));
+  }
+
+  // just for type safety
+  const validConditions = whereClauses.filter(
+    (c): c is SQL<unknown> => c !== undefined,
+  );
+  // need to apply all conditions in a single where clause to avoid overwriting previous conditions
+  if (validConditions.length > 0) {
+    result = result.where(and(...validConditions));
+  }
+
+  // ===== Pagination =====
+  // Apply pagination if offset is provided
+  if (typeof offset !== "undefined") {
+    result =
+      params.mode === "public" && params.lucky
+        ? result.limit(1)
+        : result.limit(params.pageSize).offset(offset);
+  }
+
+  return result as T;
 }
