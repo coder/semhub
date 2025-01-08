@@ -1,3 +1,4 @@
+import type { SQL } from "drizzle-orm";
 import type { PgSelect } from "drizzle-orm/pg-core";
 
 import { and, eq, ilike, or, sql } from "./db";
@@ -17,42 +18,6 @@ import { lower } from "./db/utils/general";
 import { jsonAggBuildObjectFromJoin, jsonContains } from "./db/utils/json";
 import type { SearchParams } from "./semsearch.types";
 import type { parseSearchQuery } from "./semsearch.util";
-
-export function getOperatorsWhere(
-  parsedSearchQuery: ReturnType<typeof parseSearchQuery>,
-) {
-  const {
-    substringQueries,
-    titleQueries,
-    authorQueries,
-    bodyQueries,
-    stateQueries,
-    repoQueries,
-    labelQueries,
-    ownerQueries,
-  } = parsedSearchQuery;
-
-  return [
-    ...substringQueries.map((subQuery) =>
-      or(
-        ilike(issueTable.title, `%${subQuery}%`),
-        ilike(issueTable.body, `%${subQuery}%`),
-      ),
-    ),
-    ...titleQueries.map((subQuery) => ilike(issueTable.title, `%${subQuery}%`)),
-    ...bodyQueries.map((subQuery) => ilike(issueTable.body, `%${subQuery}%`)),
-    ...authorQueries.map((subQuery) =>
-      eq(
-        lower(jsonContains(issueTable.author, "name")),
-        subQuery.toLowerCase(),
-      ),
-    ),
-    ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
-    ...ownerQueries.map((subQuery) => ilike(repos.ownerLogin, `${subQuery}`)),
-    ...stateQueries.map((state) => convertToIssueStateSql(state)),
-    hasAllLabels(issueTable.id, labelQueries),
-  ];
-}
 
 export function getBaseSelect(issueTable: IssueTable) {
   return {
@@ -90,54 +55,37 @@ export function getBaseSelect(issueTable: IssueTable) {
   };
 }
 
-export function applyAccessControl<T extends PgSelect>(
+export function applyFilters<T extends PgSelect>(
   query: T,
   params: SearchParams,
+  parsedSearchQuery: ReturnType<typeof parseSearchQuery>,
+  offset?: number,
 ) {
-  const { mode } = params;
-  const onlyInitCompletedRepos = query.where(eq(repos.initStatus, "completed"));
-  switch (mode) {
-    case "public":
-      return onlyInitCompletedRepos.where(eq(repos.isPrivate, false));
-    case "me":
-      const userId = params.userId;
-      return onlyInitCompletedRepos.innerJoin(
-        usersToRepos,
-        and(
-          eq(usersToRepos.repoId, repos.id),
-          eq(usersToRepos.userId, userId),
-          eq(usersToRepos.status, "active"),
-        ),
-      );
-    default:
-      mode satisfies never;
-      throw new Error("Invalid mode");
-  }
-}
+  let result = query as PgSelect;
+  let conditions: Array<SQL<unknown> | undefined> = [];
 
-export function applyPaginationAndLimit<T extends PgSelect>(
-  query: T,
-  params: SearchParams,
-  offset: number,
-) {
-  return params.mode === "public" && params.lucky
-    ? query.limit(1)
-    : query.limit(params.pageSize).offset(offset);
-}
-
-export function applyCollectionFilter<T extends PgSelect>(
-  query: T,
-  collectionQueries: string[],
-  params: SearchParams,
-) {
-  if (collectionQueries.length === 0) {
-    return query;
+  // ===== Access Control =====
+  // Public mode: filter out private repos
+  // Me mode: join with usersToRepos to get only repos user has access to
+  if (params.mode === "public") {
+    conditions.push(eq(repos.isPrivate, false));
+  } else if (params.mode === "me") {
+    result = result.innerJoin(
+      usersToRepos,
+      and(
+        eq(usersToRepos.repoId, repos.id),
+        eq(usersToRepos.userId, params.userId),
+        eq(usersToRepos.status, "active"),
+      ),
+    );
   }
 
-  const { mode } = params;
-  switch (mode) {
-    case "public":
-      return query
+  // ===== Collection Filter =====
+  // Only apply if collection queries exist
+  const { collectionQueries } = parsedSearchQuery;
+  if (collectionQueries.length > 0) {
+    if (params.mode === "public") {
+      result = result
         .innerJoin(
           publicCollectionsToRepos,
           eq(publicCollectionsToRepos.repoId, repos.id),
@@ -146,7 +94,6 @@ export function applyCollectionFilter<T extends PgSelect>(
           publicCollections,
           and(
             eq(publicCollections.id, publicCollectionsToRepos.collectionId),
-            // Match any of the collection names from the query
             or(
               ...collectionQueries.map((name) =>
                 eq(publicCollections.name, name),
@@ -154,11 +101,63 @@ export function applyCollectionFilter<T extends PgSelect>(
             ),
           ),
         );
-    case "me":
-      // TODO:
-      return query;
-    default:
-      mode satisfies never;
-      throw new Error("Invalid mode");
+    }
+    // TODO: Handle 'me' mode collections
   }
+
+  // ===== Search Operators =====
+  // Apply all search operators (title, body, author, state, etc.)
+  const {
+    substringQueries,
+    titleQueries,
+    authorQueries,
+    bodyQueries,
+    stateQueries,
+    repoQueries,
+    labelQueries,
+    ownerQueries,
+  } = parsedSearchQuery;
+
+  conditions.push(
+    ...substringQueries.map((subQuery) =>
+      or(
+        ilike(issueTable.title, `%${subQuery}%`),
+        ilike(issueTable.body, `%${subQuery}%`),
+      ),
+    ),
+    ...titleQueries.map((subQuery) => ilike(issueTable.title, `%${subQuery}%`)),
+    ...bodyQueries.map((subQuery) => ilike(issueTable.body, `%${subQuery}%`)),
+    ...authorQueries.map((subQuery) =>
+      eq(
+        lower(jsonContains(issueTable.author, "name")),
+        subQuery.toLowerCase(),
+      ),
+    ),
+    ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
+    ...ownerQueries.map((subQuery) => ilike(repos.ownerLogin, `${subQuery}`)),
+    ...stateQueries.map((state) => convertToIssueStateSql(state)),
+  );
+
+  if (labelQueries.length > 0) {
+    conditions.push(hasAllLabels(issueTable.id, labelQueries));
+  }
+
+  // Apply all conditions in a single where clause
+  const validConditions = conditions.filter(
+    (c): c is SQL<unknown> => c !== undefined,
+  );
+  if (validConditions.length > 0) {
+    result = result.where(and(...validConditions));
+  }
+
+  // ===== Pagination =====
+  // Apply pagination if offset is provided
+  if (typeof offset !== "undefined") {
+    result =
+      params.mode === "public" && params.lucky
+        ? result.limit(1)
+        : result.limit(params.pageSize).offset(offset);
+  }
+
+  return result as T;
 }

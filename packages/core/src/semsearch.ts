@@ -4,16 +4,11 @@ import { and, count as countFn, desc, eq, sql } from "./db";
 import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
 import { issueTable } from "./db/schema/entities/issue.sql";
 import { repos } from "./db/schema/entities/repo.sql";
+import { explainAnalyze } from "./db/utils/explain";
 import { cosineDistance } from "./db/utils/vector";
 import { createEmbedding } from "./embedding";
 import type { OpenAIClient } from "./openai";
-import {
-  applyAccessControl,
-  applyCollectionFilter,
-  applyPaginationAndLimit,
-  getBaseSelect,
-  getOperatorsWhere,
-} from "./semsearch.db";
+import { applyFilters, getBaseSelect } from "./semsearch.db";
 import {
   calculateCommentScore,
   calculateRankingScore,
@@ -66,32 +61,21 @@ async function getIssuesCount(
   db: DbClient,
 ) {
   return db.transaction(async (tx) => {
-    const baseQuery = tx
+    let query = tx
       .select({
         count: countFn(),
       })
       .from(issueTable)
-      .leftJoin(
+      .innerJoin(
         repos,
         and(eq(issueTable.repoId, repos.id), eq(repos.initStatus, "completed")),
-      );
+      )
+      .$dynamic();
 
-    const appliedAccessControl = applyAccessControl(
-      baseQuery.$dynamic(),
-      searchParams,
-    );
+    query = applyFilters(query, searchParams, parsedSearchQuery);
 
-    const appliedCollectionFilter = applyCollectionFilter(
-      appliedAccessControl.$dynamic(),
-      parsedSearchQuery.collectionQueries,
-      searchParams,
-    );
-
-    const getCountQuery = appliedCollectionFilter.where(
-      and(...getOperatorsWhere(parsedSearchQuery)),
-    );
-
-    const [result] = await getCountQuery;
+    const [result] = await explainAnalyze(tx, query);
+    // const [result] = await query;
 
     return result?.count ?? 0;
   });
@@ -137,7 +121,7 @@ async function filterAfterVectorSearch(
     });
 
     // Stage 2: Join and re-rank with additional features
-    const base = tx
+    let query = tx
       .select({
         ...getBaseSelect(issueTable),
         similarityScore,
@@ -145,26 +129,17 @@ async function filterAfterVectorSearch(
       })
       .from(vectorSearchSubquery)
       .innerJoin(issueTable, eq(vectorSearchSubquery.issueId, issueTable.id))
-      .leftJoin(
+      .innerJoin(
         repos,
         and(eq(issueTable.repoId, repos.id), eq(repos.initStatus, "completed")),
-      );
+      )
+      .$dynamic();
 
-    // Step 3: apply various filters
-    const appliedAccessControl = applyAccessControl(base.$dynamic(), params);
-    const appliedCollectionFilter = applyCollectionFilter(
-      appliedAccessControl.$dynamic(),
-      parsedSearchQuery.collectionQueries,
-      params,
-    );
-    const baseQuery = appliedCollectionFilter
-      .orderBy(desc(rankingScore))
-      .where(and(...getOperatorsWhere(parsedSearchQuery)));
+    query = applyFilters(query, params, parsedSearchQuery, offset);
 
-    const finalQuery = applyPaginationAndLimit(baseQuery, params, offset);
     const [[countResult], result] = await Promise.all([
-      tx.select({ count: countFn() }).from(baseQuery.as("countQuery")),
-      finalQuery,
+      tx.select({ count: countFn() }).from(query.as("countQuery")),
+      query,
     ]);
 
     if (!countResult) {
@@ -189,7 +164,7 @@ async function filterBeforeVectorSearch(
   const offset = (params.page - 1) * params.pageSize;
 
   return await db.transaction(async (tx) => {
-    const vectorSearchSubquery = tx
+    let query = tx
       .select({
         ...getBaseSelect(issueTable),
         distance: cosineDistance<number>(
@@ -199,24 +174,15 @@ async function filterBeforeVectorSearch(
       })
       .from(issueTable)
       .innerJoin(issueEmbeddings, eq(issueTable.id, issueEmbeddings.issueId))
-      .leftJoin(
+      .innerJoin(
         repos,
         and(eq(issueTable.repoId, repos.id), eq(repos.initStatus, "completed")),
-      );
+      )
+      .$dynamic();
 
-    const appliedAccessControl = applyAccessControl(
-      vectorSearchSubquery.$dynamic(),
-      params,
-    );
+    query = applyFilters(query, params, parsedSearchQuery);
 
-    const appliedCollectionFilter = applyCollectionFilter(
-      appliedAccessControl.$dynamic(),
-      parsedSearchQuery.collectionQueries,
-      params,
-    );
-
-    const finalVectorSearchSubquery = appliedCollectionFilter
-      .where(and(...getOperatorsWhere(parsedSearchQuery)))
+    const finalVectorSearchSubquery = query
       .orderBy(cosineDistance(issueEmbeddings.embedding, embedding))
       .as("vector_search");
 
@@ -271,9 +237,10 @@ async function filterBeforeVectorSearch(
     const totalCount = countResult.count;
 
     // Get paginated results
-    const finalQuery = applyPaginationAndLimit(
+    const finalQuery = applyFilters(
       joinedQuery.$dynamic(),
       params,
+      parsedSearchQuery,
       offset,
     );
     const result = await finalQuery;
