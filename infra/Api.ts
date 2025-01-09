@@ -2,10 +2,12 @@ import { auth, authKv } from "./Auth";
 import { domain } from "./Dns";
 import { allSecrets } from "./Secret";
 
+export const searchCacheKv = new sst.cloudflare.Kv("SearchCacheKv", {});
+
 const hono = new sst.cloudflare.Worker("Hono", {
   url: true,
   handler: "./packages/workers/src/api.ts",
-  link: [auth, authKv, ...allSecrets],
+  link: [auth, authKv, searchCacheKv, ...allSecrets],
   domain: "api." + domain,
   transform: {
     worker: {

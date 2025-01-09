@@ -66,6 +66,9 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "SearchCacheKv": {
+      "type": "sst.cloudflare.Kv"
+    }
     "SyncEmbeddingHandler": {
       "type": "sst.cloudflare.Worker"
     }
