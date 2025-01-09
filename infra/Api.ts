@@ -14,10 +14,6 @@ const hono = new sst.cloudflare.Worker("Hono", {
       // staging will bind to dev wrangler workers too
       serviceBindings: [
         {
-          name: "RATE_LIMITER",
-          service: `semhub-rate-limiter-${$app.stage === "prod" ? "prod" : "dev"}`,
-        },
-        {
           name: "REPO_INIT_WORKFLOW",
           service: `semhub-sync-repo-init-${$app.stage === "prod" ? "prod" : "dev"}`,
         },

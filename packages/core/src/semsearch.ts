@@ -1,4 +1,3 @@
-import type { RateLimiter } from "./constants/rate-limit.constant";
 import type { DbClient } from "./db";
 import { and, count as countFn, desc, eq, sql } from "./db";
 import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
@@ -22,7 +21,6 @@ export async function searchIssues(
   params: SearchParams,
   db: DbClient,
   openai: OpenAIClient,
-  rateLimiter: RateLimiter,
 ) {
   const ISSUE_COUNT_THRESHOLD = 5000;
   const parsedSearchQuery = parseSearchQuery(params.query);
@@ -34,7 +32,6 @@ export async function searchIssues(
         // embed query without operators, not sure if this gets better results
         // if remainingQuery is empty, pass the whole original query
         input: parsedSearchQuery.remainingQuery ?? params.query,
-        rateLimiter,
       },
       openai,
     ),

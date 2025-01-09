@@ -44,7 +44,6 @@ export const searchRouter = new Hono<Context>().get(
           },
           db,
           openai,
-          c.env.RATE_LIMITER,
         );
         issues = results.data;
         totalCount = results.totalCount;
@@ -68,7 +67,6 @@ export const searchRouter = new Hono<Context>().get(
         },
         db,
         openai,
-        c.env.RATE_LIMITER,
       );
       issues = results.data;
       totalCount = results.totalCount;

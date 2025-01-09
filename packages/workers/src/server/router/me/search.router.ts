@@ -27,7 +27,6 @@ export const searchRouter = new Hono<AuthedContext>().get(
       },
       db,
       openai,
-      c.env.RATE_LIMITER,
     );
 
     return c.json(
