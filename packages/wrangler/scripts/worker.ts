@@ -2,12 +2,11 @@
 import { z } from "zod";
 
 const ActionSchema = z.enum(["dev", "deploy", "delete"]);
-const WorkerSchema = z.union([
-  z.literal("rate-limiter"),
-  z.string().regex(/^workflows\/[a-zA-Z0-9-]+(?:\/[a-zA-Z0-9-]+)*$/, {
+const WorkerSchema = z
+  .string()
+  .regex(/^workflows\/[a-zA-Z0-9-]+(?:\/[a-zA-Z0-9-]+)*$/, {
     message: "Invalid workflow path format. Example: workflows/sync-repo/cron",
-  }),
-]);
+  });
 
 const ArgsSchema = z.object({
   action: ActionSchema,
@@ -50,7 +49,7 @@ try {
       error.errors.map((e) => `- ${e.path.join(".")}: ${e.message}`).join("\n"),
     );
     console.error(
-      "\nUsage: bun worker.ts <dev|deploy|delete> <rate-limiter|workflows/path/to/worker> [--prod] [--load-env]",
+      "\nUsage: bun worker.ts <dev|deploy|delete> <workflows/path/to/worker> [--prod] [--load-env]",
     );
   } else {
     console.error("An unexpected error occurred:", error);

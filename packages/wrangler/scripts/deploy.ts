@@ -4,12 +4,11 @@
  *
  * Examples:
  * # Deploy single targets
- * bun deploy.ts rate-limiter
  * bun deploy.ts workflows-sync
  * bun deploy.ts workflows-background
  *
  * # Deploy with flags
- * bun deploy.ts rate-limiter --prod        # Deploy to production
+ * bun deploy.ts workflows-sync --prod      # Deploy to production
  * bun deploy.ts workflows-sync --load-env  # Deploy with env vars
  * bun deploy.ts all --prod --load-env      # Deploy all to prod with env vars
  *
@@ -23,12 +22,7 @@
  */
 import { z } from "zod";
 
-const TargetSchema = z.enum([
-  "rate-limiter",
-  "workflows-sync",
-  "workflows-background",
-  "all",
-]);
+const TargetSchema = z.enum(["workflows-sync", "workflows-background", "all"]);
 const FlagSchema = z.object({
   prod: z.boolean().default(false),
   loadEnv: z.boolean().default(false),
@@ -47,12 +41,6 @@ async function deployTarget(target: Target, flags: Flags) {
   const deployCmd = `bun scripts/worker.ts deploy ${prodFlag} ${envFlag}`;
 
   switch (target) {
-    case "rate-limiter":
-      await Bun.spawn(["sh", "-c", `${deployCmd} rate-limiter`], {
-        stdout: "inherit",
-        stderr: "inherit",
-      }).exited;
-      break;
     case "workflows-sync":
       for (const workflow of SYNC_WORKFLOWS) {
         await Bun.spawn(
@@ -71,7 +59,6 @@ async function deployTarget(target: Target, flags: Flags) {
       }).exited;
       break;
     case "all":
-      await deployTarget("rate-limiter", flags);
       await deployTarget("workflows-sync", flags);
       await deployTarget("workflows-background", flags);
       break;
@@ -93,7 +80,7 @@ try {
     console.error(error.errors.map((e) => `- ${e.message}`).join("\n"));
     console.error("\nUsage: bun deploy.ts <target> [--prod] [--load-env]");
     console.error(
-      "Targets: rate-limiter, workflows-sync, workflows-background, all",
+      "Targets: workflows-sync, workflows-background, all",
     );
   } else {
     console.error("An unexpected error occurred:", error);
