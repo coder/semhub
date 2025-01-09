@@ -27,16 +27,15 @@ export const searchRouter = new Hono<AuthedContext>().get(
       },
       db,
       openai,
-      c.env.RATE_LIMITER,
     );
 
     return c.json(
-      createPaginatedResponse(
-        issues,
-        pageNumber,
-        Math.ceil(totalCount / pageSize),
-        "Search results",
-      ),
+      createPaginatedResponse({
+        data: issues,
+        page: pageNumber,
+        totalPages: Math.ceil(totalCount / pageSize),
+        message: "Search successful",
+      }),
       200,
     );
   },

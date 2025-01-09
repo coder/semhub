@@ -10,8 +10,8 @@ import { User } from "@/core/user";
 import { parseHostname } from "@/core/util/url";
 
 import { getDeps } from "../deps";
-import { subjects } from "../subjects";
 import { APP_DOMAIN, getAuthServerCORS, githubLogin } from "./auth.constant";
+import { subjects } from "./subjects";
 
 const app = new Hono();
 

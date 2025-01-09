@@ -1,13 +1,8 @@
 import dedent from "dedent";
 import pMap from "p-map";
 
-import { sleep } from "@/util/sleep";
 import { truncateCodeBlocks, truncateToByteSize } from "@/util/truncate";
 
-import {
-  EMBEDDING_MODEL,
-  type RateLimiter,
-} from "./constants/rate-limit.constant";
 import type { DbClient } from "./db";
 import { and, asc, eq, inArray, isNull, lt, not, or } from "./db";
 import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
@@ -19,29 +14,18 @@ import { labels as labelTable } from "./db/schema/entities/label.sql";
 import { repos } from "./db/schema/entities/repo.sql";
 import { conflictUpdateOnly } from "./db/utils/conflict";
 import { jsonAggBuildObjectFromJoin } from "./db/utils/json";
-import type { OpenAIClient } from "./openai";
+import { EMBEDDING_MODEL, type OpenAIClient } from "./openai";
 import { isReducePromptError } from "./openai/errors";
 import { embeddingsCreateSchema } from "./openai/schema";
 
 export async function createEmbedding(
   {
     input,
-    rateLimiter,
   }: {
     input: string;
-    rateLimiter: RateLimiter | null;
   },
   openAIClient: OpenAIClient,
 ) {
-  if (rateLimiter) {
-    while (true) {
-      const millisecondsToNextRequest =
-        await rateLimiter.getDurationToNextRequest(EMBEDDING_MODEL);
-      if (millisecondsToNextRequest === 0) break;
-      console.warn(`Rate limit hit, waiting ${millisecondsToNextRequest}ms`);
-      await sleep(millisecondsToNextRequest);
-    }
-  }
   const res = await openAIClient.embeddings.create({
     model: EMBEDDING_MODEL,
     input,
@@ -52,12 +36,10 @@ export async function createEmbedding(
 
 export async function createEmbeddings({
   issues,
-  rateLimiter,
   openai,
   concurrencyLimit,
 }: {
   issues: Awaited<ReturnType<typeof selectIssuesForEmbeddingInit>>;
-  rateLimiter: RateLimiter | null;
   openai: OpenAIClient;
   concurrencyLimit?: number;
 }) {
@@ -74,7 +56,6 @@ export async function createEmbeddings({
               labels,
               attempt,
             }),
-            rateLimiter,
           },
           openai,
         );

@@ -78,7 +78,6 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
           async () => {
             return await createEmbeddings({
               issues,
-              rateLimiter: null,
               openai,
             });
           },

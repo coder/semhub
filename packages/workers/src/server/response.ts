@@ -45,12 +45,17 @@ type PaginatedResponse<T> = {
   data: T;
 } & Omit<SuccessResponse, "data">;
 
-export function createPaginatedResponse<T>(
-  data: T,
-  page: number,
-  totalPages: number,
-  message: string = "Success",
-): PaginatedResponse<T> {
+export function createPaginatedResponse<T>({
+  data,
+  page,
+  totalPages,
+  message = "Success",
+}: {
+  data: T;
+  page: number;
+  totalPages: number;
+  message?: string;
+}): PaginatedResponse<T> {
   return {
     data,
     success: true,

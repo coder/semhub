@@ -9,7 +9,7 @@ import { getCookieOptions, githubLogin } from "@/auth/auth.constant";
 import { getDeps } from "@/deps";
 import type { Context } from "@/server/app";
 
-import { subjects } from "../../subjects";
+import { subjects } from "../../auth/subjects";
 import { createSuccessResponse } from "../response";
 
 export const authRouter = new Hono<Context>()

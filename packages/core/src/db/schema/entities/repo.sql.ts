@@ -1,6 +1,4 @@
 import { boolean, index, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
 
 import { getBaseColumns, timestamptz } from "../base.sql";
 
@@ -53,9 +51,3 @@ export const repos = pgTable(
     ),
   }),
 );
-
-export const createRepoSchema = createInsertSchema(repos, {
-  htmlUrl: z.string().url(),
-}).omit({
-  id: true,
-});

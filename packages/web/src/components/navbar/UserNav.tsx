@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User } from "@/workers/subjects";
+import { User } from "@/workers/auth/subjects";
 
 export function UserNav({ user }: { user: User }) {
   const { ThemeIcon, themeText, handleThemeChange } = useThemeToggle();

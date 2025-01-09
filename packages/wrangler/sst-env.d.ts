@@ -67,6 +67,7 @@ declare module "sst" {
     "AuthKv": cloudflare.KVNamespace
     "Hono": cloudflare.Service
     "InitCronHandler": cloudflare.Service
+    "SearchCacheKv": cloudflare.KVNamespace
     "SyncEmbeddingHandler": cloudflare.Service
     "SyncIssueHandler": cloudflare.Service
   }

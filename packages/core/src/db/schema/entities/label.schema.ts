@@ -17,3 +17,12 @@ const _selectLabelForEmbeddingSchema = createSelectSchema(labels).pick({
 export type SelectLabelForEmbedding = z.infer<
   typeof _selectLabelForEmbeddingSchema
 >;
+
+// Add schema for search results
+export const selectLabelForSearchSchema = createSelectSchema(labels).pick({
+  name: true,
+  description: true,
+  color: true,
+});
+
+export type SelectLabelForSearch = z.infer<typeof selectLabelForSearchSchema>;

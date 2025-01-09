@@ -1,10 +1,14 @@
-import type { RateLimiter } from "./constants/rate-limit.constant";
+import { createSelectSchema } from "drizzle-zod";
+import { z } from "zod";
+
 import type { DbClient } from "./db";
 import { and, count as countFn, desc, eq, sql } from "./db";
 import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
 import { issueTable } from "./db/schema/entities/issue.sql";
+import { selectLabelForSearchSchema } from "./db/schema/entities/label.schema";
+import type { SelectRepoForSearch } from "./db/schema/entities/repo.schema";
 import { repos } from "./db/schema/entities/repo.sql";
-import { explainAnalyze } from "./db/utils/explain";
+import { authorSchema } from "./db/schema/shared";
 import { cosineDistance } from "./db/utils/vector";
 import { createEmbedding } from "./embedding";
 import type { OpenAIClient } from "./openai";
@@ -18,12 +22,56 @@ import {
 import type { SearchParams } from "./semsearch.types";
 import { parseSearchQuery } from "./semsearch.util";
 
+const selectRepoForSearchSchemaDuplicated = z.object({
+  // can't figure out how to use selectRepoForSearchSchema from repo.schema.ts here
+  // after you transform, you lose the .shape property
+  // so repeating the fields here
+  repoName: z.string(),
+  repoOwnerName: z.string(),
+  repoUrl: z.string().url(),
+  repoLastSyncedAt: z.date().nullable(),
+}) satisfies z.ZodType<SelectRepoForSearch>;
+
+// Create a schema that matches exactly what we return in search results
+const searchIssueSchema = createSelectSchema(issueTable, {
+  author: authorSchema,
+})
+  .pick({
+    id: true,
+    number: true,
+    title: true,
+    author: true,
+    issueState: true,
+    issueStateReason: true,
+    issueCreatedAt: true,
+    issueClosedAt: true,
+    issueUpdatedAt: true,
+  })
+  .extend({
+    labels: z.array(selectLabelForSearchSchema),
+    issueUrl: z.string().url(),
+    ...selectRepoForSearchSchemaDuplicated.shape,
+    // Search-specific fields
+    commentCount: z.number(),
+    similarityScore: z.number(),
+    rankingScore: z.number(),
+  })
+  .transform((issue) => ({
+    ...issue,
+  }));
+
+export const searchResultSchema = z.object({
+  data: z.array(searchIssueSchema),
+  totalCount: z.number(),
+});
+
+export type SearchResult = z.infer<typeof searchResultSchema>;
+
 export async function searchIssues(
   params: SearchParams,
   db: DbClient,
   openai: OpenAIClient,
-  rateLimiter: RateLimiter,
-) {
+): Promise<SearchResult> {
   const ISSUE_COUNT_THRESHOLD = 5000;
   const parsedSearchQuery = parseSearchQuery(params.query);
   // Get matching issues count and embedding in parallel
@@ -34,7 +82,6 @@ export async function searchIssues(
         // embed query without operators, not sure if this gets better results
         // if remainingQuery is empty, pass the whole original query
         input: parsedSearchQuery.remainingQuery ?? params.query,
-        rateLimiter,
       },
       openai,
     ),
@@ -74,8 +121,8 @@ async function getIssuesCount(
 
     query = applyFilters(query, searchParams, parsedSearchQuery);
 
-    const [result] = await explainAnalyze(tx, query);
-    // const [result] = await query;
+    // const [result] = await explainAnalyze(tx, query);
+    const [result] = await query;
 
     return result?.count ?? 0;
   });
@@ -123,7 +170,7 @@ async function filterAfterVectorSearch(
     // Stage 2: Join and re-rank with additional features
     let query = tx
       .select({
-        ...getBaseSelect(issueTable),
+        ...getBaseSelect(),
         similarityScore,
         rankingScore,
       })
@@ -166,7 +213,7 @@ async function filterBeforeVectorSearch(
   return await db.transaction(async (tx) => {
     let query = tx
       .select({
-        ...getBaseSelect(issueTable),
+        ...getBaseSelect(),
         distance: cosineDistance<number>(
           issueEmbeddings.embedding,
           embedding,
