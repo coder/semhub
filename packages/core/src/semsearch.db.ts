@@ -58,7 +58,6 @@ export function applyFilters<T extends PgSelect>(
   query: T,
   params: SearchParams,
   parsedSearchQuery: ReturnType<typeof parseSearchQuery>,
-  offset?: number,
 ) {
   let result = query as PgSelect;
   // undefined necessary because of `or` function's return type
@@ -162,14 +161,15 @@ export function applyFilters<T extends PgSelect>(
     result = result.where(and(...validConditions));
   }
 
-  // ===== Pagination =====
-  // Apply pagination if offset is provided
-  if (typeof offset !== "undefined") {
-    result =
-      params.mode === "public" && params.lucky
-        ? result.limit(1)
-        : result.limit(params.pageSize).offset(offset);
-  }
-
   return result as T;
+}
+
+export function applyPagination<T extends PgSelect>(
+  query: T,
+  params: SearchParams,
+  offset?: number,
+) {
+  return params.mode === "public" && params.lucky
+    ? query.limit(1)
+    : query.limit(params.pageSize).offset(offset ?? 0);
 }

@@ -12,7 +12,7 @@ import { authorSchema } from "./db/schema/shared";
 import { cosineDistance } from "./db/utils/vector";
 import { createEmbedding } from "./embedding";
 import type { OpenAIClient } from "./openai";
-import { applyFilters, getBaseSelect } from "./semsearch.db";
+import { applyFilters, applyPagination, getBaseSelect } from "./semsearch.db";
 import {
   calculateCommentScore,
   calculateRankingScore,
@@ -136,6 +136,7 @@ async function filterAfterVectorSearch(
 ) {
   const SIMILARITY_LIMIT = 1000;
   const offset = (params.page - 1) * params.pageSize;
+  console.log("filterAfterVectorSearch");
 
   return await db.transaction(async (tx) => {
     // Increase ef_search to get more candidates from HNSW
@@ -182,11 +183,11 @@ async function filterAfterVectorSearch(
       )
       .$dynamic();
 
-    query = applyFilters(query, params, parsedSearchQuery, offset);
+    query = applyFilters(query, params, parsedSearchQuery);
 
     const [[countResult], result] = await Promise.all([
       tx.select({ count: countFn() }).from(query.as("countQuery")),
-      query,
+      applyPagination(query, params, offset),
     ]);
 
     if (!countResult) {
@@ -208,6 +209,7 @@ async function filterBeforeVectorSearch(
   db: DbClient,
   embedding: number[],
 ) {
+  console.log("filterBeforeVectorSearch");
   const offset = (params.page - 1) * params.pageSize;
 
   return await db.transaction(async (tx) => {
@@ -283,13 +285,7 @@ async function filterBeforeVectorSearch(
     }
     const totalCount = countResult.count;
 
-    // Get paginated results
-    const finalQuery = applyFilters(
-      joinedQuery.$dynamic(),
-      params,
-      parsedSearchQuery,
-      offset,
-    );
+    const finalQuery = applyPagination(joinedQuery.$dynamic(), params, offset);
     const result = await finalQuery;
     // const result = await explainAnalyze(tx, finalQuery);
     return {
