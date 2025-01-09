@@ -4,7 +4,6 @@ import type { PgSelect } from "drizzle-orm/pg-core";
 import { and, eq, ilike, or, sql } from "./db";
 import { comments } from "./db/schema/entities/comment.sql";
 import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
-import type { IssueTable } from "./db/schema/entities/issue.sql";
 import {
   convertToIssueStateSql,
   issueTable,
@@ -19,7 +18,7 @@ import { jsonAggBuildObjectFromJoin, jsonContains } from "./db/utils/json";
 import type { SearchParams } from "./semsearch.types";
 import type { parseSearchQuery } from "./semsearch.util";
 
-export function getBaseSelect(issueTable: IssueTable) {
+export function getBaseSelect() {
   return {
     id: issueTable.id,
     number: issueTable.number,

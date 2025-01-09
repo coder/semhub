@@ -6,8 +6,8 @@ import { logger } from "hono/logger";
 import { Resource } from "sst";
 
 import { getApiServerCORS } from "@/auth/auth.constant";
+import type { User } from "@/auth/subjects";
 import { getDeps } from "@/deps";
-import type { User } from "@/subjects";
 import type { InstallationParams } from "@/wrangler/workflows/background/installation.workflow";
 import type { RepoInitParams } from "@/wrangler/workflows/sync/repo-init/init.workflow";
 import type { WorkflowRPC } from "@/wrangler/workflows/workflow.util";

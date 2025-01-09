@@ -1,15 +1,14 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
+import { Resource } from "sst";
 
-import { searchIssues } from "@/core/semsearch";
-import { Resource } from "@/bindings";
+import type { SearchResult } from "@/core/semsearch";
+import { searchIssues, searchResultSchema } from "@/core/semsearch";
 import { getDeps } from "@/deps";
 import type { Context } from "@/server/app";
 import { getJson, putJson } from "@/server/kv";
 import { createPaginatedResponse } from "@/server/response";
 import { publicSearchSchema } from "@/server/router/schema/search.schema";
-
-type CachedSearchResult = Awaited<ReturnType<typeof searchIssues>>;
 
 export const searchRouter = new Hono<Context>().get(
   "/",
@@ -20,43 +19,8 @@ export const searchRouter = new Hono<Context>().get(
     const pageSize = 30;
     const { db, openai } = getDeps();
 
-    let issues: CachedSearchResult["data"];
-    let totalCount: CachedSearchResult["totalCount"];
-
-    // Don't use cache for "lucky" searches
-    if (!lucky) {
-      const cacheKey = `public:search:q=${query}:page=${pageNumber}:size=${pageSize}`;
-      const cached = await getJson<CachedSearchResult>(
-        Resource.SearchCacheKv,
-        cacheKey,
-      );
-      if (cached) {
-        issues = cached.data;
-        totalCount = cached.totalCount;
-      } else {
-        const results = await searchIssues(
-          {
-            query,
-            mode: "public",
-            lucky: false,
-            page: pageNumber,
-            pageSize,
-          },
-          db,
-          openai,
-        );
-        issues = results.data;
-        totalCount = results.totalCount;
-
-        // Cache the search results
-        await putJson(
-          Resource.SearchCacheKv,
-          cacheKey,
-          { data: issues, totalCount },
-          { expirationTtl: 600 }, // 10 minutes
-        );
-      }
-    } else {
+    // Early return for lucky searches
+    if (lucky) {
       const results = await searchIssues(
         {
           query,
@@ -68,17 +32,67 @@ export const searchRouter = new Hono<Context>().get(
         db,
         openai,
       );
-      issues = results.data;
-      totalCount = results.totalCount;
+      return c.json(
+        createPaginatedResponse({
+          data: results.data,
+          page: pageNumber,
+          totalPages: Math.ceil(results.totalCount / pageSize),
+          message: "Search successful",
+        }),
+        200,
+      );
     }
 
+    // Use cache
+    const cacheKey = `public:search:q=${query}:page=${pageNumber}:size=${pageSize}`;
+    const cached = await getJson<SearchResult>(
+      Resource.SearchCacheKv,
+      cacheKey,
+    );
+    if (cached) {
+      // Validate cached data against schema
+      const res = searchResultSchema.safeParse(cached);
+      if (res.success) {
+        const { data, totalCount } = res.data;
+        return c.json(
+          createPaginatedResponse({
+            data,
+            page: pageNumber,
+            totalPages: Math.ceil(totalCount / pageSize),
+            message: "Search successful",
+          }),
+          200,
+        );
+      }
+    }
+    // if not cached or validation fails, perform new search
+    const results = await searchIssues(
+      {
+        query,
+        mode: "public",
+        lucky: false,
+        page: pageNumber,
+        pageSize,
+      },
+      db,
+      openai,
+    );
+    await putJson(
+      Resource.SearchCacheKv,
+      cacheKey,
+      results,
+      // 10 minutes because issues are synced every 20 minutes (SYNC_ISSUE: "*/20 * * * *")
+      // so on average, a cached result will be at most 10 minutes stale
+      { expirationTtl: 600 },
+    );
+
     return c.json(
-      createPaginatedResponse(
-        issues,
-        pageNumber,
-        Math.ceil(totalCount / pageSize),
-        "Search results",
-      ),
+      createPaginatedResponse({
+        data: results.data,
+        page: pageNumber,
+        totalPages: Math.ceil(results.totalCount / pageSize),
+        message: "Search successful",
+      }),
       200,
     );
   },

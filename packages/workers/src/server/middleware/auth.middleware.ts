@@ -5,7 +5,7 @@ import { HTTPException } from "hono/http-exception";
 import { Resource } from "sst";
 
 import { githubLogin } from "@/auth/auth.constant";
-import { subjects } from "@/subjects";
+import { subjects } from "@/auth/subjects";
 
 import type { Context } from "../app";
 
