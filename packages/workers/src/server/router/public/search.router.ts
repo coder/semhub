@@ -63,6 +63,9 @@ export const searchRouter = new Hono<Context>().get(
           }),
           200,
         );
+      } else {
+        // invalidate cache
+        await Resource.SearchCacheKv.delete(cacheKey);
       }
     }
     // if not cached or validation fails, perform new search
