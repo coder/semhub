@@ -37,8 +37,6 @@ You need the following environment variables (see `.env.example`) and secrets (s
 
 - `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare [account ID](https://developers.cloudflare.com/fundamentals/setup/find-account-and-zone-ids/). (may not be 100% necessary)
 - `CLOUDFLARE_API_TOKEN`: Cloudflare API token to deploy Cloudflare workers and manage DNS.
-- `SUPABASE_ACCESS_TOKEN`: We use Supabase as our database, you can generate this from the Supabase dashboard, under `Dashboard > Account > Access tokens > Generate new token`.
-- `SUPABASE_ORG_ID`: Needed as part of IaC to create the Supabase project. You can find it in the URL of the Supabase dashboard when selecting your organization, i.e. `https://supabase.com/dashboard/org/{SUPABASE_ORG_ID}/general`
 
 We currently also use AWS to deploy the frontend, but this is temporary and will be replaced by Cloudflare in the future.
 
@@ -116,7 +114,6 @@ Should probably set up a script to do this automatically as part of CI/CD.
 
 ## Todos
 
-1. Cache searches on Cloudflare KV. On public, non-logged in page, we will have a short list of suggested searches. We will cache these to speed up results.
 1. Deal with users who install our GitHub App without creating an account first.
 1. Current codebase assumes private/public property of repo is static and membership in org is static. Need to account for change. (Currently, we query membership for when subscription is made. But we should either receive webhook or regularly query to ensure that users that have left org should not have access to private repos.)
 
