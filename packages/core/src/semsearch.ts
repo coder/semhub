@@ -136,7 +136,6 @@ async function filterAfterVectorSearch(
 ) {
   const SIMILARITY_LIMIT = 1000;
   const offset = (params.page - 1) * params.pageSize;
-  console.log("filterAfterVectorSearch");
 
   return await db.transaction(async (tx) => {
     // Increase ef_search to get more candidates from HNSW
@@ -187,7 +186,7 @@ async function filterAfterVectorSearch(
 
     const [[countResult], result] = await Promise.all([
       tx.select({ count: countFn() }).from(query.as("countQuery")),
-      applyPagination(query, params, offset),
+      applyPagination(query, params, offset).orderBy(desc(rankingScore)),
     ]);
 
     if (!countResult) {
@@ -209,7 +208,6 @@ async function filterBeforeVectorSearch(
   db: DbClient,
   embedding: number[],
 ) {
-  console.log("filterBeforeVectorSearch");
   const offset = (params.page - 1) * params.pageSize;
 
   return await db.transaction(async (tx) => {
@@ -272,8 +270,7 @@ async function filterBeforeVectorSearch(
         similarityScore,
         rankingScore,
       })
-      .from(finalVectorSearchSubquery)
-      .orderBy(desc(rankingScore));
+      .from(finalVectorSearchSubquery);
 
     // Get total count first
     const [countResult] = await tx
@@ -285,7 +282,11 @@ async function filterBeforeVectorSearch(
     }
     const totalCount = countResult.count;
 
-    const finalQuery = applyPagination(joinedQuery.$dynamic(), params, offset);
+    const finalQuery = applyPagination(
+      joinedQuery.$dynamic(),
+      params,
+      offset,
+    ).orderBy(desc(rankingScore));
     const result = await finalQuery;
     // const result = await explainAnalyze(tx, finalQuery);
     return {

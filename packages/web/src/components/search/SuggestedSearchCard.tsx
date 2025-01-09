@@ -19,7 +19,7 @@ const ALL_SUGGESTED_SEARCHES = [
 
   // Frontend frameworks
   'collection:"frontend" label:"help wanted"',
-  'collection:"frontend" title:"api routes"',
+  'collection:"frontend" title:"api"',
   'repo:svelte label:"bug" state:open',
   'org:vercel label:"documentation" Nextjs15',
 
