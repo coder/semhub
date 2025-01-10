@@ -159,16 +159,18 @@ async function filterAfterVectorSearch(
   embedding: number[],
 ) {
   const startTime = performance.now();
-  const SIMILARITY_LIMIT = 1000;
+  // Reduce SIMILARITY_LIMIT to process fewer rows while still maintaining quality
+  const SIMILARITY_LIMIT = 100;
   const offset = (params.page - 1) * params.pageSize;
 
   return await db.transaction(async (tx) => {
     const txStartTime = performance.now();
     console.log("[PERF] Starting transaction");
 
-    // Increase ef_search to get more candidates from HNSW
+    // Optimize for speed with lower ef_search
     const efSearchStartTime = performance.now();
-    await tx.execute(sql`SET LOCAL hnsw.ef_search = 100;`);
+    await tx.execute(sql`SET LOCAL hnsw.ef_search = 400;`);
+    await tx.execute(sql`SET LOCAL hnsw.max_scan_tuples = 20000;`);
     // relaxed ordering is fine since we are using a custom ordering
     await tx.execute(sql`SET LOCAL hnsw.iterative_scan = 'relaxed_order';`);
     console.log(
