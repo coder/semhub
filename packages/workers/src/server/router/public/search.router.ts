@@ -46,7 +46,7 @@ export const searchRouter = new Hono<Context>().get(
     const cacheKey = `public:search:q=${query}:page=${pageNumber}:size=${pageSize}`;
     const cached = await getJson(Resource.SearchCacheKv, cacheKey);
 
-    if (cached !== null) {
+    if (cached) {
       // Validate cached data against schema
       const res = searchResultSchema.safeParse(cached);
       if (res.success) {

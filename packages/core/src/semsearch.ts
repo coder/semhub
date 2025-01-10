@@ -140,9 +140,11 @@ async function filterAfterVectorSearch(
   const offset = (params.page - 1) * params.pageSize;
 
   return await db.transaction(async (tx) => {
-    // Optimize for speed with lower ef_search
+    // adjust this to trade-off between speed and number of eventual matches
     await tx.execute(sql`SET LOCAL hnsw.ef_search = 400;`);
+    // this is default value
     await tx.execute(sql`SET LOCAL hnsw.max_scan_tuples = 20000;`);
+    // this is fine since we are using custom ranking
     await tx.execute(sql`SET LOCAL hnsw.iterative_scan = 'relaxed_order';`);
 
     // Stage 1: Vector search using HNSW index
