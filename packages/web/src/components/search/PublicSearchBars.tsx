@@ -38,6 +38,11 @@ const owners = [
     avatarUrl: "https://avatars.githubusercontent.com/u/14985020?v=4",
   },
   {
+    value: "vuejs",
+    label: "Vue",
+    avatarUrl: "https://avatars.githubusercontent.com/u/6128107?v=4",
+  },
+  {
     value: "coder",
     label: "coder",
     avatarUrl: "https://avatars.githubusercontent.com/u/95932066?v=4",
@@ -218,7 +223,6 @@ function SearchFilters({
 }
 
 export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
-  const { handleSearch } = usePublicSearch();
   const [selectedOrg, setSelectedOrg] = useState("all");
   const [selectedRepo, setSelectedRepo] = useState("all");
   const {
@@ -240,6 +244,7 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
     setCommandValue,
     setQuery,
   } = useSearchBar(initialQuery);
+  const { handleSearch } = usePublicSearch(setQuery);
 
   const handleOrgChange = (org: string) => {
     setSelectedOrg(org);
@@ -316,7 +321,6 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
 
 export function HomepageSearchBar() {
   const { theme } = useTheme();
-  const { handleSearch, handleLuckySearch } = usePublicSearch();
   const [selectedOrg, setSelectedOrg] = useState("all");
   const [selectedRepo, setSelectedRepo] = useState("all");
   const {
@@ -338,6 +342,7 @@ export function HomepageSearchBar() {
     setCommandValue,
     setQuery,
   } = useSearchBar();
+  const { handleSearch, handleLuckySearch } = usePublicSearch(setQuery);
   const placeholderText = usePlaceholderAnimation();
 
   const handleOrgChange = (org: string) => {

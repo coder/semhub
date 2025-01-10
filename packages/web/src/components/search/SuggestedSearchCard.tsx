@@ -16,8 +16,8 @@ const ALL_SUGGESTED_SEARCHES = [
   // Frontend frameworks
   'repo:svelte state:open label:"runes"',
   "org:vercel app router",
-  "repo:solidjs reactive primitives",
-  "repo:vuejs composition api",
+  "org:solidjs reactive primitives",
+  "repo:vuejs/core composition api",
   "org:withastro server components",
   // Programming languages
   'repo:rust title:"lifetime"',

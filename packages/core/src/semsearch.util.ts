@@ -83,11 +83,13 @@ export function parseSearchQuery(inputQuery: string) {
 
 export function modifyUserQuery(query: string) {
   const { stateQueries, repoQueries } = parseSearchQuery(query);
-  let modifiedQuery = query;
+  let modifiedQuery = query.trim();
 
   // Add default state if none specified
   if (stateQueries.length === 0) {
-    modifiedQuery = `${modifiedQuery} state:open`;
+    modifiedQuery = modifiedQuery
+      ? `state:open ${modifiedQuery}`
+      : "state:open";
   }
 
   // Handle org/repo format transformation
@@ -101,9 +103,11 @@ export function modifyUserQuery(query: string) {
         .replace(/\borg:(?:"[^"]*"|[^\s]*)/g, "")
         .trim();
       // Add back the transformed queries
-      modifiedQuery = `${modifiedQuery} org:${parts[0]} repo:${parts[1]}`;
+      const prefix = `org:${parts[0]} repo:${parts[1]}`;
+      modifiedQuery = modifiedQuery ? `${prefix} ${modifiedQuery}` : prefix;
     }
   }
 
-  return modifiedQuery;
+  // Normalize spaces - replace multiple spaces with single space
+  return modifiedQuery.replace(/\s+/g, " ").trim();
 }

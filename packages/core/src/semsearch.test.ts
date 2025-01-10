@@ -383,27 +383,27 @@ describe("modifyUserQuery", () => {
     {
       name: "adds state:open when no state specified",
       input: 'title:"bug"',
-      expected: 'title:"bug" state:open',
+      expected: 'state:open title:"bug"',
     },
     {
       name: "transforms repo:org/repo format",
       input: 'repo:microsoft/vscode title:"bug"',
-      expected: 'title:"bug" state:open org:microsoft repo:vscode',
+      expected: 'org:microsoft repo:vscode state:open title:"bug"',
     },
     {
       name: "transforms repo:org/repo and removes existing org",
       input: 'repo:microsoft/vscode org:google title:"bug"',
-      expected: 'title:"bug" state:open org:microsoft repo:vscode',
+      expected: 'org:microsoft repo:vscode state:open title:"bug"',
     },
     {
       name: "handles multiple repo queries by using the one with org/repo format",
       input: 'repo:microsoft/vscode repo:other-repo title:"bug"',
-      expected: 'title:"bug" state:open org:microsoft repo:vscode',
+      expected: 'org:microsoft repo:vscode state:open title:"bug"',
     },
     {
       name: "preserves state if specified",
       input: 'repo:microsoft/vscode state:closed title:"bug"',
-      expected: 'state:closed title:"bug" org:microsoft repo:vscode',
+      expected: 'org:microsoft repo:vscode state:closed title:"bug"',
     },
   ];
 

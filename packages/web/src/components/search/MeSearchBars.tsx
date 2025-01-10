@@ -11,9 +11,9 @@ export function MyReposResultsSearchBar({
 }: {
   query: string;
 }) {
-  const { handleSearch } = useMeSearch();
   const {
     query,
+    setQuery,
     inputRef,
     commandInputRef,
     commandRef,
@@ -30,6 +30,7 @@ export function MyReposResultsSearchBar({
     commandValue,
     setCommandValue,
   } = useSearchBar(initialQuery);
+  const { handleSearch } = useMeSearch(setQuery);
 
   return (
     <div className="relative mx-auto w-full">
@@ -85,7 +86,6 @@ export function MyReposResultsSearchBar({
   );
 }
 export function MyReposSearchBar() {
-  const { handleSearch } = useMeSearch();
   const {
     query,
     inputRef,
@@ -103,7 +103,9 @@ export function MyReposSearchBar() {
     handleBlur,
     commandValue,
     setCommandValue,
+    setQuery,
   } = useSearchBar();
+  const { handleSearch } = useMeSearch(setQuery);
 
   return (
     <div className="relative mx-auto w-full">
