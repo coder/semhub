@@ -208,6 +208,8 @@ async function filterAfterVectorSearch(
         ...getBaseSelect(),
         similarityScore,
         rankingScore,
+        // Add a window function to get the total count in the same query
+        totalCount: sql<number>`count(*) over()`.as("total_count"),
       })
       .from(vectorSearchSubquery)
       .innerJoin(issueTable, eq(vectorSearchSubquery.issueId, issueTable.id))
@@ -228,15 +230,6 @@ async function filterAfterVectorSearch(
     );
 
     const executeTime = performance.now();
-    console.log("[PERF] Starting count query execution");
-    const countStartTime = performance.now();
-    const [countResult] = await tx
-      .select({ count: countFn() })
-      .from(query.as("countQuery"));
-    console.log(
-      `[PERF] Count query took ${performance.now() - countStartTime}ms`,
-    );
-
     console.log("[PERF] Starting main query execution");
     const mainQueryStartTime = performance.now();
     const result = await explainAnalyze(tx, finalQuery);
@@ -247,10 +240,8 @@ async function filterAfterVectorSearch(
       `[PERF] Total query execution took ${performance.now() - executeTime}ms`,
     );
 
-    if (!countResult) {
-      throw new Error("Failed to get total count");
-    }
-    const totalCount = countResult.count;
+    // Extract total count from the first row
+    const totalCount = result[0]?.totalCount ?? 0;
 
     console.log(
       `[PERF] Total filterAfterVectorSearch took ${performance.now() - startTime}ms`,
@@ -345,26 +336,13 @@ async function filterBeforeVectorSearch(
         commentCount: vectorSearchSubquery.commentCount,
         similarityScore,
         rankingScore,
+        // Add window function to get total count in same query
+        totalCount: sql<number>`count(*) over()`.as("total_count"),
       })
       .from(vectorSearchSubquery);
     console.log(`[PERF] Join setup took ${performance.now() - joinTime}ms`);
 
     const executeTime = performance.now();
-    console.log("[PERF] Starting count query execution");
-    const countStartTime = performance.now();
-    // Get total count first
-    const [countResult] = await tx
-      .select({ count: countFn() })
-      .from(joinedQuery.as("countQuery"));
-    console.log(
-      `[PERF] Count query took ${performance.now() - countStartTime}ms`,
-    );
-
-    if (!countResult) {
-      throw new Error("Failed to get total count");
-    }
-    const totalCount = countResult.count;
-
     console.log("[PERF] Starting main query execution");
     const mainQueryStartTime = performance.now();
     const finalQuery = applyPagination(
@@ -373,18 +351,16 @@ async function filterBeforeVectorSearch(
       offset,
     ).orderBy(desc(rankingScore));
 
-    const explainResult = await explainAnalyze(tx, finalQuery);
-    console.log(
-      "[PERF] Query plan:",
-      JSON.stringify(explainResult[0], null, 2),
-    );
-    const result = await finalQuery;
+    const result = await explainAnalyze(tx, finalQuery);
     console.log(
       `[PERF] Main query took ${performance.now() - mainQueryStartTime}ms`,
     );
     console.log(
       `[PERF] Total query execution took ${performance.now() - executeTime}ms`,
     );
+
+    // Extract total count from the first row
+    const totalCount = result[0]?.totalCount ?? 0;
 
     console.log(
       `[PERF] Total filterBeforeVectorSearch took ${performance.now() - startTime}ms`,
