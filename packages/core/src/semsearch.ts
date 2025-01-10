@@ -141,7 +141,7 @@ async function filterAfterVectorSearch(
 
   return await db.transaction(async (tx) => {
     // adjust this to trade-off between speed and number of eventual matches
-    await tx.execute(sql`SET LOCAL hnsw.ef_search = 400;`);
+    await tx.execute(sql`SET LOCAL hnsw.ef_search = 1000;`);
     // this is default value
     await tx.execute(sql`SET LOCAL hnsw.max_scan_tuples = 20000;`);
     // this is fine since we are using custom ranking
