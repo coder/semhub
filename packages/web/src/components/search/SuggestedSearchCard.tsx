@@ -9,42 +9,21 @@ import { Button } from "@/components/ui/button";
 const ALL_SUGGESTED_SEARCHES = [
   // Editor related
   'label:"good first issue" state:open repo:vscode renderer',
-  'collection:"editor" label:"good first issue" bug',
-  'collection:"editor" vim mode',
-
   // Terminal related
-  'collection:"terminal" label:"enhancement" speed',
-  'collection:"terminal" title:"performance" scroll',
   'repo:ghostty label:"input" modifier',
-
+  "repo:neovim startup performance",
+  "repo:alacritty gpu rendering",
   // Frontend frameworks
-  'collection:"frontend" label:"help wanted"',
-  'collection:"frontend" title:"api"',
-  'repo:svelte label:"bug" state:open',
-  'org:vercel label:"documentation" Nextjs15',
-
+  'repo:svelte state:open label:"runes"',
+  "org:vercel app router",
+  "repo:solidjs reactive primitives",
+  "repo:vuejs composition api",
+  "org:withastro server components",
   // Programming languages
-  'collection:"languages" label:"help wanted" bug',
-  'collection:"languages" "compiler"',
   'repo:rust title:"lifetime"',
-  'repo:go "performance"',
-
-  // General queries
-  "memory leak fix",
-  "loading spinner example",
-  "password reset endpoint",
-  "rate limit error",
-  "websocket connection issue",
-  "login form template",
-  "database connection timeout",
-  "image upload example",
-  "jwt token expired",
-  "infinite scroll implementation",
-  "oauth authentication flow",
-  "docker compose setup",
-  "api response caching",
-  "search autocomplete component",
-  "responsive navbar example",
+  "repo:TypeScript type inference",
+  "repo:golang/go concurrency",
+  "repo:kubernetes pod networking",
 ] as const;
 
 interface SuggestedSearchCardProps {

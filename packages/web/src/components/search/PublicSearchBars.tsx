@@ -1,13 +1,4 @@
-import {
-  ChevronDownIcon,
-  CodeIcon,
-  GlobeIcon,
-  LayoutIcon,
-  MonitorIcon,
-  SearchIcon,
-  TerminalIcon,
-  XIcon,
-} from "lucide-react";
+import { ChevronDownIcon, GlobeIcon, SearchIcon, XIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState } from "react";
 
@@ -28,14 +19,6 @@ import {
   type SearchOperator,
 } from "@/../../core/src/constants/search.constant";
 
-const collections = [
-  { value: "all", label: "All collections", icon: GlobeIcon },
-  { value: "editor", label: "Text editors", icon: MonitorIcon },
-  { value: "terminal", label: "Terminal emulators", icon: TerminalIcon },
-  { value: "frontend", label: "Frontend frameworks", icon: LayoutIcon },
-  { value: "languages", label: "Programming languages", icon: CodeIcon },
-];
-
 // TODO: hard-coded for now, fetch from API eventually
 const owners = [
   { value: "all", label: "All orgs", icon: GlobeIcon },
@@ -45,14 +28,77 @@ const owners = [
     avatarUrl: "https://avatars.githubusercontent.com/u/6154722?v=4",
   },
   {
+    value: "golang",
+    label: "golang",
+    avatarUrl: "https://avatars.githubusercontent.com/u/4314092?v=4",
+  },
+  {
     value: "vercel",
     label: "Vercel",
     avatarUrl: "https://avatars.githubusercontent.com/u/14985020?v=4",
   },
   {
     value: "coder",
-    label: "Coder",
+    label: "coder",
     avatarUrl: "https://avatars.githubusercontent.com/u/95932066?v=4",
+  },
+];
+
+// TODO: hard-coded for now, fetch from API eventually
+const repos = [
+  { value: "all", label: "All repos", icon: GlobeIcon },
+  {
+    value: "microsoft/typescript",
+    label: "TypeScript",
+    avatarUrl:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Typescript.svg/260px-Typescript.svg.png",
+  },
+  {
+    value: "golang/go",
+    label: "Go",
+    avatarUrl: "https://avatars.githubusercontent.com/u/4314092?v=4",
+  },
+  {
+    value: "rust-lang/rust",
+    label: "Rust",
+    avatarUrl: "https://avatars.githubusercontent.com/u/5430905?v=4",
+  },
+  {
+    value: "facebook/react",
+    label: "React",
+    avatarUrl:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/React_Logo_SVG.svg/512px-React_Logo_SVG.svg.png",
+  },
+  {
+    value: "microsoft/vscode",
+    label: "VS Code",
+    avatarUrl:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Visual_Studio_Code_1.35_icon.svg/512px-Visual_Studio_Code_1.35_icon.svg.png",
+  },
+  {
+    value: "neovim/neovim",
+    label: "Neovim",
+    avatarUrl: "https://avatars.githubusercontent.com/u/6471485?v=4",
+  },
+  {
+    value: "getcursor/cursor",
+    label: "Cursor",
+    avatarUrl: "https://avatars.githubusercontent.com/u/126759922?v=4",
+  },
+  {
+    value: "coder/coder",
+    label: "coder/coder",
+    avatarUrl: "https://avatars.githubusercontent.com/u/95932066?v=4",
+  },
+  {
+    value: "warpdotdev/warp",
+    label: "Warp",
+    avatarUrl: "https://avatars.githubusercontent.com/u/71840468?&v=4",
+  },
+  {
+    value: "ghostty-org/ghostty",
+    label: "Ghostty",
+    avatarUrl: "https://avatars.githubusercontent.com/u/169223740?v=4",
   },
 ];
 
@@ -61,7 +107,7 @@ function FilterDropdown({
   value,
   onChange,
 }: {
-  options: typeof collections | typeof owners;
+  options: typeof repos | typeof owners;
   value: string;
   onChange: (value: string) => void;
 }) {
@@ -122,10 +168,10 @@ function FilterDropdown({
 // Shared function to handle filter changes
 function updateQueryWithFilter(
   query: string,
-  filterType: "org" | "collection",
+  filterType: "org" | "repo",
   value: string,
 ) {
-  // Remove any existing operators of this type
+  // Remove any existing operator
   const pattern = new RegExp(
     `${filterType}:"[^"]*"\\s*|${filterType}:[^\\s]*\\s*`,
     "g",
@@ -146,26 +192,26 @@ function updateQueryWithFilter(
 
 function SearchFilters({
   selectedOrg,
-  selectedCollection,
+  selectedRepo,
   onOrgChange,
-  onCollectionChange,
+  onRepoChange,
 }: {
   selectedOrg: string;
-  selectedCollection: string;
+  selectedRepo: string;
   onOrgChange: (org: string) => void;
-  onCollectionChange: (collection: string) => void;
+  onRepoChange: (repo: string) => void;
 }) {
   return (
     <div className="flex gap-1">
       <FilterDropdown
-        options={collections}
-        value={selectedCollection}
-        onChange={onCollectionChange}
-      />
-      <FilterDropdown
         options={owners}
         value={selectedOrg}
         onChange={onOrgChange}
+      />
+      <FilterDropdown
+        options={repos}
+        value={selectedRepo}
+        onChange={onRepoChange}
       />
     </div>
   );
@@ -174,7 +220,7 @@ function SearchFilters({
 export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
   const { handleSearch } = usePublicSearch();
   const [selectedOrg, setSelectedOrg] = useState("all");
-  const [selectedCollection, setSelectedCollection] = useState("all");
+  const [selectedRepo, setSelectedRepo] = useState("all");
   const {
     query,
     inputRef,
@@ -200,9 +246,9 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
     setQuery(updateQueryWithFilter(query, "org", org));
   };
 
-  const handleCollectionChange = (collection: string) => {
-    setSelectedCollection(collection);
-    setQuery(updateQueryWithFilter(query, "collection", collection));
+  const handleRepoChange = (repo: string) => {
+    setSelectedRepo(repo);
+    setQuery(updateQueryWithFilter(query, "repo", repo));
   };
 
   return (
@@ -211,9 +257,9 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
         <div className="mb-2 flex items-center gap-1">
           <SearchFilters
             selectedOrg={selectedOrg}
-            selectedCollection={selectedCollection}
+            selectedRepo={selectedRepo}
             onOrgChange={handleOrgChange}
-            onCollectionChange={handleCollectionChange}
+            onRepoChange={handleRepoChange}
           />
         </div>
         <div className="relative">
@@ -272,7 +318,7 @@ export function HomepageSearchBar() {
   const { theme } = useTheme();
   const { handleSearch, handleLuckySearch } = usePublicSearch();
   const [selectedOrg, setSelectedOrg] = useState("all");
-  const [selectedCollection, setSelectedCollection] = useState("all");
+  const [selectedRepo, setSelectedRepo] = useState("all");
   const {
     query,
     inputRef,
@@ -299,9 +345,9 @@ export function HomepageSearchBar() {
     setQuery(updateQueryWithFilter(query, "org", org));
   };
 
-  const handleCollectionChange = (collection: string) => {
-    setSelectedCollection(collection);
-    setQuery(updateQueryWithFilter(query, "collection", collection));
+  const handleRepoChange = (repo: string) => {
+    setSelectedRepo(repo);
+    setQuery(updateQueryWithFilter(query, "repo", repo));
   };
 
   return (
@@ -311,9 +357,9 @@ export function HomepageSearchBar() {
           <div className="mb-2 flex items-center gap-1">
             <SearchFilters
               selectedOrg={selectedOrg}
-              selectedCollection={selectedCollection}
+              selectedRepo={selectedRepo}
               onOrgChange={handleOrgChange}
-              onCollectionChange={handleCollectionChange}
+              onRepoChange={handleRepoChange}
             />
           </div>
           <div className="relative">

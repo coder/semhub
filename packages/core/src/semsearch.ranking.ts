@@ -4,10 +4,10 @@ import { comments } from "./db/schema/entities/comment.sql";
 
 // Ranking weights (should sum to 1)
 const RANKING_WEIGHTS = {
-  SEMANTIC_SIMILARITY: 0.5, // Start with higher weight for semantic search
-  COMMENT_COUNT: 0.25, // Activity level
-  RECENCY: 0.2, // Recent updates
-  ISSUE_STATE: 0.05, // Small bonus for open issues
+  SEMANTIC_SIMILARITY: 0.8, // Start with higher weight for semantic search
+  COMMENT_COUNT: 0.12, // Activity level
+  RECENCY: 0.05, // Recent updates
+  ISSUE_STATE: 0.03, // Small bonus for open issues
 } as const;
 
 // Time-based constants

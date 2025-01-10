@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 const PLACEHOLDER_TEXTS = [
   "Semhub understands what you mean",
   "Search issues across multiple repos",
-  "Login to add your private repos",
-  "Create your own repo collections",
+  "Login to customize your search",
+  "Add Semhub Search to your repo",
 ] as const;
 
 const TYPING_DELAY_MS = 20;
