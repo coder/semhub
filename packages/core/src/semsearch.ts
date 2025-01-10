@@ -9,6 +9,7 @@ import { selectLabelForSearchSchema } from "./db/schema/entities/label.schema";
 import type { SelectRepoForSearch } from "./db/schema/entities/repo.schema";
 import { repos } from "./db/schema/entities/repo.sql";
 import { authorSchema } from "./db/schema/shared";
+import { explainAnalyze } from "./db/utils/explain";
 import { cosineDistance } from "./db/utils/vector";
 import { createEmbedding } from "./embedding";
 import type { OpenAIClient } from "./openai";
@@ -72,11 +73,17 @@ export async function searchIssues(
   db: DbClient,
   openai: OpenAIClient,
 ): Promise<SearchResult> {
+  const startTime = performance.now();
   const ISSUE_COUNT_THRESHOLD = 5000;
   const parsedSearchQuery = parseSearchQuery(params.query);
+
   // Get matching issues count and embedding in parallel
+  console.log(
+    `[PERF] Starting parallel count and embedding for query: ${params.query}`,
+  );
+  const countStartTime = performance.now();
   const [matchingCount, embedding] = await Promise.all([
-    getIssuesCount(params, parsedSearchQuery, db),
+    getFilteredIssuesCount(params, parsedSearchQuery, db),
     createEmbedding(
       {
         // embed query without operators, not sure if this gets better results
@@ -86,23 +93,40 @@ export async function searchIssues(
       openai,
     ),
   ]);
+  console.log(
+    `[PERF] Count (${matchingCount} issues) and embedding generation took ${performance.now() - countStartTime}ms`,
+  );
+
   const useHnswIndex = matchingCount > ISSUE_COUNT_THRESHOLD;
-  return useHnswIndex
-    ? // we are currently routing search based on ISSUE_COUNT_THRESHOLD
-      // (1) if higher, we HNSW index and apply the filter afterwards
-      // (2) if lower, we filter before the vector search and do a full seq scan
-      // downside of (1) if searching across not that many issues: end up with very few results
-      // downside of (2) if searching across too many issues:queries are too slow
-      await filterAfterVectorSearch(params, parsedSearchQuery, db, embedding)
+  // we are currently routing search based on ISSUE_COUNT_THRESHOLD
+  // (1) if higher, we HNSW index and apply the filter afterwards
+  // (2) if lower, we filter before the vector search and do a full seq scan
+  // downside of (1) if searching across not that many issues: end up with very few results
+  // downside of (2) if searching across too many issues:queries are too slow
+  console.log(
+    `[PERF] Using ${useHnswIndex ? "HNSW index" : "sequential scan"} strategy`,
+  );
+
+  const searchStartTime = performance.now();
+  const result = useHnswIndex
+    ? await filterAfterVectorSearch(params, parsedSearchQuery, db, embedding)
     : await filterBeforeVectorSearch(params, parsedSearchQuery, db, embedding);
+  console.log(
+    `[PERF] Vector search and filtering took ${performance.now() - searchStartTime}ms`,
+  );
+  console.log(
+    `[PERF] Total search execution took ${performance.now() - startTime}ms`,
+  );
+
   // other possible solutions that I did not have time to fully explore:
   // (1) look into using hnsw.iterative_scan (previous attempt did not work well)
   // (2) try IVFFlat index instead of HNSW (see https://github.com/pgvector/pgvector/issues/560)
   // (2) see also: https://github.com/pgvector/pgvector?tab=readme-ov-file (sections on filtering, troubleshooting)
   // https://tembo.io/blog/vector-indexes-in-pgvector
+  return result;
 }
 
-async function getIssuesCount(
+async function getFilteredIssuesCount(
   searchParams: SearchParams,
   parsedSearchQuery: ReturnType<typeof parseSearchQuery>,
   db: DbClient,
@@ -134,13 +158,16 @@ async function filterAfterVectorSearch(
   db: DbClient,
   embedding: number[],
 ) {
+  const startTime = performance.now();
   const SIMILARITY_LIMIT = 1000;
   const offset = (params.page - 1) * params.pageSize;
 
   return await db.transaction(async (tx) => {
+    console.log("[PERF] Starting HNSW vector search");
     // Increase ef_search to get more candidates from HNSW
     await tx.execute(sql`SET LOCAL hnsw.ef_search = 1000;`);
 
+    const vectorSearchTime = performance.now();
     // Stage 1: Vector search using HNSW index with increased ef_search
     const vectorSearchSubquery = tx
       .select({
@@ -154,7 +181,11 @@ async function filterAfterVectorSearch(
       .orderBy(cosineDistance(issueEmbeddings.embedding, embedding))
       .limit(SIMILARITY_LIMIT)
       .as("vector_search");
+    console.log(
+      `[PERF] Vector search setup took ${performance.now() - vectorSearchTime}ms`,
+    );
 
+    const rankingTime = performance.now();
     const recencyScore = calculateRecencyScore(issueTable.issueUpdatedAt);
     const commentScore = calculateCommentScore(issueTable.id);
     const similarityScore = calculateSimilarityScore(
@@ -166,7 +197,11 @@ async function filterAfterVectorSearch(
       commentScore,
       issueState: issueTable.issueState,
     });
+    console.log(
+      `[PERF] Ranking score calculation took ${performance.now() - rankingTime}ms`,
+    );
 
+    const joinTime = performance.now();
     // Stage 2: Join and re-rank with additional features
     let query = tx
       .select({
@@ -181,20 +216,45 @@ async function filterAfterVectorSearch(
         and(eq(issueTable.repoId, repos.id), eq(repos.initStatus, "completed")),
       )
       .$dynamic();
+    console.log(`[PERF] Join setup took ${performance.now() - joinTime}ms`);
 
+    const filterTime = performance.now();
     query = applyFilters(query, params, parsedSearchQuery);
+    const finalQuery = applyPagination(query, params, offset).orderBy(
+      desc(rankingScore),
+    );
+    console.log(
+      `[PERF] Filter and pagination setup took ${performance.now() - filterTime}ms`,
+    );
 
-    const [[countResult], result] = await Promise.all([
-      tx.select({ count: countFn() }).from(query.as("countQuery")),
-      applyPagination(query, params, offset).orderBy(desc(rankingScore)),
-    ]);
+    const executeTime = performance.now();
+    console.log("[PERF] Starting count query execution");
+    const countStartTime = performance.now();
+    const [countResult] = await tx
+      .select({ count: countFn() })
+      .from(query.as("countQuery"));
+    console.log(
+      `[PERF] Count query took ${performance.now() - countStartTime}ms`,
+    );
+
+    console.log("[PERF] Starting main query execution");
+    const mainQueryStartTime = performance.now();
+    const result = await explainAnalyze(tx, finalQuery);
+    console.log(
+      `[PERF] Main query took ${performance.now() - mainQueryStartTime}ms`,
+    );
+    console.log(
+      `[PERF] Total query execution took ${performance.now() - executeTime}ms`,
+    );
 
     if (!countResult) {
       throw new Error("Failed to get total count");
     }
     const totalCount = countResult.count;
 
-    // const result = await explainAnalyze(tx, finalQuery);
+    console.log(
+      `[PERF] Total filterAfterVectorSearch took ${performance.now() - startTime}ms`,
+    );
     return {
       data: result,
       totalCount,
@@ -208,9 +268,13 @@ async function filterBeforeVectorSearch(
   db: DbClient,
   embedding: number[],
 ) {
+  const startTime = performance.now();
   const offset = (params.page - 1) * params.pageSize;
 
   return await db.transaction(async (tx) => {
+    console.log("[PERF] Starting sequential scan vector search");
+
+    const queryBuildTime = performance.now();
     let query = tx
       .select({
         ...getBaseSelect(),
@@ -226,69 +290,106 @@ async function filterBeforeVectorSearch(
         and(eq(issueTable.repoId, repos.id), eq(repos.initStatus, "completed")),
       )
       .$dynamic();
+    console.log(
+      `[PERF] Initial query build took ${performance.now() - queryBuildTime}ms`,
+    );
 
+    const filterTime = performance.now();
     query = applyFilters(query, params, parsedSearchQuery);
+    console.log(
+      `[PERF] Filter application took ${performance.now() - filterTime}ms`,
+    );
 
-    const finalVectorSearchSubquery = query
+    const vectorSearchSubquery = query
       .orderBy(cosineDistance(issueEmbeddings.embedding, embedding))
       .as("vector_search");
 
+    const rankingTime = performance.now();
     const recencyScore = calculateRecencyScore(
-      finalVectorSearchSubquery.issueUpdatedAt,
+      vectorSearchSubquery.issueUpdatedAt,
     );
-    const commentScore = calculateCommentScore(finalVectorSearchSubquery.id);
+    const commentScore = calculateCommentScore(vectorSearchSubquery.id);
     const similarityScore = calculateSimilarityScore(
-      finalVectorSearchSubquery.distance,
+      vectorSearchSubquery.distance,
     );
     const rankingScore = calculateRankingScore({
       similarityScore,
       recencyScore,
       commentScore,
-      issueState: finalVectorSearchSubquery.issueState,
+      issueState: vectorSearchSubquery.issueState,
     });
+    console.log(
+      `[PERF] Ranking score calculation took ${performance.now() - rankingTime}ms`,
+    );
 
+    const joinTime = performance.now();
     // Stage 2: Join and re-rank with additional features
     const joinedQuery = tx
       .select({
         // repeated, must keep in sync with getBaseSelect
-        id: finalVectorSearchSubquery.id,
-        number: finalVectorSearchSubquery.number,
-        title: finalVectorSearchSubquery.title,
-        labels: finalVectorSearchSubquery.labels,
-        issueUrl: finalVectorSearchSubquery.issueUrl,
-        author: finalVectorSearchSubquery.author,
-        issueState: finalVectorSearchSubquery.issueState,
-        issueStateReason: finalVectorSearchSubquery.issueStateReason,
-        issueCreatedAt: finalVectorSearchSubquery.issueCreatedAt,
-        issueClosedAt: finalVectorSearchSubquery.issueClosedAt,
-        issueUpdatedAt: finalVectorSearchSubquery.issueUpdatedAt,
-        repoName: finalVectorSearchSubquery.repoName,
-        repoUrl: finalVectorSearchSubquery.repoUrl,
-        repoOwnerName: finalVectorSearchSubquery.repoOwnerName,
-        repoLastSyncedAt: finalVectorSearchSubquery.repoLastSyncedAt,
-        commentCount: finalVectorSearchSubquery.commentCount,
+        id: vectorSearchSubquery.id,
+        number: vectorSearchSubquery.number,
+        title: vectorSearchSubquery.title,
+        labels: vectorSearchSubquery.labels,
+        issueUrl: vectorSearchSubquery.issueUrl,
+        author: vectorSearchSubquery.author,
+        issueState: vectorSearchSubquery.issueState,
+        issueStateReason: vectorSearchSubquery.issueStateReason,
+        issueCreatedAt: vectorSearchSubquery.issueCreatedAt,
+        issueClosedAt: vectorSearchSubquery.issueClosedAt,
+        issueUpdatedAt: vectorSearchSubquery.issueUpdatedAt,
+        repoName: vectorSearchSubquery.repoName,
+        repoUrl: vectorSearchSubquery.repoUrl,
+        repoOwnerName: vectorSearchSubquery.repoOwnerName,
+        repoLastSyncedAt: vectorSearchSubquery.repoLastSyncedAt,
+        commentCount: vectorSearchSubquery.commentCount,
         similarityScore,
         rankingScore,
       })
-      .from(finalVectorSearchSubquery);
+      .from(vectorSearchSubquery);
+    console.log(`[PERF] Join setup took ${performance.now() - joinTime}ms`);
 
+    const executeTime = performance.now();
+    console.log("[PERF] Starting count query execution");
+    const countStartTime = performance.now();
     // Get total count first
     const [countResult] = await tx
       .select({ count: countFn() })
       .from(joinedQuery.as("countQuery"));
+    console.log(
+      `[PERF] Count query took ${performance.now() - countStartTime}ms`,
+    );
 
     if (!countResult) {
       throw new Error("Failed to get total count");
     }
     const totalCount = countResult.count;
 
+    console.log("[PERF] Starting main query execution");
+    const mainQueryStartTime = performance.now();
     const finalQuery = applyPagination(
       joinedQuery.$dynamic(),
       params,
       offset,
     ).orderBy(desc(rankingScore));
+
+    const explainResult = await explainAnalyze(tx, finalQuery);
+    console.log(
+      "[PERF] Query plan:",
+      JSON.stringify(explainResult[0], null, 2),
+    );
     const result = await finalQuery;
-    // const result = await explainAnalyze(tx, finalQuery);
+    console.log(
+      `[PERF] Main query took ${performance.now() - mainQueryStartTime}ms`,
+    );
+    console.log(
+      `[PERF] Total query execution took ${performance.now() - executeTime}ms`,
+    );
+
+    console.log(
+      `[PERF] Total filterBeforeVectorSearch took ${performance.now() - startTime}ms`,
+    );
+
     return {
       data: result,
       totalCount,

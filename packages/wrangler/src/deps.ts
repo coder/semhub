@@ -12,7 +12,7 @@ import { createOpenAIClient } from "@/core/openai";
 export function getDeps(secrets: WranglerSecrets) {
   const { db } = createDb({
     connectionString: secrets.DATABASE_URL,
-    isProd: process.env.ENVIRONMENT === "prod",
+    useLogger: process.env.ENVIRONMENT !== "prod",
     options: {
       connect_timeout: 10000, // 10 seconds
       connection: {
