@@ -6,10 +6,10 @@
  * - If the value is JSON "null", returns null
  * - Within objects, null values are preserved as null
  */
-export async function getJson<T>(
+export async function getJson(
   kv: KVNamespace,
   key: string,
-): Promise<T | null> {
+): Promise<unknown | null> {
   const value = await kv.get(key);
   if (!value) return null;
   const parsed = JSON.parse(value);
