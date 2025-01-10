@@ -163,11 +163,29 @@ async function filterAfterVectorSearch(
   const offset = (params.page - 1) * params.pageSize;
 
   return await db.transaction(async (tx) => {
-    console.log("[PERF] Starting HNSW vector search");
+    const txStartTime = performance.now();
+    console.log("[PERF] Starting transaction");
+
     // Increase ef_search to get more candidates from HNSW
-    await tx.execute(sql`SET LOCAL hnsw.ef_search = 1000;`);
+    const efSearchStartTime = performance.now();
+    await tx.execute(sql`SET LOCAL hnsw.ef_search = 500;`);
+    console.log(
+      `[PERF] Setting ef_search took ${performance.now() - efSearchStartTime}ms`,
+    );
+
+    // Log memory stats before vector search
+    const memStatsStartTime = performance.now();
+    const memStats = await tx.execute(sql`
+      SELECT * FROM pg_stat_activity
+      WHERE pid = pg_backend_pid();
+    `);
+    console.log("[PERF] Current session stats:", memStats[0]);
+    console.log(
+      `[PERF] Getting memory stats took ${performance.now() - memStatsStartTime}ms`,
+    );
 
     const vectorSearchTime = performance.now();
+    console.log("[PERF] Building vector search query");
     // Stage 1: Vector search using HNSW index with increased ef_search
     const vectorSearchSubquery = tx
       .select({
@@ -181,11 +199,12 @@ async function filterAfterVectorSearch(
       .orderBy(cosineDistance(issueEmbeddings.embedding, embedding))
       .limit(SIMILARITY_LIMIT)
       .as("vector_search");
-    console.log(
-      `[PERF] Vector search setup took ${performance.now() - vectorSearchTime}ms`,
-    );
+
+    const vectorQueryBuildTime = performance.now() - vectorSearchTime;
+    console.log(`[PERF] Vector query build took ${vectorQueryBuildTime}ms`);
 
     const rankingTime = performance.now();
+    console.log("[PERF] Starting ranking score calculation");
     const recencyScore = calculateRecencyScore(issueTable.issueUpdatedAt);
     const commentScore = calculateCommentScore(issueTable.id);
     const similarityScore = calculateSimilarityScore(
@@ -202,6 +221,7 @@ async function filterAfterVectorSearch(
     );
 
     const joinTime = performance.now();
+    console.log("[PERF] Starting join setup");
     // Stage 2: Join and re-rank with additional features
     let query = tx
       .select({
@@ -221,6 +241,7 @@ async function filterAfterVectorSearch(
     console.log(`[PERF] Join setup took ${performance.now() - joinTime}ms`);
 
     const filterTime = performance.now();
+    console.log("[PERF] Starting filter application");
     query = applyFilters(query, params, parsedSearchQuery);
     const finalQuery = applyPagination(query, params, offset).orderBy(
       desc(rankingScore),
@@ -232,12 +253,16 @@ async function filterAfterVectorSearch(
     const executeTime = performance.now();
     console.log("[PERF] Starting main query execution");
     const mainQueryStartTime = performance.now();
+
     const result = await explainAnalyze(tx, finalQuery);
     console.log(
       `[PERF] Main query took ${performance.now() - mainQueryStartTime}ms`,
     );
     console.log(
       `[PERF] Total query execution took ${performance.now() - executeTime}ms`,
+    );
+    console.log(
+      `[PERF] Total transaction time: ${performance.now() - txStartTime}ms`,
     );
 
     // Extract total count from the first row
