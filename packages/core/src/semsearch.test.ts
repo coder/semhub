@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseSearchQuery } from "./semsearch.util";
+import { modifyUserQuery, parseSearchQuery } from "./semsearch.util";
 
 describe("parseSearchQuery", () => {
   const testQueries = [
@@ -353,12 +353,64 @@ describe("parseSearchQuery", () => {
         remainingQuery: "",
       },
     },
+    {
+      query: "repo:microsoft/vscode",
+      expected: {
+        authorQueries: [],
+        repoQueries: ["microsoft/vscode"],
+        stateQueries: [],
+        substringQueries: [],
+        titleQueries: [],
+        bodyQueries: [],
+        labelQueries: [],
+        ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: "",
+      },
+    },
   ];
 
   testQueries.forEach(({ query, expected }) => {
     it(`correctly parses: ${query}`, () => {
       const result = parseSearchQuery(query);
       expect(result).toEqual(expected);
+    });
+  });
+});
+
+describe("modifyUserQuery", () => {
+  const testCases = [
+    {
+      name: "adds state:open when no state specified",
+      input: 'title:"bug"',
+      expected: 'title:"bug" state:open',
+    },
+    {
+      name: "transforms repo:org/repo format",
+      input: 'repo:microsoft/vscode title:"bug"',
+      expected: 'title:"bug" state:open org:microsoft repo:vscode',
+    },
+    {
+      name: "transforms repo:org/repo and removes existing org",
+      input: 'repo:microsoft/vscode org:google title:"bug"',
+      expected: 'title:"bug" state:open org:microsoft repo:vscode',
+    },
+    {
+      name: "handles multiple repo queries by using the one with org/repo format",
+      input: 'repo:microsoft/vscode repo:other-repo title:"bug"',
+      expected: 'title:"bug" state:open org:microsoft repo:vscode',
+    },
+    {
+      name: "preserves state if specified",
+      input: 'repo:microsoft/vscode state:closed title:"bug"',
+      expected: 'state:closed title:"bug" org:microsoft repo:vscode',
+    },
+  ];
+
+  testCases.forEach(({ name, input, expected }) => {
+    it(name, () => {
+      const result = modifyUserQuery(input);
+      expect(result.trim()).toBe(expected);
     });
   });
 });
