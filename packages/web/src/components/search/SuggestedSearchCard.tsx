@@ -8,13 +8,16 @@ import { Button } from "@/components/ui/button";
 // Pool of suggested searches covering different use cases and operators
 const ALL_SUGGESTED_SEARCHES = [
   // Editor related
-  'label:"good first issue" state:open repo:vscode renderer',
+  'label:"good first issue" repo:vscode renderer',
+  "repo:getcursor/cursor memory leak",
+  "repo:getcursor/cursor battery drain",
   // Terminal related
-  'repo:ghostty label:"input" modifier',
+  "repo:ghostty scrollback",
+  "repo:ghostty search history",
   "repo:neovim startup performance",
   "repo:alacritty gpu rendering",
   // Frontend frameworks
-  'repo:svelte state:open label:"runes"',
+  'repo:svelte label:"runes"',
   "org:vercel app router",
   "org:solidjs reactive primitives",
   "repo:vuejs/core composition api",
