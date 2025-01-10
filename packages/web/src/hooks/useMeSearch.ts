@@ -1,18 +1,19 @@
 import { useNavigate } from "@tanstack/react-router";
 
-import { injectDefaultQueries } from "@/core/semsearch.util";
+import { modifyUserQuery } from "@/core/semsearch.util";
 
-export const useMeSearch = () => {
+export const useMeSearch = (setQuery: (query: string) => void) => {
   const navigate = useNavigate();
 
   const handleSearch = (e: React.FormEvent, query: string) => {
     e.preventDefault();
     e.stopPropagation();
     if (query.trim()) {
-      const search = { q: injectDefaultQueries(query) };
+      const modifiedQuery = modifyUserQuery(query);
+      setQuery(modifiedQuery);
       navigate({
         to: "/repos/search",
-        search,
+        search: { q: modifiedQuery },
       });
     }
   };

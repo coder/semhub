@@ -2,7 +2,6 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { Resource } from "sst";
 
-import type { SearchResult } from "@/core/semsearch";
 import { searchIssues, searchResultSchema } from "@/core/semsearch";
 import { getDeps } from "@/deps";
 import type { Context } from "@/server/app";
@@ -45,10 +44,8 @@ export const searchRouter = new Hono<Context>().get(
 
     // Use cache
     const cacheKey = `public:search:q=${query}:page=${pageNumber}:size=${pageSize}`;
-    const cached = await getJson<SearchResult>(
-      Resource.SearchCacheKv,
-      cacheKey,
-    );
+    const cached = await getJson(Resource.SearchCacheKv, cacheKey);
+
     if (cached) {
       // Validate cached data against schema
       const res = searchResultSchema.safeParse(cached);
@@ -68,6 +65,7 @@ export const searchRouter = new Hono<Context>().get(
         await Resource.SearchCacheKv.delete(cacheKey);
       }
     }
+
     // if not cached or validation fails, perform new search
     const results = await searchIssues(
       {
@@ -80,6 +78,7 @@ export const searchRouter = new Hono<Context>().get(
       db,
       openai,
     );
+
     await putJson(
       Resource.SearchCacheKv,
       cacheKey,

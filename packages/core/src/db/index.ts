@@ -7,7 +7,7 @@ export * from "drizzle-orm";
 
 export function createDb(config: {
   connectionString: string;
-  isProd: boolean;
+  useLogger: boolean;
   options?: postgres.Options<{}>;
 }) {
   const client = postgres(config.connectionString, {
@@ -17,7 +17,7 @@ export function createDb(config: {
   });
   return {
     db: drizzle(client, {
-      logger: !config.isProd && new EmbeddingAwareLogger(),
+      logger: config.useLogger && new EmbeddingAwareLogger(),
     }),
     // used to close connection when running scripts
     closeConnection: async () => await client.end(),

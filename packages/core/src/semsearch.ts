@@ -74,9 +74,10 @@ export async function searchIssues(
 ): Promise<SearchResult> {
   const ISSUE_COUNT_THRESHOLD = 5000;
   const parsedSearchQuery = parseSearchQuery(params.query);
+
   // Get matching issues count and embedding in parallel
   const [matchingCount, embedding] = await Promise.all([
-    getIssuesCount(params, parsedSearchQuery, db),
+    getFilteredIssuesCount(params, parsedSearchQuery, db),
     createEmbedding(
       {
         // embed query without operators, not sure if this gets better results
@@ -87,22 +88,23 @@ export async function searchIssues(
     ),
   ]);
   const useHnswIndex = matchingCount > ISSUE_COUNT_THRESHOLD;
-  return useHnswIndex
-    ? // we are currently routing search based on ISSUE_COUNT_THRESHOLD
-      // (1) if higher, we HNSW index and apply the filter afterwards
-      // (2) if lower, we filter before the vector search and do a full seq scan
-      // downside of (1) if searching across not that many issues: end up with very few results
-      // downside of (2) if searching across too many issues:queries are too slow
-      await filterAfterVectorSearch(params, parsedSearchQuery, db, embedding)
+  // we are currently routing search based on ISSUE_COUNT_THRESHOLD
+  // (1) if higher, we HNSW index and apply the filter afterwards
+  // (2) if lower, we filter before the vector search and do a full seq scan
+  // downside of (1) if searching across not that many issues: end up with very few results
+  // downside of (2) if searching across too many issues:queries are too slow
+  const result = useHnswIndex
+    ? await filterAfterVectorSearch(params, parsedSearchQuery, db, embedding)
     : await filterBeforeVectorSearch(params, parsedSearchQuery, db, embedding);
   // other possible solutions that I did not have time to fully explore:
   // (1) look into using hnsw.iterative_scan (previous attempt did not work well)
   // (2) try IVFFlat index instead of HNSW (see https://github.com/pgvector/pgvector/issues/560)
   // (2) see also: https://github.com/pgvector/pgvector?tab=readme-ov-file (sections on filtering, troubleshooting)
   // https://tembo.io/blog/vector-indexes-in-pgvector
+  return result;
 }
 
-async function getIssuesCount(
+async function getFilteredIssuesCount(
   searchParams: SearchParams,
   parsedSearchQuery: ReturnType<typeof parseSearchQuery>,
   db: DbClient,
@@ -134,14 +136,18 @@ async function filterAfterVectorSearch(
   db: DbClient,
   embedding: number[],
 ) {
-  const SIMILARITY_LIMIT = 1000;
+  const SIMILARITY_LIMIT = 100;
   const offset = (params.page - 1) * params.pageSize;
 
   return await db.transaction(async (tx) => {
-    // Increase ef_search to get more candidates from HNSW
-    await tx.execute(sql`SET LOCAL hnsw.ef_search = 1000;`);
+    // adjust this to trade-off between speed and number of eventual matches
+    await tx.execute(sql`SET LOCAL hnsw.ef_search = 400;`);
+    // this is default value
+    await tx.execute(sql`SET LOCAL hnsw.max_scan_tuples = 20000;`);
+    // this is fine since we are using custom ranking
+    await tx.execute(sql`SET LOCAL hnsw.iterative_scan = 'relaxed_order';`);
 
-    // Stage 1: Vector search using HNSW index with increased ef_search
+    // Stage 1: Vector search using HNSW index
     const vectorSearchSubquery = tx
       .select({
         issueId: issueEmbeddings.issueId,
@@ -155,6 +161,7 @@ async function filterAfterVectorSearch(
       .limit(SIMILARITY_LIMIT)
       .as("vector_search");
 
+    // Stage 2: Calculate ranking scores
     const recencyScore = calculateRecencyScore(issueTable.issueUpdatedAt);
     const commentScore = calculateCommentScore(issueTable.id);
     const similarityScore = calculateSimilarityScore(
@@ -167,12 +174,13 @@ async function filterAfterVectorSearch(
       issueState: issueTable.issueState,
     });
 
-    // Stage 2: Join and re-rank with additional features
+    // Stage 3: Join and re-rank with additional features
     let query = tx
       .select({
         ...getBaseSelect(),
         similarityScore,
         rankingScore,
+        totalCount: sql<number>`count(*) over()`.as("total_count"),
       })
       .from(vectorSearchSubquery)
       .innerJoin(issueTable, eq(vectorSearchSubquery.issueId, issueTable.id))
@@ -183,18 +191,14 @@ async function filterAfterVectorSearch(
       .$dynamic();
 
     query = applyFilters(query, params, parsedSearchQuery);
-
-    const [[countResult], result] = await Promise.all([
-      tx.select({ count: countFn() }).from(query.as("countQuery")),
-      applyPagination(query, params, offset).orderBy(desc(rankingScore)),
-    ]);
-
-    if (!countResult) {
-      throw new Error("Failed to get total count");
-    }
-    const totalCount = countResult.count;
+    const finalQuery = applyPagination(query, params, offset).orderBy(
+      desc(rankingScore),
+    );
 
     // const result = await explainAnalyze(tx, finalQuery);
+    const result = await finalQuery;
+    const totalCount = result[0]?.totalCount ?? 0;
+
     return {
       data: result,
       totalCount,
@@ -226,69 +230,63 @@ async function filterBeforeVectorSearch(
         and(eq(issueTable.repoId, repos.id), eq(repos.initStatus, "completed")),
       )
       .$dynamic();
-
     query = applyFilters(query, params, parsedSearchQuery);
 
-    const finalVectorSearchSubquery = query
+    const vectorSearchSubquery = query
       .orderBy(cosineDistance(issueEmbeddings.embedding, embedding))
       .as("vector_search");
 
     const recencyScore = calculateRecencyScore(
-      finalVectorSearchSubquery.issueUpdatedAt,
+      vectorSearchSubquery.issueUpdatedAt,
     );
-    const commentScore = calculateCommentScore(finalVectorSearchSubquery.id);
+    const commentScore = calculateCommentScore(vectorSearchSubquery.id);
     const similarityScore = calculateSimilarityScore(
-      finalVectorSearchSubquery.distance,
+      vectorSearchSubquery.distance,
     );
     const rankingScore = calculateRankingScore({
       similarityScore,
       recencyScore,
       commentScore,
-      issueState: finalVectorSearchSubquery.issueState,
+      issueState: vectorSearchSubquery.issueState,
     });
 
     // Stage 2: Join and re-rank with additional features
     const joinedQuery = tx
       .select({
         // repeated, must keep in sync with getBaseSelect
-        id: finalVectorSearchSubquery.id,
-        number: finalVectorSearchSubquery.number,
-        title: finalVectorSearchSubquery.title,
-        labels: finalVectorSearchSubquery.labels,
-        issueUrl: finalVectorSearchSubquery.issueUrl,
-        author: finalVectorSearchSubquery.author,
-        issueState: finalVectorSearchSubquery.issueState,
-        issueStateReason: finalVectorSearchSubquery.issueStateReason,
-        issueCreatedAt: finalVectorSearchSubquery.issueCreatedAt,
-        issueClosedAt: finalVectorSearchSubquery.issueClosedAt,
-        issueUpdatedAt: finalVectorSearchSubquery.issueUpdatedAt,
-        repoName: finalVectorSearchSubquery.repoName,
-        repoUrl: finalVectorSearchSubquery.repoUrl,
-        repoOwnerName: finalVectorSearchSubquery.repoOwnerName,
-        repoLastSyncedAt: finalVectorSearchSubquery.repoLastSyncedAt,
-        commentCount: finalVectorSearchSubquery.commentCount,
+        id: vectorSearchSubquery.id,
+        number: vectorSearchSubquery.number,
+        title: vectorSearchSubquery.title,
+        labels: vectorSearchSubquery.labels,
+        issueUrl: vectorSearchSubquery.issueUrl,
+        author: vectorSearchSubquery.author,
+        issueState: vectorSearchSubquery.issueState,
+        issueStateReason: vectorSearchSubquery.issueStateReason,
+        issueCreatedAt: vectorSearchSubquery.issueCreatedAt,
+        issueClosedAt: vectorSearchSubquery.issueClosedAt,
+        issueUpdatedAt: vectorSearchSubquery.issueUpdatedAt,
+        repoName: vectorSearchSubquery.repoName,
+        repoUrl: vectorSearchSubquery.repoUrl,
+        repoOwnerName: vectorSearchSubquery.repoOwnerName,
+        repoLastSyncedAt: vectorSearchSubquery.repoLastSyncedAt,
+        commentCount: vectorSearchSubquery.commentCount,
         similarityScore,
         rankingScore,
+        // Add window function to get total count in same query
+        totalCount: sql<number>`count(*) over()`.as("total_count"),
       })
-      .from(finalVectorSearchSubquery);
-
-    // Get total count first
-    const [countResult] = await tx
-      .select({ count: countFn() })
-      .from(joinedQuery.as("countQuery"));
-
-    if (!countResult) {
-      throw new Error("Failed to get total count");
-    }
-    const totalCount = countResult.count;
+      .from(vectorSearchSubquery);
 
     const finalQuery = applyPagination(
       joinedQuery.$dynamic(),
       params,
       offset,
     ).orderBy(desc(rankingScore));
-    const result = await finalQuery;
+
     // const result = await explainAnalyze(tx, finalQuery);
+    const result = await finalQuery;
+    // Extract total count from the first row
+    const totalCount = result[0]?.totalCount ?? 0;
     return {
       data: result,
       totalCount,

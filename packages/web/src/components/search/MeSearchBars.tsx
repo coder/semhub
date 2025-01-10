@@ -11,9 +11,9 @@ export function MyReposResultsSearchBar({
 }: {
   query: string;
 }) {
-  const { handleSearch } = useMeSearch();
   const {
     query,
+    setQuery,
     inputRef,
     commandInputRef,
     commandRef,
@@ -30,6 +30,7 @@ export function MyReposResultsSearchBar({
     commandValue,
     setCommandValue,
   } = useSearchBar(initialQuery);
+  const { handleSearch } = useMeSearch(setQuery);
 
   return (
     <div className="relative mx-auto w-full">
@@ -44,7 +45,6 @@ export function MyReposResultsSearchBar({
             onBlur={handleBlur}
             ref={inputRef}
             className="pr-20"
-            placeholder="Search issues..."
           />
           {query && (
             <Button
@@ -86,7 +86,6 @@ export function MyReposResultsSearchBar({
   );
 }
 export function MyReposSearchBar() {
-  const { handleSearch } = useMeSearch();
   const {
     query,
     inputRef,
@@ -104,7 +103,9 @@ export function MyReposSearchBar() {
     handleBlur,
     commandValue,
     setCommandValue,
+    setQuery,
   } = useSearchBar();
+  const { handleSearch } = useMeSearch(setQuery);
 
   return (
     <div className="relative mx-auto w-full">
@@ -118,6 +119,7 @@ export function MyReposSearchBar() {
           onFocus={handleFocus}
           onBlur={handleBlur}
           className="rounded-full border-gray-300 pl-10 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+          placeholder="Search issues in your subscribed repos..."
         />
         <SearchIcon
           className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"

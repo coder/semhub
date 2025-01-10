@@ -1,15 +1,19 @@
 import { useNavigate } from "@tanstack/react-router";
 
-import { injectDefaultQueries } from "@/core/semsearch.util";
+import { modifyUserQuery } from "@/core/semsearch.util";
 
-export const usePublicSearch = () => {
+export const usePublicSearch = (setQuery?: (query: string) => void) => {
   const navigate = useNavigate();
 
   const handleSearch = (e: React.FormEvent, query: string) => {
     e.preventDefault();
     e.stopPropagation();
+    const modifiedQuery = modifyUserQuery(query);
+    if (setQuery) {
+      setQuery(modifiedQuery);
+    }
     if (query.trim()) {
-      navigate({ to: "/search", search: { q: injectDefaultQueries(query) } });
+      navigate({ to: "/search", search: { q: modifiedQuery } });
     }
   };
 
@@ -19,7 +23,7 @@ export const usePublicSearch = () => {
     if (query.trim()) {
       navigate({
         to: "/search",
-        search: { q: injectDefaultQueries(query), lucky: "y" },
+        search: { q: modifyUserQuery(query), lucky: "y" },
       });
     }
   };

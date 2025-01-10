@@ -14,7 +14,8 @@ export function getDeps() {
   const currStage = Resource.App.stage;
   const { db } = createDb({
     connectionString: Resource.DATABASE_URL.value,
-    isProd: currStage === "prod",
+    // useLogger: currStage !== "prod",
+    useLogger: false,
   });
 
   const openai = createOpenAIClient(Resource.OPENAI_API_KEY.value);

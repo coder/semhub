@@ -81,10 +81,33 @@ export function parseSearchQuery(inputQuery: string) {
   };
 }
 
-export function injectDefaultQueries(query: string) {
-  const { stateQueries } = parseSearchQuery(query);
+export function modifyUserQuery(query: string) {
+  const { stateQueries, repoQueries } = parseSearchQuery(query);
+  let modifiedQuery = query.trim();
+
+  // Add default state if none specified
   if (stateQueries.length === 0) {
-    return `${query} state:open`;
+    modifiedQuery = modifiedQuery
+      ? `state:open ${modifiedQuery}`
+      : "state:open";
   }
-  return query;
+
+  // Handle org/repo format transformation
+  const orgRepoQuery = repoQueries.find((query) => query.includes("/"));
+  if (orgRepoQuery) {
+    const parts = orgRepoQuery.split("/");
+    if (parts.length === 2 && parts[0] && parts[1]) {
+      // Remove all repo: and org: queries
+      modifiedQuery = modifiedQuery
+        .replace(/\brepo:(?:"[^"]*"|[^\s]*)/g, "")
+        .replace(/\borg:(?:"[^"]*"|[^\s]*)/g, "")
+        .trim();
+      // Add back the transformed queries
+      const prefix = `org:${parts[0]} repo:${parts[1]}`;
+      modifiedQuery = modifiedQuery ? `${prefix} ${modifiedQuery}` : prefix;
+    }
+  }
+
+  // Normalize spaces - replace multiple spaces with single space
+  return modifiedQuery.replace(/\s+/g, " ").trim();
 }

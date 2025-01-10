@@ -8,43 +8,25 @@ import { Button } from "@/components/ui/button";
 // Pool of suggested searches covering different use cases and operators
 const ALL_SUGGESTED_SEARCHES = [
   // Editor related
-  'label:"good first issue" state:open repo:vscode renderer',
-  'collection:"editor" label:"good first issue" bug',
-  'collection:"editor" vim mode',
-
+  'label:"good first issue" repo:vscode renderer',
+  "repo:getcursor/cursor memory leak",
+  "repo:getcursor/cursor battery drain",
   // Terminal related
-  'collection:"terminal" label:"enhancement" speed',
-  'collection:"terminal" title:"performance" scroll',
-  'repo:ghostty label:"input" modifier',
-
+  "repo:ghostty scrollback",
+  "repo:ghostty search history",
+  "repo:neovim startup performance",
+  "repo:alacritty gpu rendering",
   // Frontend frameworks
-  'collection:"frontend" label:"help wanted"',
-  'collection:"frontend" title:"api"',
-  'repo:svelte label:"bug" state:open',
-  'org:vercel label:"documentation" Nextjs15',
-
+  'repo:svelte label:"runes"',
+  "org:vercel app router",
+  "org:solidjs reactive primitives",
+  "repo:vuejs/core composition api",
+  "org:withastro server components",
   // Programming languages
-  'collection:"languages" label:"help wanted" bug',
-  'collection:"languages" "compiler"',
   'repo:rust title:"lifetime"',
-  'repo:go "performance"',
-
-  // General queries
-  "memory leak fix",
-  "loading spinner example",
-  "password reset endpoint",
-  "rate limit error",
-  "websocket connection issue",
-  "login form template",
-  "database connection timeout",
-  "image upload example",
-  "jwt token expired",
-  "infinite scroll implementation",
-  "oauth authentication flow",
-  "docker compose setup",
-  "api response caching",
-  "search autocomplete component",
-  "responsive navbar example",
+  "repo:TypeScript type inference",
+  "repo:golang/go concurrency",
+  "repo:kubernetes pod networking",
 ] as const;
 
 interface SuggestedSearchCardProps {
