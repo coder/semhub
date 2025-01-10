@@ -168,7 +168,9 @@ async function filterAfterVectorSearch(
 
     // Increase ef_search to get more candidates from HNSW
     const efSearchStartTime = performance.now();
-    await tx.execute(sql`SET LOCAL hnsw.ef_search = 500;`);
+    await tx.execute(sql`SET LOCAL hnsw.ef_search = 100;`);
+    // relaxed ordering is fine since we are using a custom ordering
+    await tx.execute(sql`SET LOCAL hnsw.iterative_scan = 'relaxed_order';`);
     console.log(
       `[PERF] Setting ef_search took ${performance.now() - efSearchStartTime}ms`,
     );
