@@ -7,6 +7,8 @@ import {
   vector,
 } from "drizzle-orm/pg-core";
 
+import { sql } from "@/db";
+
 import { getBaseColumns, timestamptz } from "../base.sql";
 import { issueTable } from "./issue.sql";
 
@@ -51,5 +53,11 @@ export const issueEmbeddings = pgTable(
       "hnsw",
       table.embedding.op("vector_cosine_ops"),
     ),
+    issueEmbeddingStatusGeneratedAtIdx: index(
+      "issue_embeddings_status_generated_at_idx",
+    ).on(table.embeddingSyncStatus, table.embeddingGeneratedAt),
+    issueEmbeddingsNullIdx: index("issue_embeddings_null_idx")
+      .on(table.issueId)
+      .where(sql`embedding IS NULL`),
   }),
 );

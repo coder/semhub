@@ -1,7 +1,7 @@
-import { unstuckIssueEmbeddings } from "@/core/embedding";
+import { selectIssuesForEmbeddingCron } from "@/core/embedding";
 
 import { getDeps } from "./deps";
 
 const { db, closeConnection } = await getDeps();
-await unstuckIssueEmbeddings(db);
+await selectIssuesForEmbeddingCron(db, 100);
 await closeConnection();

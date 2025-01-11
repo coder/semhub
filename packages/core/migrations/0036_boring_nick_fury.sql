@@ -1,0 +1,2 @@
+CREATE INDEX IF NOT EXISTS "issue_embeddings_status_generated_at_idx" ON "issue_embeddings" USING btree ("issue_embedding_sync_status","embedding_generated_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "issue_embeddings_null_idx" ON "issue_embeddings" USING btree ("issue_id") WHERE embedding IS NULL;

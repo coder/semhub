@@ -69,7 +69,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         ? "no issues to embed, exit"
         : "issues to embed, continue",
       async () => {
-        return completedEmbedding;
+        return;
       },
     );
     if (completedEmbedding) {

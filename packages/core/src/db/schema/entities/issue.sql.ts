@@ -64,6 +64,7 @@ export const issueTable = pgTable(
     issueStateOpenIdx: index("issue_state_open_idx")
       .on(table.issueState)
       .where(sql`issue_state = 'OPEN'`),
+    issueUpdatedAtIdx: index("issue_updated_at_idx").on(table.issueUpdatedAt),
   }),
 );
 
