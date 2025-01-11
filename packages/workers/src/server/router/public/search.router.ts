@@ -44,25 +44,25 @@ export const searchRouter = new Hono<Context>().get(
     }
 
     // Use cache
-    const cacheKey = `public:search:q=${query}:page=${pageNumber}:size=${pageSize}`;
-    const cachedData = await getJson<SearchResult>(
-      Resource.SearchCacheKv,
-      cacheKey,
-      searchResultSchema,
-    );
+    // const cacheKey = `public:search:q=${query}:page=${pageNumber}:size=${pageSize}`;
+    // const cachedData = await getJson<SearchResult>(
+    //   Resource.SearchCacheKv,
+    //   cacheKey,
+    //   searchResultSchema,
+    // );
 
-    if (cachedData) {
-      const { data, totalCount } = cachedData;
-      return c.json(
-        createPaginatedResponse({
-          data,
-          page: pageNumber,
-          totalPages: Math.ceil(totalCount / pageSize),
-          message: "Search successful",
-        }),
-        200,
-      );
-    }
+    // if (cachedData) {
+    //   const { data, totalCount } = cachedData;
+    //   return c.json(
+    //     createPaginatedResponse({
+    //       data,
+    //       page: pageNumber,
+    //       totalPages: Math.ceil(totalCount / pageSize),
+    //       message: "Search successful",
+    //     }),
+    //     200,
+    //   );
+    // }
     const results = await searchIssues(
       {
         query,
@@ -75,14 +75,14 @@ export const searchRouter = new Hono<Context>().get(
       openai,
     );
 
-    await putJson<SearchResult>(
-      Resource.SearchCacheKv,
-      cacheKey,
-      results,
-      // 10 minutes because issues are synced every 20 minutes (SYNC_ISSUE: "*/20 * * * *")
-      // so on average, a cached result will be at most 10 minutes stale
-      { expirationTtl: 600 },
-    );
+    // await putJson<SearchResult>(
+    //   Resource.SearchCacheKv,
+    //   cacheKey,
+    //   results,
+    //   // 10 minutes because issues are synced every 20 minutes (SYNC_ISSUE: "*/20 * * * *")
+    //   // so on average, a cached result will be at most 10 minutes stale
+    //   { expirationTtl: 600 },
+    // );
     return c.json(
       createPaginatedResponse({
         data: results.data,

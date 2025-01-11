@@ -3,6 +3,7 @@ import { and, count as countFn, desc, eq, sql } from "./db";
 import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
 import { issueTable } from "./db/schema/entities/issue.sql";
 import { repos } from "./db/schema/entities/repo.sql";
+import { explainAnalyze } from "./db/utils/explain";
 import { cosineDistance } from "./db/utils/vector";
 import { createEmbedding } from "./embedding";
 import type { OpenAIClient } from "./openai";
@@ -34,6 +35,7 @@ export async function searchIssues(
   // tested with 50k issues, HNSW takes 8 seconds, seq scan takes 18 seconds
   const parsedSearchQuery = parseSearchQuery(params.query);
 
+  const timeBeforeConcurrent = performance.now();
   const [matchingCount, embedding] = await Promise.all([
     getFilteredIssuesCount(params, parsedSearchQuery, db),
     createEmbedding(
@@ -45,15 +47,27 @@ export async function searchIssues(
       openai,
     ),
   ]);
+  const timeAfterConcurrent = performance.now();
+  console.debug(
+    `Concurrent search completed in ${(timeAfterConcurrent - timeBeforeConcurrent).toFixed(2)}ms`,
+  );
 
   const useHnswIndex = matchingCount > HNSW_ISSUE_COUNT_THRESHOLD;
   // (1) if higher, we HNSW index and apply the filter afterwards
   // (2) if lower, we filter before the vector search and do a full seq scan
   // downside of (1) if searching across not that many issues: end up with very few results
   // downside of (2) if searching across too many issues:queries are too slow
+  console.debug("matchingCount", matchingCount);
+  console.debug("we will be using", useHnswIndex ? "hnsw index" : "seq scan");
+  const startTime = performance.now();
   const result = useHnswIndex
     ? await filterAfterVectorSearch(params, parsedSearchQuery, db, embedding)
     : await filterBeforeVectorSearch(params, parsedSearchQuery, db, embedding);
+  const endTime = performance.now();
+  console.debug(
+    `Vector search completed in ${(endTime - startTime).toFixed(2)}ms`,
+  );
+
   return result;
 }
 
@@ -152,7 +166,9 @@ async function filterAfterVectorSearch(
       desc(rankingScore),
     );
 
-    const result = await finalQuery;
+    // Explain the query plan first
+    const result = await explainAnalyze(tx, finalQuery);
+    // const result = await finalQuery;
     const totalCount = result[0]?.totalCount ?? 0;
 
     return {
@@ -239,7 +255,9 @@ async function filterBeforeVectorSearch(
       offset,
     ).orderBy(desc(rankingScore));
 
-    const result = await finalQuery;
+    // Explain the query plan first
+    const result = await explainAnalyze(tx, finalQuery);
+    // const result = await finalQuery;
     const totalCount = result[0]?.totalCount ?? 0;
 
     return {
