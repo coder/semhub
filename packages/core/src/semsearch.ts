@@ -1,71 +1,28 @@
-import { createSelectSchema } from "drizzle-zod";
-import { z } from "zod";
-
 import type { DbClient } from "./db";
 import { and, count as countFn, desc, eq, sql } from "./db";
 import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
 import { issueTable } from "./db/schema/entities/issue.sql";
-import { selectLabelForSearchSchema } from "./db/schema/entities/label.schema";
-import type { SelectRepoForSearch } from "./db/schema/entities/repo.schema";
 import { repos } from "./db/schema/entities/repo.sql";
-import { authorSchema } from "./db/schema/shared";
 import { cosineDistance } from "./db/utils/vector";
 import { createEmbedding } from "./embedding";
 import type { OpenAIClient } from "./openai";
 import { applyFilters, applyPagination, getBaseSelect } from "./semsearch.db";
+import {
+  convertToSqlRaw,
+  HNSW_EF_SEARCH,
+  HNSW_ISSUE_COUNT_THRESHOLD,
+  HNSW_MAX_SCAN_TUPLES,
+  HNSW_SCAN_MEM_MULTIPLIER,
+  VECTOR_SIMILARITY_SEARCH_LIMIT,
+} from "./semsearch.param";
 import {
   calculateCommentScore,
   calculateRankingScore,
   calculateRecencyScore,
   calculateSimilarityScore,
 } from "./semsearch.ranking";
-import type { SearchParams } from "./semsearch.types";
+import type { SearchParams, SearchResult } from "./semsearch.schema";
 import { parseSearchQuery } from "./semsearch.util";
-
-const selectRepoForSearchSchemaDuplicated = z.object({
-  // can't figure out how to use selectRepoForSearchSchema from repo.schema.ts here
-  // after you transform, you lose the .shape property
-  // so repeating the fields here
-  repoName: z.string(),
-  repoOwnerName: z.string(),
-  repoUrl: z.string().url(),
-  repoLastSyncedAt: z.date().nullable(),
-}) satisfies z.ZodType<SelectRepoForSearch>;
-
-// Create a schema that matches exactly what we return in search results
-const searchIssueSchema = createSelectSchema(issueTable, {
-  author: authorSchema,
-})
-  .pick({
-    id: true,
-    number: true,
-    title: true,
-    author: true,
-    issueState: true,
-    issueStateReason: true,
-    issueCreatedAt: true,
-    issueClosedAt: true,
-    issueUpdatedAt: true,
-  })
-  .extend({
-    labels: z.array(selectLabelForSearchSchema),
-    issueUrl: z.string().url(),
-    ...selectRepoForSearchSchemaDuplicated.shape,
-    // Search-specific fields
-    commentCount: z.number(),
-    similarityScore: z.number(),
-    rankingScore: z.number(),
-  })
-  .transform((issue) => ({
-    ...issue,
-  }));
-
-export const searchResultSchema = z.object({
-  data: z.array(searchIssueSchema),
-  totalCount: z.number(),
-});
-
-export type SearchResult = z.infer<typeof searchResultSchema>;
 
 export async function searchIssues(
   params: SearchParams,
@@ -75,7 +32,6 @@ export async function searchIssues(
   // setting the query at 25000 issues, sequential scan takes around 3 seconds (which is still acceptable)
   // sequential scans scales at O(n^2), so at higher thresholds, HNSW index starts to outperform
   // tested with 50k issues, HNSW takes 8 seconds, seq scan takes 18 seconds
-  const ISSUE_COUNT_THRESHOLD = 25000;
   const parsedSearchQuery = parseSearchQuery(params.query);
 
   const [matchingCount, embedding] = await Promise.all([
@@ -90,8 +46,7 @@ export async function searchIssues(
     ),
   ]);
 
-  const useHnswIndex = matchingCount > ISSUE_COUNT_THRESHOLD;
-  // we are currently routing search based on ISSUE_COUNT_THRESHOLD
+  const useHnswIndex = matchingCount > HNSW_ISSUE_COUNT_THRESHOLD;
   // (1) if higher, we HNSW index and apply the filter afterwards
   // (2) if lower, we filter before the vector search and do a full seq scan
   // downside of (1) if searching across not that many issues: end up with very few results
@@ -131,16 +86,25 @@ async function filterAfterVectorSearch(
   db: DbClient,
   embedding: number[],
 ) {
-  const SIMILARITY_LIMIT = 1000;
   const offset = (params.page - 1) * params.pageSize;
 
   return await db.transaction(async (tx) => {
     // adjust this to trade-off between speed and number of eventual matches
-    await tx.execute(sql`SET LOCAL hnsw.ef_search = 1000;`);
+    await tx.execute(
+      sql`SET LOCAL hnsw.ef_search = ${convertToSqlRaw(HNSW_EF_SEARCH)};`,
+    );
     // this is default value
-    await tx.execute(sql`SET LOCAL hnsw.max_scan_tuples = 20000;`);
+    await tx.execute(
+      sql`SET LOCAL hnsw.max_scan_tuples = ${convertToSqlRaw(
+        HNSW_MAX_SCAN_TUPLES,
+      )};`,
+    );
     await tx.execute(sql`SET LOCAL hnsw.iterative_scan = 'relaxed_order';`);
-    await tx.execute(sql`SET LOCAL hnsw.scan_mem_multiplier = 2;`);
+    await tx.execute(
+      sql`SET LOCAL hnsw.scan_mem_multiplier = ${convertToSqlRaw(
+        HNSW_SCAN_MEM_MULTIPLIER,
+      )};`,
+    );
 
     const vectorSearchSubquery = tx
       .select({
@@ -152,7 +116,7 @@ async function filterAfterVectorSearch(
       })
       .from(issueEmbeddings)
       .orderBy(cosineDistance(issueEmbeddings.embedding, embedding))
-      .limit(SIMILARITY_LIMIT)
+      .limit(VECTOR_SIMILARITY_SEARCH_LIMIT)
       .as("vector_search");
 
     const recencyScore = calculateRecencyScore(issueTable.issueUpdatedAt);
