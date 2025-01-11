@@ -63,10 +63,17 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
             );
       },
     );
-    if (issuesToEmbed.length === 0) {
-      await step.do("no issues to embed, exit", async () => {
-        return;
-      });
+    const completedEmbedding = issuesToEmbed.length === 0;
+    await step.do(
+      completedEmbedding
+        ? "no issues to embed, exit"
+        : "issues to embed, continue",
+      async () => {
+        return completedEmbedding;
+      },
+    );
+    if (completedEmbedding) {
+      return;
     }
     try {
       const chunkedIssues = chunkArray(
@@ -98,6 +105,17 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
       await pMap(chunkedIssues, async (issues, idx) => {
         return await batchEmbedIssues(issues, idx, chunkedIssues.length);
       });
+      if (mode === "cron") {
+        await step.do(
+          "call itself recursively to update embeddings",
+          async () => {
+            await this.env.SYNC_EMBEDDING_WORKFLOW.create({
+              id: generateSyncWorkflowId("embedding"),
+              params: { mode: "cron" },
+            });
+          },
+        );
+      }
     } catch (e) {
       if (mode === "init") {
         const { repoId, repoName } = event.payload;
@@ -157,20 +175,16 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
             getEnvPrefix(this.env.ENVIRONMENT),
           );
         });
+        await step.do(
+          "call itself recursively to update embeddings",
+          async () => {
+            await this.env.SYNC_EMBEDDING_WORKFLOW.create({
+              id: generateSyncWorkflowId("embedding"),
+              params: { mode: "cron" },
+            });
+          },
+        );
       }
-      throw e;
-    }
-    // calls itself recursively to update next batch of embeddings
-    if (mode === "cron") {
-      await step.do(
-        "call itself recursively to update embeddings",
-        async () => {
-          await this.env.SYNC_EMBEDDING_WORKFLOW.create({
-            id: generateSyncWorkflowId("embedding"),
-            params: { mode: "cron" },
-          });
-        },
-      );
     }
   }
 }
