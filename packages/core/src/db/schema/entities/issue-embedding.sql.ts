@@ -39,6 +39,9 @@ export const issueEmbeddings = pgTable(
     issueEmbeddingsIssueIdIdx: uniqueIndex("issue_embeddings_issue_id_idx").on(
       table.issueId,
     ),
+    issueEmbeddingSyncStatusIdx: index("issue_embeddings_sync_status_idx").on(
+      table.embeddingSyncStatus,
+    ),
     // other parameters to tune:
     // ef_construction: default is 64, higher has better recall but comes at the expense of lower QPS
     // see: https://youtu.be/L8fQqVwTT3Y?si=VO_E8RsWECFxXjAg&t=1860
