@@ -9,7 +9,6 @@ import { selectLabelForSearchSchema } from "./db/schema/entities/label.schema";
 import type { SelectRepoForSearch } from "./db/schema/entities/repo.schema";
 import { repos } from "./db/schema/entities/repo.sql";
 import { authorSchema } from "./db/schema/shared";
-import { explainAnalyze } from "./db/utils/explain";
 import { cosineDistance } from "./db/utils/vector";
 import { createEmbedding } from "./embedding";
 import type { OpenAIClient } from "./openai";
@@ -189,7 +188,7 @@ async function filterAfterVectorSearch(
       desc(rankingScore),
     );
 
-    const result = await explainAnalyze(tx, finalQuery);
+    const result = await finalQuery;
     const totalCount = result[0]?.totalCount ?? 0;
 
     return {
@@ -276,7 +275,7 @@ async function filterBeforeVectorSearch(
       offset,
     ).orderBy(desc(rankingScore));
 
-    const result = await explainAnalyze(tx, finalQuery);
+    const result = await finalQuery;
     const totalCount = result[0]?.totalCount ?? 0;
 
     return {
