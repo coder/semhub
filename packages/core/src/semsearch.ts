@@ -72,10 +72,12 @@ export async function searchIssues(
   db: DbClient,
   openai: OpenAIClient,
 ): Promise<SearchResult> {
-  const ISSUE_COUNT_THRESHOLD = 5000;
+  // setting the query at 25000 issues, sequential scan takes around 3 seconds (which is still acceptable)
+  // sequential scans scales at O(n^2), so at higher thresholds, HNSW index starts to outperform
+  // tested with 50k issues, HNSW takes 8 seconds, seq scan takes 18 seconds
+  const ISSUE_COUNT_THRESHOLD = 25000;
   const parsedSearchQuery = parseSearchQuery(params.query);
 
-  // Get matching issues count and embedding in parallel
   const [matchingCount, embedding] = await Promise.all([
     getFilteredIssuesCount(params, parsedSearchQuery, db),
     createEmbedding(
@@ -87,6 +89,7 @@ export async function searchIssues(
       openai,
     ),
   ]);
+
   const useHnswIndex = matchingCount > ISSUE_COUNT_THRESHOLD;
   // we are currently routing search based on ISSUE_COUNT_THRESHOLD
   // (1) if higher, we HNSW index and apply the filter afterwards
@@ -96,11 +99,6 @@ export async function searchIssues(
   const result = useHnswIndex
     ? await filterAfterVectorSearch(params, parsedSearchQuery, db, embedding)
     : await filterBeforeVectorSearch(params, parsedSearchQuery, db, embedding);
-  // other possible solutions that I did not have time to fully explore:
-  // (1) look into using hnsw.iterative_scan (previous attempt did not work well)
-  // (2) try IVFFlat index instead of HNSW (see https://github.com/pgvector/pgvector/issues/560)
-  // (2) see also: https://github.com/pgvector/pgvector?tab=readme-ov-file (sections on filtering, troubleshooting)
-  // https://tembo.io/blog/vector-indexes-in-pgvector
   return result;
 }
 
@@ -122,10 +120,7 @@ async function getFilteredIssuesCount(
       .$dynamic();
 
     query = applyFilters(query, searchParams, parsedSearchQuery);
-
-    // const [result] = await explainAnalyze(tx, query);
     const [result] = await query;
-
     return result?.count ?? 0;
   });
 }
@@ -136,7 +131,7 @@ async function filterAfterVectorSearch(
   db: DbClient,
   embedding: number[],
 ) {
-  const SIMILARITY_LIMIT = 100;
+  const SIMILARITY_LIMIT = 1000;
   const offset = (params.page - 1) * params.pageSize;
 
   return await db.transaction(async (tx) => {
@@ -144,10 +139,9 @@ async function filterAfterVectorSearch(
     await tx.execute(sql`SET LOCAL hnsw.ef_search = 1000;`);
     // this is default value
     await tx.execute(sql`SET LOCAL hnsw.max_scan_tuples = 20000;`);
-    // this is fine since we are using custom ranking
     await tx.execute(sql`SET LOCAL hnsw.iterative_scan = 'relaxed_order';`);
+    await tx.execute(sql`SET LOCAL hnsw.scan_mem_multiplier = 2;`);
 
-    // Stage 1: Vector search using HNSW index
     const vectorSearchSubquery = tx
       .select({
         issueId: issueEmbeddings.issueId,
@@ -161,7 +155,6 @@ async function filterAfterVectorSearch(
       .limit(SIMILARITY_LIMIT)
       .as("vector_search");
 
-    // Stage 2: Calculate ranking scores
     const recencyScore = calculateRecencyScore(issueTable.issueUpdatedAt);
     const commentScore = calculateCommentScore(issueTable.id);
     const similarityScore = calculateSimilarityScore(
@@ -174,12 +167,12 @@ async function filterAfterVectorSearch(
       issueState: issueTable.issueState,
     });
 
-    // Stage 3: Join and re-rank with additional features
     let query = tx
       .select({
         ...getBaseSelect(),
         similarityScore,
         rankingScore,
+        // Add a window function to get the total count in the same query
         totalCount: sql<number>`count(*) over()`.as("total_count"),
       })
       .from(vectorSearchSubquery)
@@ -195,7 +188,6 @@ async function filterAfterVectorSearch(
       desc(rankingScore),
     );
 
-    // const result = await explainAnalyze(tx, finalQuery);
     const result = await finalQuery;
     const totalCount = result[0]?.totalCount ?? 0;
 
@@ -230,6 +222,7 @@ async function filterBeforeVectorSearch(
         and(eq(issueTable.repoId, repos.id), eq(repos.initStatus, "completed")),
       )
       .$dynamic();
+
     query = applyFilters(query, params, parsedSearchQuery);
 
     const vectorSearchSubquery = query
@@ -250,7 +243,6 @@ async function filterBeforeVectorSearch(
       issueState: vectorSearchSubquery.issueState,
     });
 
-    // Stage 2: Join and re-rank with additional features
     const joinedQuery = tx
       .select({
         // repeated, must keep in sync with getBaseSelect
@@ -283,10 +275,9 @@ async function filterBeforeVectorSearch(
       offset,
     ).orderBy(desc(rankingScore));
 
-    // const result = await explainAnalyze(tx, finalQuery);
     const result = await finalQuery;
-    // Extract total count from the first row
     const totalCount = result[0]?.totalCount ?? 0;
+
     return {
       data: result,
       totalCount,

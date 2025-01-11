@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { Resource } from "sst";
 
+import type { SearchResult } from "@/core/semsearch";
 import { searchIssues, searchResultSchema } from "@/core/semsearch";
 import { getDeps } from "@/deps";
 import type { Context } from "@/server/app";
@@ -44,29 +45,24 @@ export const searchRouter = new Hono<Context>().get(
 
     // Use cache
     const cacheKey = `public:search:q=${query}:page=${pageNumber}:size=${pageSize}`;
-    const cached = await getJson(Resource.SearchCacheKv, cacheKey);
+    const cachedData = await getJson<SearchResult>(
+      Resource.SearchCacheKv,
+      cacheKey,
+      searchResultSchema,
+    );
 
-    if (cached) {
-      // Validate cached data against schema
-      const res = searchResultSchema.safeParse(cached);
-      if (res.success) {
-        const { data, totalCount } = res.data;
-        return c.json(
-          createPaginatedResponse({
-            data,
-            page: pageNumber,
-            totalPages: Math.ceil(totalCount / pageSize),
-            message: "Search successful",
-          }),
-          200,
-        );
-      } else {
-        // invalidate cache
-        await Resource.SearchCacheKv.delete(cacheKey);
-      }
+    if (cachedData) {
+      const { data, totalCount } = cachedData;
+      return c.json(
+        createPaginatedResponse({
+          data,
+          page: pageNumber,
+          totalPages: Math.ceil(totalCount / pageSize),
+          message: "Search successful",
+        }),
+        200,
+      );
     }
-
-    // if not cached or validation fails, perform new search
     const results = await searchIssues(
       {
         query,
@@ -79,7 +75,7 @@ export const searchRouter = new Hono<Context>().get(
       openai,
     );
 
-    await putJson(
+    await putJson<SearchResult>(
       Resource.SearchCacheKv,
       cacheKey,
       results,
@@ -87,7 +83,6 @@ export const searchRouter = new Hono<Context>().get(
       // so on average, a cached result will be at most 10 minutes stale
       { expirationTtl: 600 },
     );
-
     return c.json(
       createPaginatedResponse({
         data: results.data,
