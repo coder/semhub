@@ -1,25 +1,28 @@
+import type { z } from "zod";
+
 /**
  * Generic KV utilities for JSON data
- *
- * Note on null handling:
- * - If the KV key doesn't exist, returns null
- * - If the value is JSON "null", returns null
- * - Within objects, null values are preserved as null
  */
-export async function getJson<T>(
+// this ensures type argument is passed, use in conjunction with getJson
+export async function getJson<T = void, U extends T = T>(
   kv: KVNamespace,
   key: string,
-): Promise<T | null> {
+  schema: z.ZodSchema<U>,
+) {
   const value = await kv.get(key);
   if (!value) return null;
-  const parsed = JSON.parse(value);
-  return parsed === null ? null : restoreTypes(parsed);
+  const parsed = schema.safeParse(JSON.parse(value));
+  if (!parsed.success) {
+    await kv.delete(key);
+    return null;
+  }
+  return parsed.data;
 }
 
-export async function putJson<T>(
+export async function putJson<T = void, U extends T = T>(
   kv: KVNamespace,
   key: string,
-  value: T,
+  value: U,
   options?: KVNamespacePutOptions,
 ): Promise<void> {
   if (typeof value !== "object") {
