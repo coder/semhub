@@ -38,6 +38,11 @@ export const issueEmbeddings = pgTable(
     issueEmbeddingsIssueIdIdx: uniqueIndex("issue_embeddings_issue_id_idx").on(
       table.issueId,
     ),
+    // other parameters to tune:
+    // ef_construction: default is 64, higher has better recall but comes at the expense of lower QPS
+    // see: https://youtu.be/L8fQqVwTT3Y?si=VO_E8RsWECFxXjAg&t=1860
+    // m: default is 16. higher has better recall, but increases build time and query time
+    // if you can bulk insert and have multiple cores, build time is significantly lowered
     issueEmbeddingsEmbeddingIdx: index("issue_embeddings_embedding_idx").using(
       "hnsw",
       table.embedding.op("vector_cosine_ops"),

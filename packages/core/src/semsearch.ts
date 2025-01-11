@@ -74,7 +74,10 @@ export async function searchIssues(
   openai: OpenAIClient,
 ): Promise<SearchResult> {
   const startTime = performance.now();
-  const ISSUE_COUNT_THRESHOLD = 5000;
+  // setting the query at 25000 issues, sequential scan takes around 3 seconds (which is still acceptable)
+  // sequential scans scales at O(n^2), so at higher thresholds, HNSW index starts to outperform
+  // tested with 50k issues, HNSW takes 8 seconds, seq scan takes 18 seconds
+  const ISSUE_COUNT_THRESHOLD = 25000;
   const parsedSearchQuery = parseSearchQuery(params.query);
 
   // Get matching issues count and embedding in parallel
@@ -106,8 +109,13 @@ export async function searchIssues(
   console.log(
     `[PERF] Using ${useHnswIndex ? "HNSW index" : "sequential scan"} strategy`,
   );
-
   const searchStartTime = performance.now();
+  // const result = await filterBeforeVectorSearch(
+  //   params,
+  //   parsedSearchQuery,
+  //   db,
+  //   embedding,
+  // );
   const result = useHnswIndex
     ? await filterAfterVectorSearch(params, parsedSearchQuery, db, embedding)
     : await filterBeforeVectorSearch(params, parsedSearchQuery, db, embedding);
@@ -159,7 +167,7 @@ async function filterAfterVectorSearch(
 ) {
   const startTime = performance.now();
   // Reduce SIMILARITY_LIMIT to process fewer rows while still maintaining quality
-  const SIMILARITY_LIMIT = 100;
+  const SIMILARITY_LIMIT = 1000;
   const offset = (params.page - 1) * params.pageSize;
 
   return await db.transaction(async (tx) => {
@@ -171,7 +179,7 @@ async function filterAfterVectorSearch(
     // this is default value
     await tx.execute(sql`SET LOCAL hnsw.max_scan_tuples = 20000;`);
     // this is fine since we are using custom ranking
-    await tx.execute(sql`SET LOCAL hnsw.iterative_scan = 'strict_order';`);
+    await tx.execute(sql`SET LOCAL hnsw.iterative_scan = 'relaxed_order';`);
     await tx.execute(sql`SET LOCAL hnsw.scan_mem_multiplier = 2;`);
     console.log(
       `[PERF] Setting ef_search took ${performance.now() - efSearchStartTime}ms`,
