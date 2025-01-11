@@ -18,7 +18,7 @@ import {
   PARENT_WORKER_SLEEP_DURATION,
   REDUCE_ISSUES_MAX_ATTEMPTS,
 } from "@/workflows/sync/sync.param";
-import { getDbStepConfig } from "@/workflows/workflow.param";
+import { getStepDuration } from "@/workflows/workflow.param";
 import {
   getApproximateSizeInBytes,
   type WorkflowRPC,
@@ -56,7 +56,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
     );
     const result = await step.do(
       "get repo info from db",
-      getDbStepConfig("short"),
+      getStepDuration("short"),
       async () => {
         const [result] = await db
           .select({
@@ -175,7 +175,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             }
             const insertedIssueIds = await step.do(
               "upsert issues, comments, and labels",
-              getDbStepConfig("long"),
+              getStepDuration("long"),
               async () => {
                 return await Repo.upsertIssuesCommentsLabels(
                   issuesAndCommentsLabels,
@@ -228,7 +228,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
       );
       await step.do(
         "update repo issuesLastEndCursor",
-        getDbStepConfig("short"),
+        getStepDuration("short"),
         async () => {
           await db
             .update(repos)
@@ -249,7 +249,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
       } else {
         await step.do(
           `init for repo ${name} completed`,
-          getDbStepConfig("short"),
+          getStepDuration("short"),
           async () => {
             await db
               .update(repos)
@@ -272,7 +272,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
     } catch (e) {
       await step.do(
         "sync unsuccessful, mark repo init status to error",
-        getDbStepConfig("short"),
+        getStepDuration("short"),
         async () => {
           await db
             .update(repos)

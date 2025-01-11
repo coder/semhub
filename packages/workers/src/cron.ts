@@ -1,4 +1,5 @@
 import { CRON_PATTERNS } from "@/core/constants/cron.constant";
+import { unstuckIssueEmbeddings } from "@/core/embedding";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import type { EmbeddingParams } from "@/wrangler/workflows/sync/embedding/embedding.workflow";
@@ -46,6 +47,7 @@ export default {
         break;
       }
       case CRON_PATTERNS.SYNC_EMBEDDING: {
+        await unstuckIssueEmbeddings(db);
         for (let i = 0; i < NUM_CONCURRENT_EMBEDDING_CRONS; i++) {
           await env.SYNC_EMBEDDING_WORKFLOW.create({
             id: generateSyncWorkflowId("embedding"),

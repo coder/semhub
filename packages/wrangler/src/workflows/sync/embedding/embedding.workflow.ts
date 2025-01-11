@@ -20,8 +20,10 @@ import {
   BATCH_SIZE_PER_EMBEDDING_CHUNK,
   NUM_ISSUES_TO_EMBED_PER_CRON,
 } from "@/workflows/sync/sync.param";
-import { getDbStepConfig } from "@/workflows/workflow.param";
+import { getStepDuration } from "@/workflows/workflow.param";
 import { type WorkflowRPC } from "@/workflows/workflow.util";
+
+import { generateSyncWorkflowId } from "../sync.util";
 
 interface Env extends WranglerEnv {
   SYNC_EMBEDDING_WORKFLOW: Workflow;
@@ -51,7 +53,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
     const { db, openai, emailClient } = getDeps(this.env);
     const issuesToEmbed = await step.do(
       `get issues to embed from db (${mode})`,
-      getDbStepConfig("medium"),
+      getStepDuration("long"),
       async () => {
         return mode === "init"
           ? await selectIssuesForEmbeddingInit(event.payload.issueIds, db)
@@ -62,7 +64,9 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
       },
     );
     if (issuesToEmbed.length === 0) {
-      return;
+      await step.do("no issues to embed, exit", async () => {
+        return;
+      });
     }
     try {
       const chunkedIssues = chunkArray(
@@ -72,9 +76,10 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
       const batchEmbedIssues = async (
         issues: typeof issuesToEmbed,
         idx: number,
+        totalBatches: number,
       ): Promise<void> => {
         const embeddings = await step.do(
-          `create embeddings for selected issues from API (batch ${idx + 1})`,
+          `create embeddings for selected issues from API (batch ${idx + 1} of ${totalBatches})`,
           async () => {
             return await createEmbeddings({
               issues,
@@ -84,21 +89,21 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         );
         await step.do(
           `upsert issue embeddings in db (batch ${idx + 1})`,
-          getDbStepConfig("medium"),
+          getStepDuration("medium"),
           async () => {
             await upsertIssueEmbeddings(embeddings, db);
           },
         );
       };
       await pMap(chunkedIssues, async (issues, idx) => {
-        return await batchEmbedIssues(issues, idx);
+        return await batchEmbedIssues(issues, idx, chunkedIssues.length);
       });
     } catch (e) {
       if (mode === "init") {
         const { repoId, repoName } = event.payload;
         await step.do(
           `sync unsuccessful, mark repo ${repoName} init status to error`,
-          getDbStepConfig("short"),
+          getStepDuration("short"),
           async () => {
             await db
               .update(repos)
@@ -124,7 +129,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
       if (mode === "cron") {
         await step.do(
           "update issue embedding sync status to error",
-          getDbStepConfig("short"),
+          getStepDuration("short"),
           async () => {
             await db
               .update(issueEmbeddings)
@@ -154,6 +159,18 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         });
       }
       throw e;
+    }
+    // calls itself recursively to update next batch of embeddings
+    if (mode === "cron") {
+      await step.do(
+        "call itself recursively to update embeddings",
+        async () => {
+          await this.env.SYNC_EMBEDDING_WORKFLOW.create({
+            id: generateSyncWorkflowId("embedding"),
+            params: { mode: "cron" },
+          });
+        },
+      );
     }
   }
 }

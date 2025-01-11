@@ -11,7 +11,7 @@ import { Installation } from "@/core/installation";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import { getEnvPrefix } from "@/util";
-import { getDbStepConfig } from "@/workflows/workflow.param";
+import { getStepDuration } from "@/workflows/workflow.param";
 import {
   getApproximateSizeInBytes,
   type WorkflowRPC,
@@ -43,7 +43,7 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
     try {
       const res = await step.do(
         "get repo data and mark as in progress",
-        getDbStepConfig("short"),
+        getStepDuration("short"),
         async () => {
           return await Repo.markNextEnqueuedRepoInProgress(db);
         },
@@ -130,7 +130,7 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
 
         await step.do(
           `upsert issues and comments/labels of ${name}`,
-          getDbStepConfig("long"),
+          getStepDuration("long"),
           async () => {
             await Repo.upsertIssuesCommentsLabels(issuesAndCommentsLabels, db);
           },
@@ -149,7 +149,7 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
       }
       await step.do(
         "update repo issuesLastEndCursor",
-        getDbStepConfig("short"),
+        getStepDuration("short"),
         async () => {
           if (after) {
             await db
@@ -161,7 +161,7 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
       );
       await step.do(
         "set issuesLastUpdatedAt",
-        getDbStepConfig("short"),
+        getStepDuration("short"),
         async () => {
           await Repo.setIssuesLastUpdatedAt(repoId, db);
         },
@@ -169,7 +169,7 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
       // mark repo as synced
       await step.do(
         `mark ${name} as synced`,
-        getDbStepConfig("short"),
+        getStepDuration("short"),
         async () => {
           await db
             .update(repos)
@@ -181,7 +181,7 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
       // mark repo as error
       await step.do(
         `mark ${caughtName} as error`,
-        getDbStepConfig("short"),
+        getStepDuration("short"),
         async () => {
           if (!caughtRepoId) {
             throw new NonRetryableError("caughtRepoId is undefined");
@@ -208,7 +208,7 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
     }
     // even if there is an error with one repo, we still want to sync the rest
     // call itself recursively to sync next repo
-    await step.do(`call itself recursively to sync next repo`, async () => {
+    await step.do("call itself recursively to sync next repo", async () => {
       await this.env.SYNC_ISSUE_WORKFLOW.create({
         id: generateSyncWorkflowId("issue"),
       });

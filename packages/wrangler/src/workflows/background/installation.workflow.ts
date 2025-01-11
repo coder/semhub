@@ -11,7 +11,7 @@ import { getGithubRepoById } from "@/core/github";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
 import { getEnvPrefix } from "@/util";
-import { getDbStepConfig } from "@/workflows/workflow.param";
+import { getStepDuration } from "@/workflows/workflow.param";
 
 import type { WorkflowRPC } from "../workflow.util";
 
@@ -34,7 +34,7 @@ export class InstallationWorkflow extends WorkflowEntrypoint<
     // Get the installation record with access token info
     const [installation] = await step.do(
       "get installation record with access token",
-      getDbStepConfig("short"),
+      getStepDuration("short"),
       async () => {
         return await db
           .select({
@@ -52,7 +52,7 @@ export class InstallationWorkflow extends WorkflowEntrypoint<
     // Find all repositories for this installation that haven't been processed yet
     const pendingRepos = await step.do(
       "find pending repositories for installation",
-      getDbStepConfig("medium"),
+      getStepDuration("medium"),
       async () => {
         return await db
           .select({

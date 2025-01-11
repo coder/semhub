@@ -4,7 +4,7 @@ import pMap from "p-map";
 import { truncateCodeBlocks, truncateToByteSize } from "@/util/truncate";
 
 import type { DbClient } from "./db";
-import { and, asc, eq, inArray, isNull, lt, not, or } from "./db";
+import { and, asc, eq, inArray, isNull, lt, ne, or, sql } from "./db";
 import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
 import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
 import type { SelectIssueForEmbedding } from "./db/schema/entities/issue.schema";
@@ -155,25 +155,26 @@ export async function selectIssuesForEmbeddingCron(
           ),
         })
         .from(issueTable)
-        .leftJoin(repos, eq(repos.id, issueTable.repoId))
+        .innerJoin(repos, eq(repos.id, issueTable.repoId))
         .leftJoin(issueEmbeddings, eq(issueEmbeddings.issueId, issueTable.id))
         .where(
           and(
-            eq(issueEmbeddings.embeddingSyncStatus, "ready"),
             or(
               isNull(issueEmbeddings.embedding),
-              lt(
-                issueEmbeddings.embeddingGeneratedAt,
-                issueTable.issueUpdatedAt,
+              and(
+                eq(issueEmbeddings.embeddingSyncStatus, "ready"),
+                lt(
+                  issueEmbeddings.embeddingGeneratedAt,
+                  issueTable.issueUpdatedAt,
+                ),
               ),
             ),
-            not(eq(repos.syncStatus, "in_progress")), // these repos could see their issues changing, don't create embedding
+            ne(repos.syncStatus, "in_progress"), // these repos could see their issues changing, don't create embedding
             eq(repos.initStatus, "completed"), // embedding taken care of by init workflow
           ),
         )
         .orderBy(asc(issueTable.issueUpdatedAt))
-        .limit(numIssues)
-        .for("update");
+        .limit(numIssues);
 
       if (issues.length === 0) return [];
       await tx
@@ -219,6 +220,36 @@ export async function upsertIssueEmbeddings(
         "embeddingSyncStatus",
       ]),
     });
+}
+
+export async function unstuckIssueEmbeddings(db: DbClient) {
+  await db.transaction(async (tx) => {
+    const stuckIssueEmbeddings = await tx
+      .select({
+        id: issueEmbeddings.id,
+      })
+      .from(issueEmbeddings)
+      .innerJoin(issueTable, eq(issueTable.id, issueEmbeddings.issueId))
+      .where(
+        and(
+          eq(issueEmbeddings.embeddingSyncStatus, "in_progress"),
+          lt(issueEmbeddings.embeddingGeneratedAt, issueTable.issueUpdatedAt),
+          lt(issueTable.issueUpdatedAt, sql`NOW() - INTERVAL '12 hours'`),
+        ),
+      )
+      .for("update");
+
+    if (stuckIssueEmbeddings.length === 0) return;
+    await tx
+      .update(issueEmbeddings)
+      .set({ embeddingSyncStatus: "ready" })
+      .where(
+        inArray(
+          issueEmbeddings.id,
+          stuckIssueEmbeddings.map((i) => i.id),
+        ),
+      );
+  });
 }
 
 interface FormatIssueParams {
