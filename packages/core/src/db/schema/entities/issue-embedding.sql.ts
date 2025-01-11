@@ -25,7 +25,8 @@ export const issueEmbeddings = pgTable(
     embeddingModel: text("embedding_model"),
     // max dimension of 2000 if we use HNSW index; see https://github.com/pgvector/pgvector/issues/461
     // if we use text-embedding-3-large, which has 3072 dimensions, we need to reduce dimensions
-    // see https://platform.openai.com/docs/api-reference/embeddings/create#embeddings-create-dimensions
+    // see: https://platform.openai.com/docs/api-reference/embeddings/create#embeddings-create-dimensions
+    // use PLAIN storage for maximised performance; see: packages/core/migrations/0033_vector-plain-storage.sql
     embedding: vector("embedding", { dimensions: 1536 }),
     embeddingGeneratedAt: timestamptz("embedding_generated_at"),
     embeddingSyncStatus: issueEmbeddingSyncStatusEnum(
