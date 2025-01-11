@@ -130,6 +130,7 @@ export async function selectIssuesForEmbeddingCron(
 ) {
   return await db.transaction(
     async (tx) => {
+      await tx.execute(sql`SET statement_timeout = '5min'`);
       const issues = await tx
         .select({
           id: issueTable.id,
@@ -173,7 +174,8 @@ export async function selectIssuesForEmbeddingCron(
             eq(repos.initStatus, "completed"), // embedding taken care of by init workflow
           ),
         )
-        .orderBy(asc(issueTable.issueUpdatedAt))
+        // temporarily disable this to speed up query
+        // .orderBy(asc(issueTable.issueUpdatedAt))
         .limit(numIssues);
 
       if (issues.length === 0) return [];
@@ -224,6 +226,7 @@ export async function upsertIssueEmbeddings(
 
 export async function unstuckIssueEmbeddings(db: DbClient) {
   await db.transaction(async (tx) => {
+    await tx.execute(sql`SET statement_timeout = '5min'`);
     const stuckIssueEmbeddings = await tx
       .select({
         id: issueEmbeddings.id,
