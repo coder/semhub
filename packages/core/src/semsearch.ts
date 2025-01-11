@@ -119,7 +119,6 @@ export async function searchIssues(
   );
 
   // other possible solutions that I did not have time to fully explore:
-  // (1) look into using hnsw.iterative_scan (previous attempt did not work well)
   // (2) try IVFFlat index instead of HNSW (see https://github.com/pgvector/pgvector/issues/560)
   // (2) see also: https://github.com/pgvector/pgvector?tab=readme-ov-file (sections on filtering, troubleshooting)
   // https://tembo.io/blog/vector-indexes-in-pgvector
@@ -166,13 +165,14 @@ async function filterAfterVectorSearch(
   return await db.transaction(async (tx) => {
     const txStartTime = performance.now();
     console.log("[PERF] Starting transaction");
-
-    // Optimize for speed with lower ef_search
     const efSearchStartTime = performance.now();
+    // adjust this to trade-off between speed and number of eventual matches
     await tx.execute(sql`SET LOCAL hnsw.ef_search = 1000;`);
+    // this is default value
     await tx.execute(sql`SET LOCAL hnsw.max_scan_tuples = 20000;`);
-    // relaxed ordering is fine since we are using a custom ordering
-    await tx.execute(sql`SET LOCAL hnsw.iterative_scan = 'relaxed_order';`);
+    // this is fine since we are using custom ranking
+    await tx.execute(sql`SET LOCAL hnsw.iterative_scan = 'strict_order';`);
+    await tx.execute(sql`SET LOCAL hnsw.scan_mem_multiplier = 2;`);
     console.log(
       `[PERF] Setting ef_search took ${performance.now() - efSearchStartTime}ms`,
     );
