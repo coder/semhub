@@ -149,7 +149,7 @@ export const Repo = {
           eq(repos.syncStatus, "ready"),
           or(
             isNull(repos.lastSyncedAt),
-            // just to make sure we don't sync a repo that has just synced recently
+            // this needs to be set with consideration to CRON_PATTERN
             lt(repos.lastSyncedAt, sql`NOW() - INTERVAL '10 minutes'`),
           ),
         ),

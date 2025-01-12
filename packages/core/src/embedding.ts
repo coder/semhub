@@ -4,7 +4,7 @@ import pMap from "p-map";
 import { truncateCodeBlocks, truncateToByteSize } from "@/util/truncate";
 
 import type { DbClient } from "./db";
-import { and, asc, eq, inArray, isNull, lt, ne, or, sql } from "./db";
+import { and, asc, eq, gt, inArray, isNull, lt, ne, or, sql } from "./db";
 import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
 import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
 import type { SelectIssueForEmbedding } from "./db/schema/entities/issue.schema";
@@ -13,6 +13,7 @@ import type { SelectLabelForEmbedding } from "./db/schema/entities/label.schema"
 import { labels as labelTable } from "./db/schema/entities/label.sql";
 import { repos } from "./db/schema/entities/repo.sql";
 import { conflictUpdateOnly } from "./db/utils/conflict";
+import { convertToSqlRaw } from "./db/utils/general";
 import { jsonAggBuildObjectFromJoin } from "./db/utils/json";
 import { EMBEDDING_MODEL, type OpenAIClient } from "./openai";
 import { isReducePromptError } from "./openai/errors";
@@ -124,10 +125,15 @@ export async function selectIssuesForEmbeddingInit(
     .orderBy(asc(issueTable.issueUpdatedAt));
 }
 
-export async function selectIssuesForEmbeddingCron(
-  db: DbClient,
-  numIssues: number,
-) {
+export async function selectIssuesForEmbeddingCron({
+  db,
+  numIssues,
+  intervalInHours,
+}: {
+  db: DbClient;
+  numIssues: number;
+  intervalInHours: number;
+}) {
   return await db.transaction(async (tx) => {
     const lockedIssues = tx.$with("locked_issues").as(
       tx
@@ -149,6 +155,11 @@ export async function selectIssuesForEmbeddingCron(
           and(
             ne(repos.syncStatus, "in_progress"),
             eq(repos.initStatus, "completed"),
+            // this needs to be set with consideration to CRON_PATTERN
+            gt(
+              issueTable.issueUpdatedAt,
+              sql`NOW() - INTERVAL '${convertToSqlRaw(intervalInHours)} hours'`,
+            ),
           ),
         )
         .for("update", { skipLocked: true }),

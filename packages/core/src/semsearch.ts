@@ -3,12 +3,12 @@ import { and, count as countFn, desc, eq, sql } from "./db";
 import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
 import { issueTable } from "./db/schema/entities/issue.sql";
 import { repos } from "./db/schema/entities/repo.sql";
+import { convertToSqlRaw } from "./db/utils/general";
 import { cosineDistance } from "./db/utils/vector";
 import { createEmbedding } from "./embedding";
 import type { OpenAIClient } from "./openai";
 import { applyFilters, applyPagination, getBaseSelect } from "./semsearch.db";
 import {
-  convertToSqlRaw,
   HNSW_EF_SEARCH,
   HNSW_ISSUE_COUNT_THRESHOLD,
   HNSW_MAX_SCAN_TUPLES,

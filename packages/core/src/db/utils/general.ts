@@ -1,6 +1,10 @@
 import type { AnyColumn, SQL } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
+export function convertToSqlRaw(value: number | string) {
+  return sql.raw(value.toString());
+}
+
 export function lower(column: AnyColumn | SQL): SQL {
   return sql`lower(${column})`;
 }
