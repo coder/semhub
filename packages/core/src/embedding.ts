@@ -128,10 +128,9 @@ export async function selectIssuesForEmbeddingCron(
   db: DbClient,
   numIssues: number,
 ) {
-  return await db.transaction(
-    async (tx) => {
-      await tx.execute(sql`SET statement_timeout = '5min'`);
-      const issues = await tx
+  return await db.transaction(async (tx) => {
+    const lockedIssues = tx.$with("locked_issues").as(
+      tx
         .select({
           id: issueTable.id,
           number: issueTable.number,
@@ -142,60 +141,77 @@ export async function selectIssuesForEmbeddingCron(
           issueStateReason: issueTable.issueStateReason,
           issueCreatedAt: issueTable.issueCreatedAt,
           issueClosedAt: issueTable.issueClosedAt,
-          labels: jsonAggBuildObjectFromJoin(
-            {
-              name: labelTable.name,
-              description: labelTable.description,
-            },
-            {
-              from: issuesToLabels,
-              joinTable: labelTable,
-              joinCondition: eq(labelTable.id, issuesToLabels.labelId),
-              whereCondition: eq(issuesToLabels.issueId, issueTable.id),
-            },
-          ),
+          issueUpdatedAt: issueTable.issueUpdatedAt, // needed for the WHERE clause later
         })
         .from(issueTable)
         .innerJoin(repos, eq(repos.id, issueTable.repoId))
-        .leftJoin(issueEmbeddings, eq(issueEmbeddings.issueId, issueTable.id))
         .where(
           and(
-            or(
-              isNull(issueEmbeddings.embedding),
-              and(
-                eq(issueEmbeddings.embeddingSyncStatus, "ready"),
-                lt(
-                  issueEmbeddings.embeddingGeneratedAt,
-                  issueTable.issueUpdatedAt,
-                ),
-              ),
-            ),
-            ne(repos.syncStatus, "in_progress"), // these repos could see their issues changing, don't create embedding
-            eq(repos.initStatus, "completed"), // embedding taken care of by init workflow
+            ne(repos.syncStatus, "in_progress"),
+            eq(repos.initStatus, "completed"),
           ),
         )
-        // temporarily disable this to speed up query
-        // .orderBy(asc(issueTable.issueUpdatedAt))
-        .limit(numIssues);
+        .for("update", { skipLocked: true }),
+    );
 
-      if (issues.length === 0) return [];
-      await tx
-        .update(issueEmbeddings)
-        .set({
-          embeddingSyncStatus: "in_progress",
-        })
-        .where(
-          inArray(
-            issueEmbeddings.issueId,
-            issues.map((i) => i.id),
+    const query = tx
+      .with(lockedIssues)
+      .select({
+        id: lockedIssues.id,
+        number: lockedIssues.number,
+        author: lockedIssues.author,
+        title: lockedIssues.title,
+        body: lockedIssues.body,
+        issueState: lockedIssues.issueState,
+        issueStateReason: lockedIssues.issueStateReason,
+        issueCreatedAt: lockedIssues.issueCreatedAt,
+        issueClosedAt: lockedIssues.issueClosedAt,
+        labels: jsonAggBuildObjectFromJoin(
+          {
+            name: labelTable.name,
+            description: labelTable.description,
+          },
+          {
+            from: issuesToLabels,
+            joinTable: labelTable,
+            joinCondition: eq(labelTable.id, issuesToLabels.labelId),
+            whereCondition: eq(issuesToLabels.issueId, lockedIssues.id),
+          },
+        ),
+      })
+      .from(lockedIssues)
+      .leftJoin(issueEmbeddings, eq(issueEmbeddings.issueId, lockedIssues.id))
+      .where(
+        or(
+          isNull(issueEmbeddings.embedding),
+          and(
+            eq(issueEmbeddings.embeddingSyncStatus, "ready"),
+            lt(
+              issueEmbeddings.embeddingGeneratedAt,
+              lockedIssues.issueUpdatedAt,
+            ),
           ),
-        );
-      return issues;
-    },
-    {
-      isolationLevel: "serializable",
-    },
-  );
+        ),
+      )
+      .orderBy(asc(lockedIssues.issueUpdatedAt))
+      .limit(numIssues);
+
+    // const issues = await explainAnalyze(tx, query);
+    const issues = await query;
+    if (issues.length === 0) return [];
+    await tx
+      .update(issueEmbeddings)
+      .set({
+        embeddingSyncStatus: "in_progress",
+      })
+      .where(
+        inArray(
+          issueEmbeddings.issueId,
+          issues.map((i) => i.id),
+        ),
+      );
+    return issues;
+  });
 }
 
 export async function upsertIssueEmbeddings(
@@ -226,7 +242,6 @@ export async function upsertIssueEmbeddings(
 
 export async function unstuckIssueEmbeddings(db: DbClient) {
   await db.transaction(async (tx) => {
-    await tx.execute(sql`SET statement_timeout = '5min'`);
     const stuckIssueEmbeddings = await tx
       .select({
         id: issueEmbeddings.id,
@@ -240,7 +255,7 @@ export async function unstuckIssueEmbeddings(db: DbClient) {
           lt(issueTable.issueUpdatedAt, sql`NOW() - INTERVAL '12 hours'`),
         ),
       )
-      .for("update");
+      .for("update", { skipLocked: true });
 
     if (stuckIssueEmbeddings.length === 0) return;
     await tx

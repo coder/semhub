@@ -5,7 +5,7 @@ import type { WorkflowStepConfig } from "cloudflare:workers";
 // we use this function to solve the problem where the db statement takes too long to complete
 // by timing out and retry, we speed up the workflow
 export const getStepDuration = (
-  type: "short" | "medium" | "long",
+  type: "short" | "medium" | "long" | "very long",
 ): WorkflowStepConfig => ({
   timeout: (() => {
     switch (type) {
@@ -14,8 +14,9 @@ export const getStepDuration = (
       case "medium":
         return "50 seconds";
       case "long":
-        // NB statement timeout in Supabase is 120 seconds by default
         return "200 seconds";
+      case "very long":
+        return "5 minutes";
     }
   })(),
   retries: {

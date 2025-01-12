@@ -53,7 +53,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
     const { db, openai, emailClient } = getDeps(this.env);
     const issuesToEmbed = await step.do(
       `get issues to embed from db (${mode})`,
-      getStepDuration("long"),
+      mode === "init" ? getStepDuration("long") : getStepDuration("very long"),
       async () => {
         return mode === "init"
           ? await selectIssuesForEmbeddingInit(event.payload.issueIds, db)
