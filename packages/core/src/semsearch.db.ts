@@ -15,7 +15,7 @@ import { repos } from "./db/schema/entities/repo.sql";
 import { usersToRepos } from "./db/schema/entities/user-to-repo.sql";
 import { lower } from "./db/utils/general";
 import { jsonAggBuildObjectFromJoin, jsonContains } from "./db/utils/json";
-import type { SearchParams } from "./semsearch.types";
+import type { SearchParams } from "./semsearch.schema";
 import type { parseSearchQuery } from "./semsearch.util";
 
 export function getBaseSelect() {
