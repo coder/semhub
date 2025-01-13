@@ -2,82 +2,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /* deno-fmt-ignore-file */
+
+/// <reference path="../../sst-env.d.ts" />
+
 import "sst"
 export {}
-declare module "sst" {
-  export interface Resource {
-    "Auth": {
-      "publicKey": string
-      "type": "sst.cloudflare.Auth"
-      "url": string
-    }
-    "AuthAuthenticator": {
-      "type": "sst.cloudflare.Worker"
-      "url": string
-    }
-    "AuthKv": {
-      "type": "sst.cloudflare.Kv"
-    }
-    "DATABASE_URL": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "GITHUB_PERSONAL_ACCESS_TOKEN": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "Hono": {
-      "type": "sst.cloudflare.Worker"
-      "url": string
-    }
-    "InitCronHandler": {
-      "type": "sst.cloudflare.Worker"
-    }
-    "Keys": {
-      "githubWebhookSecret": string
-      "hmacSecretKey": string
-      "type": "sst.sst.Linkable"
-    }
-    "OPENAI_API_KEY": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "RESEND_API_KEY": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "SEMHUB_GITHUB_APP_CLIENT_ID": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "SEMHUB_GITHUB_APP_CLIENT_SECRET": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "SEMHUB_GITHUB_APP_ID": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "SEMHUB_GITHUB_APP_PRIVATE_KEY": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "SEMHUB_GITHUB_PUBLIC_LINK": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "SearchCacheKv": {
-      "type": "sst.cloudflare.Kv"
-    }
-    "SyncEmbeddingHandler": {
-      "type": "sst.cloudflare.Worker"
-    }
-    "SyncIssueHandler": {
-      "type": "sst.cloudflare.Worker"
-    }
-    "Web": {
-      "type": "sst.aws.StaticSite"
-      "url": string
-    }
-  }
-}

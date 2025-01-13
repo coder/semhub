@@ -5,9 +5,8 @@ node_modules
 .sst
 
 # secrets for loading onto sst
-.secrets.dev
-.secrets.stg
-.secrets.prod
+.secrets.*
+!.secrets.example
 
 # tmp files
 .#*

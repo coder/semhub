@@ -10,7 +10,10 @@ export default $config({
       home: "cloudflare",
       providers: {
         random: true,
-        aws: true,
+        aws: {
+          profile: "semhub",
+          region: "ap-southeast-1", // temporary
+        },
       },
     };
   },
