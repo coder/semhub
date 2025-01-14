@@ -11,13 +11,16 @@ export const githubLogin = {
 };
 
 export const APP_DOMAIN = "semhub.dev";
-const APP_STG_DOMAIN = `stg.${APP_DOMAIN}`;
 const LOCAL_DEV_DOMAIN = `local.${APP_DOMAIN}`;
+const APP_STG_DOMAIN = `stg.${APP_DOMAIN}`;
+const APP_UAT_DOMAIN = `uat.${APP_DOMAIN}`;
 
 function getCookieDomain(stage: string) {
   switch (stage) {
     case "prod":
       return APP_DOMAIN;
+    case "uat":
+      return APP_UAT_DOMAIN;
     case "stg":
       return APP_STG_DOMAIN;
     default:
@@ -31,7 +34,7 @@ function getCookieDomain(stage: string) {
 }
 
 function isLocalDev(stage: string): boolean {
-  return stage !== "prod" && stage !== "stg";
+  return stage !== "prod" && stage !== "stg" && stage !== "uat";
 }
 
 export function getCookieOptions(stage: string): CookieOptions {
@@ -64,6 +67,7 @@ export function getApiServerCORS(stage: string) {
   const origins = [
     `https://${APP_DOMAIN}`,
     `https://${APP_STG_DOMAIN}`,
+    `https://${APP_UAT_DOMAIN}`,
     `https://www.${APP_DOMAIN}`,
   ];
   if (isLocalDev(stage)) {
