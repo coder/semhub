@@ -21,6 +21,17 @@ export function getDeps(secrets: WranglerSecrets) {
     },
   });
 
+  const { db: dbSession } = createDb({
+    connectionString: secrets.DATABASE_URL.replace(":6432", ":5432"),
+    useLogger: process.env.ENVIRONMENT !== "prod",
+    options: {
+      connect_timeout: 30000, // 30 seconds
+      connection: {
+        statement_timeout: 300000, // 300 seconds
+      },
+    },
+  });
+
   const openai = createOpenAIClient(secrets.OPENAI_API_KEY);
   const graphqlOctokit = getGraphqlOctokit({
     type: "token",
@@ -44,6 +55,7 @@ export function getDeps(secrets: WranglerSecrets) {
 
   return {
     db,
+    dbSession,
     emailClient,
     graphqlOctokit,
     openai,

@@ -43,6 +43,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
     const { repoId } = event.payload;
     const {
       db,
+      dbSession,
       graphqlOctokit,
       emailClient,
       graphqlOctokitAppFactory,
@@ -179,7 +180,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
               async () => {
                 return await Repo.upsertIssuesCommentsLabels(
                   issuesAndCommentsLabels,
-                  db,
+                  dbSession,
                 );
               },
             );

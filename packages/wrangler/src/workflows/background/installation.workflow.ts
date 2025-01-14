@@ -52,7 +52,7 @@ export class InstallationWorkflow extends WorkflowEntrypoint<
     // Find all repositories for this installation that haven't been processed yet
     const pendingRepos = await step.do(
       "find pending repositories for installation",
-      getStepDuration("medium"),
+      getStepDuration("short"),
       async () => {
         return await db
           .select({
@@ -102,13 +102,17 @@ export class InstallationWorkflow extends WorkflowEntrypoint<
         });
         continue;
       }
-      const createdRepo = await step.do("create repo record", async () => {
-        return await Repo.createRepo({
-          data: res.data,
-          db,
-          defaultInitStatus: "pending",
-        });
-      });
+      const createdRepo = await step.do(
+        "create repo record",
+        getStepDuration("short"),
+        async () => {
+          return await Repo.createRepo({
+            data: res.data,
+            db,
+            defaultInitStatus: "pending",
+          });
+        },
+      );
       await step.do("update installation-to-repo mapping", async () => {
         await db
           .update(installationsToRepos)
