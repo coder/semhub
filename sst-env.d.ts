@@ -65,6 +65,11 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "Search": {
+      "name": string
+      "type": "sst.aws.Function"
+      "url": string
+    }
     "SearchCacheKv": {
       "type": "sst.cloudflare.Kv"
     }
