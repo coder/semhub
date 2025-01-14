@@ -16,7 +16,7 @@ import { usersToRepos } from "./db/schema/entities/user-to-repo.sql";
 import { lower } from "./db/utils/general";
 import { jsonAggBuildObjectFromJoin, jsonContains } from "./db/utils/json";
 import type { SearchParams } from "./semsearch.schema";
-import type { parseSearchQuery } from "./semsearch.util";
+import { parseSearchQuery } from "./semsearch.util";
 
 export function getBaseSelect() {
   return {
@@ -57,7 +57,6 @@ export function getBaseSelect() {
 export function applyFilters<T extends PgSelect>(
   query: T,
   params: SearchParams,
-  parsedSearchQuery: ReturnType<typeof parseSearchQuery>,
 ) {
   let result = query as PgSelect;
   // undefined necessary because of `or` function's return type
@@ -84,6 +83,7 @@ export function applyFilters<T extends PgSelect>(
       mode satisfies never;
   }
 
+  const parsedSearchQuery = parseSearchQuery(params.query);
   // ===== Collection Filter =====
   // Only apply if collection queries exist
   const { collectionQueries } = parsedSearchQuery;

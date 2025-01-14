@@ -22,6 +22,7 @@ declare module "sst" {
     "Keys": {
       "githubWebhookSecret": string
       "hmacSecretKey": string
+      "lambdaInvokeSecret": string
       "type": "sst.sst.Linkable"
     }
     "OPENAI_API_KEY": {

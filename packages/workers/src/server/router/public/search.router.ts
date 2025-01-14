@@ -2,7 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { Resource } from "sst";
 
-import { searchIssues } from "@/core/semsearch";
+import { routeSearch } from "@/core/semsearch";
 import { searchResultSchema, type SearchResult } from "@/core/semsearch.schema";
 import { getDeps } from "@/deps";
 import type { Context } from "@/server/app";
@@ -21,7 +21,7 @@ export const searchRouter = new Hono<Context>().get(
 
     // Early return for lucky searches
     if (lucky) {
-      const results = await searchIssues(
+      const results = await routeSearch(
         {
           query,
           mode: "public",
@@ -31,6 +31,10 @@ export const searchRouter = new Hono<Context>().get(
         },
         db,
         openai,
+        {
+          lambdaUrl: Resource.Search.url,
+          lambdaInvokeSecret: Resource.Keys.lambdaInvokeSecret,
+        },
       );
       return c.json(
         createPaginatedResponse({
@@ -63,7 +67,7 @@ export const searchRouter = new Hono<Context>().get(
         200,
       );
     }
-    const results = await searchIssues(
+    const results = await routeSearch(
       {
         query,
         mode: "public",
@@ -73,6 +77,10 @@ export const searchRouter = new Hono<Context>().get(
       },
       db,
       openai,
+      {
+        lambdaUrl: Resource.Search.url,
+        lambdaInvokeSecret: Resource.Keys.lambdaInvokeSecret,
+      },
     );
 
     await putJson<SearchResult>(
