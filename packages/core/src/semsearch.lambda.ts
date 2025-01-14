@@ -1,21 +1,13 @@
 import { HTTPException } from "hono/http-exception";
 
+import {
+  lambdaResponseSchema,
+  type LambdaSearchRequest,
+} from "./semsearch.lambda.schema";
 import type { AwsLambdaConfig } from "./util/aws";
 
-interface LambdaErrorResponse {
-  message: string;
-  error?: string;
-}
-
-interface LambdaSuccessResponse {
-  message: string;
-}
-
-type LambdaResponse = LambdaErrorResponse | LambdaSuccessResponse;
-
 export async function invokeLambdaSearch(
-  query: string,
-  embedding: number[],
+  searchRequest: LambdaSearchRequest,
   lambdaConfig: AwsLambdaConfig,
 ) {
   const { lambdaInvokeSecret, lambdaUrl } = lambdaConfig;
@@ -25,7 +17,7 @@ export async function invokeLambdaSearch(
       "Content-Type": "application/json",
       Authorization: `Bearer ${lambdaInvokeSecret}`,
     },
-    body: JSON.stringify({ query, embedding }),
+    body: JSON.stringify(searchRequest),
   });
 
   if (!response.ok) {
@@ -49,15 +41,14 @@ export async function invokeLambdaSearch(
   }
 
   const jsonResponse = await response.json();
-  return jsonResponse as LambdaResponse;
-  // TODO: mnormalise response results
-  // const jsonResponse = await response.json();
-  // try {
-  //   return searchResultSchema.parse(jsonResponse);
-  // } catch (error) {
-  //   console.error("Invalid lambda response format:", error);
-  //   throw new HTTPException(502, {
-  //     message: "Search service returned invalid response",
-  //   });
-  // }
+
+  // Validate response using schema
+  try {
+    return lambdaResponseSchema.parse(jsonResponse);
+  } catch (error) {
+    console.error("Invalid lambda response format:", error);
+    throw new HTTPException(502, {
+      message: "Search service returned invalid response",
+    });
+  }
 }

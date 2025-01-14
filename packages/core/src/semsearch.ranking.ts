@@ -3,7 +3,7 @@ import { sql } from "./db";
 import { comments } from "./db/schema/entities/comment.sql";
 
 // Ranking weights (should sum to 1)
-const RANKING_WEIGHTS = {
+export const RANKING_WEIGHTS = {
   SEMANTIC_SIMILARITY: 0.8, // Start with higher weight for semantic search
   COMMENT_COUNT: 0.12, // Activity level
   RECENCY: 0.05, // Recent updates
@@ -11,13 +11,13 @@ const RANKING_WEIGHTS = {
 } as const;
 
 // Time-based constants
-const TIME_CONSTANTS = {
+export const TIME_CONSTANTS = {
   // Base time unit in days for recency calculation
   RECENCY_BASE_DAYS: 30,
 } as const;
 
 // Score multipliers
-const SCORE_MULTIPLIERS = {
+export const SCORE_MULTIPLIERS = {
   OPEN_ISSUE: 1.0,
   CLOSED_ISSUE: 0.8,
 } as const;
