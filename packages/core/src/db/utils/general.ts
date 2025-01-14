@@ -1,5 +1,7 @@
-import type { AnyColumn, SQL } from "drizzle-orm";
+import type { AnyColumn, SQL, SQLWrapper } from "drizzle-orm";
 import { sql } from "drizzle-orm";
+
+import type { DbClient } from "@/db";
 
 export function convertToSqlRaw(value: number | string) {
   return sql.raw(value.toString());
@@ -46,4 +48,28 @@ export function count<Column extends AnyColumn>(column: Column) {
  */
 export function coalesce<T>(value: SQL.Aliased<T> | SQL<T>, defaultValue: SQL) {
   return sql<T>`coalesce(${value}, ${defaultValue})`;
+}
+
+export async function getEstimatedCount(
+  query: SQLWrapper,
+  db: DbClient,
+): Promise<number | null> {
+  try {
+    const [result] = await db.execute<{ "QUERY PLAN": string }>(
+      sql`EXPLAIN (FORMAT JSON) ${query}`,
+    );
+    if (!result) {
+      return null;
+    }
+
+    const plan = JSON.parse(result["QUERY PLAN"]);
+    const estimatedRows = plan[0]?.Plan?.["Plan Rows"];
+    if (typeof estimatedRows !== "number") {
+      return null;
+    }
+    return estimatedRows;
+  } catch (_e) {
+    // If EXPLAIN fails or returns invalid data, return null
+    return null;
+  }
 }

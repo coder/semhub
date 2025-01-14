@@ -3,7 +3,7 @@ import { and, count as countFn, desc, eq, sql } from "@/db";
 import { issueEmbeddings } from "@/db/schema/entities/issue-embedding.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
 import { repos } from "@/db/schema/entities/repo.sql";
-import { convertToSqlRaw } from "@/db/utils/general";
+import { convertToSqlRaw, getEstimatedCount } from "@/db/utils/general";
 import { cosineDistance } from "@/db/utils/vector";
 import { createEmbedding } from "@/embedding";
 import type { OpenAIClient } from "@/openai";
@@ -34,14 +34,9 @@ export async function routeSearch(
   openai: OpenAIClient,
   lambdaConfig: AwsLambdaConfig,
 ): Promise<SearchResult> {
-  const { matchingCount, embedding } = await getCountAndEmbeddingInParallel(
-    params,
-    db,
-    openai,
-  );
+  const { matchingCount, totalCount, embedding } =
+    await getApproxCountsAndEmbedding(params, db, openai);
 
-  // original code
-  // TODO: try out when repo init is complete to compare effect of reducing vector length
   const useHnswIndex = matchingCount > HNSW_ISSUE_COUNT_THRESHOLD;
   const result = useHnswIndex
     ? await filterAfterVectorSearch(params, db, embedding)
@@ -63,46 +58,68 @@ export async function routeSearch(
   return result;
 }
 
-async function getCountAndEmbeddingInParallel(
+async function getApproxCountsAndEmbedding(
   params: SearchParams,
   db: DbClient,
   openai: OpenAIClient,
 ) {
   const parsedSearchQuery = parseSearchQuery(params.query);
-  const [matchingCount, embedding] = await Promise.all([
-    getFilteredIssuesCount(params, db),
+  const [matchingCount, totalCount, embedding] = await Promise.all([
+    getFilteredIssuesApproxCount(params, db),
+    getTotalIssueEmbeddingApproxCount(db),
     createEmbedding(
       {
-        // embed query without operators, not sure if this gets better results
-        // if remainingQuery is empty, pass the whole original query
         input: parsedSearchQuery.remainingQuery ?? params.query,
       },
       openai,
     ),
   ]);
-  return { matchingCount, embedding };
+  return { matchingCount, totalCount, embedding };
 }
 
-async function getFilteredIssuesCount(
+async function getFilteredIssuesApproxCount(
   searchParams: SearchParams,
   db: DbClient,
 ) {
-  return db.transaction(async (tx) => {
-    let query = tx
-      .select({
-        count: countFn(),
-      })
-      .from(issueTable)
-      .innerJoin(
-        repos,
-        and(eq(issueTable.repoId, repos.id), eq(repos.initStatus, "completed")),
-      )
-      .$dynamic();
+  let query = db
+    .select({
+      count: countFn(),
+    })
+    .from(issueTable)
+    .innerJoin(
+      repos,
+      and(eq(issueTable.repoId, repos.id), eq(repos.initStatus, "completed")),
+    )
+    .$dynamic();
 
-    query = applyFilters(query, searchParams);
+  query = applyFilters(query, searchParams);
+  const approxCount = await getEstimatedCount(query, db);
+  if (approxCount === null) {
     const [result] = await query;
-    return result?.count ?? 0;
-  });
+    if (!result) {
+      throw new Error("No result from query");
+    }
+    // return result.count;
+    throw new Error("getEstimatedCount failed");
+  }
+  return approxCount;
+}
+
+/**
+ * Gets an approximate count of issue embeddings using PostgreSQL's statistics.
+ * This is much faster than COUNT(*) but may be slightly out of date as it relies
+ * on statistics that are updated by ANALYZE operations.
+ */
+async function getTotalIssueEmbeddingApproxCount(db: DbClient) {
+  const [result] = await db.execute(
+    sql`SELECT reltuples::bigint AS estimate FROM pg_class WHERE relname = 'issue_embeddings'`,
+  );
+
+  if (!result || !("estimate" in result)) {
+    throw new Error("Failed to get estimate from pg_class");
+  }
+
+  return Number(result.estimate);
 }
 
 async function filterAfterVectorSearch(

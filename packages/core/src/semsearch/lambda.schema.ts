@@ -19,7 +19,6 @@ export const lambdaResponseSchema = z.union([
   lambdaSuccessResponseSchema,
 ]);
 
-// TypeScript type exports
 export type LambdaSearchRequest = z.infer<typeof lambdaSearchRequestSchema>;
 export type LambdaErrorResponse = z.infer<typeof lambdaErrorResponseSchema>;
 export type LambdaSuccessResponse = z.infer<typeof lambdaSuccessResponseSchema>;
