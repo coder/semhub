@@ -1,5 +1,6 @@
 import { auth, authKv } from "./Auth";
 import { domain } from "./Dns";
+import { mapStageToEnv } from "./helper";
 import { allSecrets } from "./Secret";
 
 export const searchCacheKv = new sst.cloudflare.Kv("SearchCacheKv", {});
@@ -15,11 +16,11 @@ const hono = new sst.cloudflare.Worker("Hono", {
       serviceBindings: [
         {
           name: "REPO_INIT_WORKFLOW",
-          service: `semhub-sync-repo-init-${$app.stage === "prod" ? "prod" : "dev"}`,
+          service: `semhub-sync-repo-init-${mapStageToEnv($app.stage)}`,
         },
         {
           name: "INSTALLATION_WORKFLOW",
-          service: `semhub-installation-${$app.stage === "prod" ? "prod" : "dev"}`,
+          service: `semhub-installation-${mapStageToEnv($app.stage)}`,
         },
       ],
     },
