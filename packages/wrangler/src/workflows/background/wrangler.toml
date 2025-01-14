@@ -13,6 +13,16 @@ name = "semhub-installation-workflow-dev"
 binding = "INSTALLATION_WORKFLOW"
 class_name = "InstallationWorkflow"
 
+# UAT environment
+[env.uat]
+name = "semhub-installation-uat"
+vars = { ENVIRONMENT = "uat" }
+
+[[env.uat.workflows]]
+name = "semhub-installation-workflow-uat"
+binding = "INSTALLATION_WORKFLOW"
+class_name = "InstallationWorkflow"
+
 # Production environment
 [env.prod]
 name = "semhub-installation-prod"
