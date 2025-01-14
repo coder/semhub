@@ -69,7 +69,12 @@ export class InstallationWorkflow extends WorkflowEntrypoint<
       },
     );
 
-    if (pendingRepos.length === 0) {
+    const hasPendingRepos = pendingRepos.length > 0;
+    await step.do(
+      hasPendingRepos ? "process pending repos" : "no pending repos",
+      async () => {},
+    );
+    if (!hasPendingRepos) {
       return;
     }
 
