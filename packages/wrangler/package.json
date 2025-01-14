@@ -10,9 +10,12 @@
     "dev": "bun scripts/worker.ts dev",
     "deploy": "bun scripts/deploy.ts",
     "deploy:all": "bun scripts/deploy.ts all",
+    "deploy:all:uat": "bun scripts/deploy.ts all --uat",
+    "deploy:all:uat:load-env": "bun scripts/deploy.ts all --uat --load-env",
     "deploy:all:prod": "bun scripts/deploy.ts all --prod",
     "deploy:all:prod:load-env": "bun scripts/deploy.ts all --prod --load-env",
     "delete": "bun scripts/worker.ts delete",
+    "delete:uat": "bun scripts/worker.ts delete --uat",
     "delete:prod": "bun scripts/worker.ts delete --prod"
   },
   "dependencies": {

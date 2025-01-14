@@ -15,10 +15,11 @@ async function deploy() {
     .filter((arg) => arg !== "--load-env")
     .join(" ");
   const isProd = filteredArgs.includes("prod");
-  // let's ignore staging for now, staging workers will bind to same wrangler workers as dev
-  const env = isProd ? "prod" : "dev";
+  const isUat = filteredArgs.includes("uat");
+  // staging uses same wrangler workers as dev
+  const env = isProd ? "prod" : isUat ? "uat" : "dev";
 
-  const envFlag = isProd ? "--env prod" : "";
+  const envFlag = isProd ? "--env prod" : isUat ? "--env uat" : "";
   const cloudflareEnvVars = `CF_ACCOUNT_ID=${process.env.CLOUDFLARE_ACCOUNT_ID} CF_API_TOKEN=${process.env.CLOUDFLARE_API_TOKEN}`;
 
   // eslint-disable-next-line no-console
