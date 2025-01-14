@@ -1,7 +1,10 @@
 import type { AnyColumn, SQL, SQLWrapper } from "drizzle-orm";
 import { sql } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
 
 import type { DbClient } from "@/db";
+
+import { substituteSqlParams } from "./raw";
 
 export function convertToSqlRaw(value: number | string) {
   return sql.raw(value.toString());
@@ -55,19 +58,23 @@ export async function getEstimatedCount(
   db: DbClient,
 ): Promise<number | null> {
   try {
-    const [result] = await db.execute<{ "QUERY PLAN": string }>(
-      sql`EXPLAIN (FORMAT JSON) ${query}`,
-    );
+    const pgDialect = new PgDialect();
+    const { params, sql: sqlStr } = pgDialect.sqlToQuery(query.getSQL());
+    const rawQuery = substituteSqlParams(sqlStr, params);
+    const [result] = await db.execute<{
+      "QUERY PLAN": Array<{
+        Plan: {
+          "Plan Rows"?: number;
+          [key: string]: unknown;
+        };
+      }>;
+    }>(sql.raw(`EXPLAIN (FORMAT JSON) ${rawQuery}`));
     if (!result) {
       return null;
     }
-
-    const plan = JSON.parse(result["QUERY PLAN"]);
-    const estimatedRows = plan[0]?.Plan?.["Plan Rows"];
-    if (typeof estimatedRows !== "number") {
-      return null;
-    }
-    return estimatedRows;
+    const [planData] = result["QUERY PLAN"];
+    console.log
+    return planData?.Plan?.["Plan Rows"] ?? null;
   } catch (_e) {
     // If EXPLAIN fails or returns invalid data, return null
     return null;

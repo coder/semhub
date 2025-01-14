@@ -28,8 +28,6 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 
-	// Print the raw body for debugging
-	fmt.Printf("Raw request body: %s\n", request.Body)
 	// Parse the request body
 	var requestBody types.SearchRequest
 	if err := json.Unmarshal([]byte(request.Body), &requestBody); err != nil {
@@ -47,9 +45,6 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			Body: string(body),
 		}, nil
 	}
-
-	fmt.Printf("Received query: %s\n", requestBody.Query)
-	fmt.Printf("Received embedding length: %d\n", len(requestBody.Embedding))
 
 	successResp := types.SuccessResponse{
 		Message: "Hello from search lambda!",

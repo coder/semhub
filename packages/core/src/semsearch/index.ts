@@ -1,5 +1,5 @@
 import type { DbClient } from "@/db";
-import { and, count as countFn, desc, eq, sql } from "@/db";
+import { and, desc, eq, sql } from "@/db";
 import { issueEmbeddings } from "@/db/schema/entities/issue-embedding.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
 import { repos } from "@/db/schema/entities/repo.sql";
@@ -36,7 +36,6 @@ export async function routeSearch(
 ): Promise<SearchResult> {
   const { matchingCount, totalCount, embedding } =
     await getApproxCountsAndEmbedding(params, db, openai);
-
   const useHnswIndex = matchingCount > HNSW_ISSUE_COUNT_THRESHOLD;
   const result = useHnswIndex
     ? await filterAfterVectorSearch(params, db, embedding)
@@ -83,7 +82,7 @@ async function getFilteredIssuesApproxCount(
 ) {
   let query = db
     .select({
-      count: countFn(),
+      id: issueTable.id,
     })
     .from(issueTable)
     .innerJoin(
@@ -93,13 +92,9 @@ async function getFilteredIssuesApproxCount(
     .$dynamic();
 
   query = applyFilters(query, searchParams);
+  // TODO: in the future, can store in KV cache
   const approxCount = await getEstimatedCount(query, db);
   if (approxCount === null) {
-    const [result] = await query;
-    if (!result) {
-      throw new Error("No result from query");
-    }
-    // return result.count;
     throw new Error("getEstimatedCount failed");
   }
   return approxCount;
