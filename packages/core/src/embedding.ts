@@ -30,6 +30,7 @@ export async function createEmbedding(
   const res = await openAIClient.embeddings.create({
     model: EMBEDDING_MODEL,
     input,
+    dimensions: 256,
   });
   const result = embeddingsCreateSchema.parse(res);
   return result.data[0]!.embedding;
