@@ -12,10 +12,11 @@ import { type AwsLambdaConfig } from "@/util/aws";
 import { applyFilters, applyPagination, getBaseSelect } from "./db";
 import { invokeLambdaSearch } from "./lambda";
 import {
+  DB_HNSW_INDEX_PROPORTION_THRESHOLD,
   HNSW_EF_SEARCH,
-  HNSW_ISSUE_COUNT_THRESHOLD,
   HNSW_MAX_SCAN_TUPLES,
   HNSW_SCAN_MEM_MULTIPLIER,
+  IN_MEMORY_HNSW_THRESHOLD,
   SEQ_SCAN_THRESHOLD,
   VECTOR_SIMILARITY_SEARCH_LIMIT,
 } from "./params";
@@ -34,27 +35,29 @@ export async function routeSearch(
   openai: OpenAIClient,
   lambdaConfig: AwsLambdaConfig,
 ): Promise<SearchResult> {
-  const { matchingCount, totalCount, embedding } =
+  const { filteredIssueCount, total, embedding } =
     await getApproxCountsAndEmbedding(params, db, openai);
-  const useHnswIndex = matchingCount > HNSW_ISSUE_COUNT_THRESHOLD;
-  const result = useHnswIndex
-    ? await filterAfterVectorSearch(params, db, embedding)
-    : await filterBeforeVectorSearch(params, db, embedding);
-  if (matchingCount <= SEQ_SCAN_THRESHOLD) {
+
+  if (filteredIssueCount <= SEQ_SCAN_THRESHOLD) {
     return await filterBeforeVectorSearch(params, db, embedding);
   }
 
-  // If more than 1000 issues, use lambda
-  // TODO: if this approach works well, we can remove the HNSW index from the database
-  const lambdaResponse = await invokeLambdaSearch(
+  const useDbHnswIndex =
+    total > IN_MEMORY_HNSW_THRESHOLD ||
+    filteredIssueCount / total > DB_HNSW_INDEX_PROPORTION_THRESHOLD;
+
+  if (useDbHnswIndex) {
+    return await filterAfterVectorSearch(params, db, embedding);
+  }
+
+  // Otherwise, use lambda search
+  return await invokeLambdaSearch(
     {
       query: params.query,
       embedding,
     },
     lambdaConfig,
   );
-
-  return result;
 }
 
 async function getApproxCountsAndEmbedding(
@@ -63,7 +66,7 @@ async function getApproxCountsAndEmbedding(
   openai: OpenAIClient,
 ) {
   const parsedSearchQuery = parseSearchQuery(params.query);
-  const [matchingCount, totalCount, embedding] = await Promise.all([
+  const [filteredIssueCount, total, embedding] = await Promise.all([
     getFilteredIssuesApproxCount(params, db),
     getTotalIssueEmbeddingApproxCount(db),
     createEmbedding(
@@ -73,7 +76,7 @@ async function getApproxCountsAndEmbedding(
       openai,
     ),
   ]);
-  return { matchingCount, totalCount, embedding };
+  return { filteredIssueCount, total, embedding };
 }
 
 async function getFilteredIssuesApproxCount(
