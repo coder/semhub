@@ -12,7 +12,7 @@ export default $config({
         random: true,
         aws: {
           profile: "semhub",
-          region: "ap-southeast-1", // temporary
+          region: input.stage === "prod" ? "us-east-1" : "ap-southeast-1",
         },
       },
     };
