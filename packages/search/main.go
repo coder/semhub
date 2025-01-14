@@ -39,7 +39,8 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	fmt.Printf("Raw request body: %s\n", request.Body)
 	// Parse the request body
 	var requestBody struct {
-		Query string `json:"query"`
+		Query     string    `json:"query"`
+		Embedding []float64 `json:"embedding"`
 	}
 	if err := json.Unmarshal([]byte(request.Body), &requestBody); err != nil {
 		fmt.Printf("Failed to parse request body: %v\n", err)
@@ -58,6 +59,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	}
 
 	fmt.Printf("Received query: %s\n", requestBody.Query)
+	fmt.Printf("Received embedding length: %d\n", len(requestBody.Embedding))
 
 	successResp := SuccessResponse{
 		Message: "Hello from search lambda!",

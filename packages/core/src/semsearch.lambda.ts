@@ -15,6 +15,7 @@ type LambdaResponse = LambdaErrorResponse | LambdaSuccessResponse;
 
 export async function invokeLambdaSearch(
   query: string,
+  embedding: number[],
   lambdaConfig: AwsLambdaConfig,
 ) {
   const { lambdaInvokeSecret, lambdaUrl } = lambdaConfig;
@@ -24,7 +25,7 @@ export async function invokeLambdaSearch(
       "Content-Type": "application/json",
       Authorization: `Bearer ${lambdaInvokeSecret}`,
     },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify({ query, embedding }),
   });
 
   if (!response.ok) {
@@ -49,6 +50,7 @@ export async function invokeLambdaSearch(
 
   const jsonResponse = await response.json();
   return jsonResponse as LambdaResponse;
+  // TODO: mnormalise response results
   // const jsonResponse = await response.json();
   // try {
   //   return searchResultSchema.parse(jsonResponse);

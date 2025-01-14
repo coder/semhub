@@ -11,9 +11,9 @@ import { applyFilters, applyPagination, getBaseSelect } from "./semsearch.db";
 import { invokeLambdaSearch } from "./semsearch.lambda";
 import {
   HNSW_EF_SEARCH,
-  HNSW_ISSUE_COUNT_THRESHOLD,
   HNSW_MAX_SCAN_TUPLES,
   HNSW_SCAN_MEM_MULTIPLIER,
+  SEQ_SCAN_THRESHOLD,
   VECTOR_SIMILARITY_SEARCH_LIMIT,
 } from "./semsearch.param";
 import {
@@ -58,16 +58,24 @@ export async function routeSearch(
     openai,
   );
 
-  const lambdaResponse = await invokeLambdaSearch(params.query, lambdaConfig);
+  // original code
+  // TODO: try out when repo init is complete to compare effect of reducing vector length
+  // const useHnswIndex = matchingCount > HNSW_ISSUE_COUNT_THRESHOLD;
+  // const result = useHnswIndex
+  //   ? await filterAfterVectorSearch(params, db, embedding)
+  //   : await filterBeforeVectorSearch(params, db, embedding);
+  if (matchingCount <= SEQ_SCAN_THRESHOLD) {
+    return await filterBeforeVectorSearch(params, db, embedding);
+  }
 
-  const useHnswIndex = matchingCount > HNSW_ISSUE_COUNT_THRESHOLD;
-  // (1) if higher, we HNSW index and apply the filter afterwards
-  // (2) if lower, we filter before the vector search and do a full seq scan
-  // downside of (1) if searching across not that many issues: end up with very few results
-  // downside of (2) if searching across too many issues:queries are too slow
-  const result = useHnswIndex
-    ? await filterAfterVectorSearch(params, db, embedding)
-    : await filterBeforeVectorSearch(params, db, embedding);
+  // If more than 1000 issues, use lambda
+  // TODO: if this approach works well, we can remove the HNSW index from the database
+  const lambdaResponse = await invokeLambdaSearch(
+    params.query,
+    embedding,
+    lambdaConfig,
+  );
+
   return result;
 }
 
