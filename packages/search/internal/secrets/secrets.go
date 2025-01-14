@@ -1,4 +1,5 @@
-package main
+// Package secrets provides functionality for retrieving and managing SST secrets
+package secrets
 
 import (
 	"fmt"

@@ -11,6 +11,7 @@ import { applyFilters, applyPagination, getBaseSelect } from "./semsearch.db";
 import { invokeLambdaSearch } from "./semsearch.lambda";
 import {
   HNSW_EF_SEARCH,
+  HNSW_ISSUE_COUNT_THRESHOLD,
   HNSW_MAX_SCAN_TUPLES,
   HNSW_SCAN_MEM_MULTIPLIER,
   SEQ_SCAN_THRESHOLD,
@@ -60,10 +61,10 @@ export async function routeSearch(
 
   // original code
   // TODO: try out when repo init is complete to compare effect of reducing vector length
-  // const useHnswIndex = matchingCount > HNSW_ISSUE_COUNT_THRESHOLD;
-  // const result = useHnswIndex
-  //   ? await filterAfterVectorSearch(params, db, embedding)
-  //   : await filterBeforeVectorSearch(params, db, embedding);
+  const useHnswIndex = matchingCount > HNSW_ISSUE_COUNT_THRESHOLD;
+  const result = useHnswIndex
+    ? await filterAfterVectorSearch(params, db, embedding)
+    : await filterBeforeVectorSearch(params, db, embedding);
   if (matchingCount <= SEQ_SCAN_THRESHOLD) {
     return await filterBeforeVectorSearch(params, db, embedding);
   }
