@@ -1,14 +1,16 @@
-import type { DbClient } from "./db";
-import { and, count as countFn, desc, eq, sql } from "./db";
-import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
-import { issueTable } from "./db/schema/entities/issue.sql";
-import { repos } from "./db/schema/entities/repo.sql";
-import { convertToSqlRaw } from "./db/utils/general";
-import { cosineDistance } from "./db/utils/vector";
-import { createEmbedding } from "./embedding";
-import type { OpenAIClient } from "./openai";
-import { applyFilters, applyPagination, getBaseSelect } from "./semsearch.db";
-import { invokeLambdaSearch } from "./semsearch.lambda";
+import type { DbClient } from "@/db";
+import { and, count as countFn, desc, eq, sql } from "@/db";
+import { issueEmbeddings } from "@/db/schema/entities/issue-embedding.sql";
+import { issueTable } from "@/db/schema/entities/issue.sql";
+import { repos } from "@/db/schema/entities/repo.sql";
+import { convertToSqlRaw } from "@/db/utils/general";
+import { cosineDistance } from "@/db/utils/vector";
+import { createEmbedding } from "@/embedding";
+import type { OpenAIClient } from "@/openai";
+import { type AwsLambdaConfig } from "@/util/aws";
+
+import { applyFilters, applyPagination, getBaseSelect } from "./db";
+import { invokeLambdaSearch } from "./lambda";
 import {
   HNSW_EF_SEARCH,
   HNSW_ISSUE_COUNT_THRESHOLD,
@@ -16,36 +18,15 @@ import {
   HNSW_SCAN_MEM_MULTIPLIER,
   SEQ_SCAN_THRESHOLD,
   VECTOR_SIMILARITY_SEARCH_LIMIT,
-} from "./semsearch.param";
+} from "./params";
 import {
   calculateCommentScore,
   calculateRankingScore,
   calculateRecencyScore,
   calculateSimilarityScore,
-} from "./semsearch.ranking";
-import type { SearchParams, SearchResult } from "./semsearch.schema";
-import { parseSearchQuery } from "./semsearch.util";
-import { type AwsLambdaConfig } from "./util/aws";
-
-async function getCountAndEmbeddingInParallel(
-  params: SearchParams,
-  db: DbClient,
-  openai: OpenAIClient,
-) {
-  const parsedSearchQuery = parseSearchQuery(params.query);
-  const [matchingCount, embedding] = await Promise.all([
-    getFilteredIssuesCount(params, db),
-    createEmbedding(
-      {
-        // embed query without operators, not sure if this gets better results
-        // if remainingQuery is empty, pass the whole original query
-        input: parsedSearchQuery.remainingQuery ?? params.query,
-      },
-      openai,
-    ),
-  ]);
-  return { matchingCount, embedding };
-}
+} from "./ranking";
+import type { SearchParams, SearchResult } from "./schema";
+import { parseSearchQuery } from "./util";
 
 export async function routeSearch(
   params: SearchParams,
@@ -72,12 +53,34 @@ export async function routeSearch(
   // If more than 1000 issues, use lambda
   // TODO: if this approach works well, we can remove the HNSW index from the database
   const lambdaResponse = await invokeLambdaSearch(
-    params.query,
-    embedding,
+    {
+      query: params.query,
+      embedding,
+    },
     lambdaConfig,
   );
 
   return result;
+}
+
+async function getCountAndEmbeddingInParallel(
+  params: SearchParams,
+  db: DbClient,
+  openai: OpenAIClient,
+) {
+  const parsedSearchQuery = parseSearchQuery(params.query);
+  const [matchingCount, embedding] = await Promise.all([
+    getFilteredIssuesCount(params, db),
+    createEmbedding(
+      {
+        // embed query without operators, not sure if this gets better results
+        // if remainingQuery is empty, pass the whole original query
+        input: parsedSearchQuery.remainingQuery ?? params.query,
+      },
+      openai,
+    ),
+  ]);
+  return { matchingCount, embedding };
 }
 
 async function getFilteredIssuesCount(

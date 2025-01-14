@@ -6,12 +6,12 @@ import {
   lambdaErrorResponseSchema,
   lambdaSearchRequestSchema,
   lambdaSuccessResponseSchema,
-} from "@/core/semsearch.lambda.schema";
+} from "@/core/semsearch/lambda.schema";
 import {
   RANKING_WEIGHTS,
   SCORE_MULTIPLIERS,
   TIME_CONSTANTS,
-} from "@/core/semsearch.ranking";
+} from "@/core/semsearch/ranking";
 
 // TODO: hook this up to build/CICD process
 

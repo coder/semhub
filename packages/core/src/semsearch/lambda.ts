@@ -1,10 +1,8 @@
 import { HTTPException } from "hono/http-exception";
 
-import {
-  lambdaResponseSchema,
-  type LambdaSearchRequest,
-} from "./semsearch.lambda.schema";
-import type { AwsLambdaConfig } from "./util/aws";
+import type { AwsLambdaConfig } from "@/util/aws";
+
+import { lambdaResponseSchema, type LambdaSearchRequest } from "./lambda.schema";
 
 export async function invokeLambdaSearch(
   searchRequest: LambdaSearchRequest,

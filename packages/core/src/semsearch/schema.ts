@@ -1,10 +1,10 @@
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
-import { issueTable } from "./db/schema/entities/issue.sql";
-import { selectLabelForSearchSchema } from "./db/schema/entities/label.schema";
-import type { SelectRepoForSearch } from "./db/schema/entities/repo.schema";
-import { authorSchema } from "./db/schema/shared";
+import { issueTable } from "../db/schema/entities/issue.sql";
+import { selectLabelForSearchSchema } from "../db/schema/entities/label.schema";
+import type { SelectRepoForSearch } from "../db/schema/entities/repo.schema";
+import { authorSchema } from "../db/schema/shared";
 
 type BaseSearchParams = {
   query: string;

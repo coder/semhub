@@ -2,8 +2,8 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { Resource } from "sst";
 
-import { routeSearch } from "@/core/semsearch";
-import { searchResultSchema, type SearchResult } from "@/core/semsearch.schema";
+import { routeSearch } from "@/core/semsearch/index";
+import { searchResultSchema, type SearchResult } from "@/core/semsearch/schema";
 import { getDeps } from "@/deps";
 import type { Context } from "@/server/app";
 import { getJson, putJson } from "@/server/kv";

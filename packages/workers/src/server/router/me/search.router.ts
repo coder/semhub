@@ -2,7 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { Resource } from "sst";
 
-import { routeSearch } from "@/core/semsearch";
+import { routeSearch } from "@/core/semsearch/index";
 import { getDeps } from "@/deps";
 import type { AuthedContext } from "@/server/app";
 import { createPaginatedResponse } from "@/server/response";
