@@ -101,14 +101,15 @@ Note that when you use a GitHub App on a personal account, the warning message o
 
 Right now, deployment is manual. Eventually, will set up GitHub Actions to automate this.
 
-### Deploying to prod
+### Deploying to new environment
 
-For a deploying a given change to prod, it makes sense (for backward compatibility) to run in the following order:
+For a deploying a given change to a new environment:
 
-1. Run database migrations on prod. From `core` folder, run: `bun db:migrate:prod`.
-1. Load secrets. From root folder, run `bun secret:load:prod`.
-1. Deploy Cloudflare resources. From `/packages/wrangler`, run `bun run deploy:all:prod`.
-1. Deploy SST resources. From root folder, run `deploy:prod`.
+1. Load secrets. From root folder, run `bun secret:load:<env>`.
+1. Run `sst deploy --stage <env>` first to create state in SST. This will fail.
+1. Deploy Cloudflare resources. From `/packages/wrangler`, run `bun run deploy:all:<env>`.
+1. Run database migrations on prod. From `core` folder, run: `bun db:migrate:<env>`.
+1. Deploy SST resources again. This time it should succeed.
 
 Should probably set up a script to do this automatically as part of CI/CD.
 
