@@ -8,6 +8,7 @@ import { cosineDistance } from "./db/utils/vector";
 import { createEmbedding } from "./embedding";
 import type { OpenAIClient } from "./openai";
 import { applyFilters, applyPagination, getBaseSelect } from "./semsearch.db";
+import { invokeLambdaSearch } from "./semsearch.lambda";
 import {
   HNSW_EF_SEARCH,
   HNSW_ISSUE_COUNT_THRESHOLD,
@@ -56,23 +57,9 @@ export async function routeSearch(
     db,
     openai,
   );
-  const { lambdaInvokeSecret, lambdaUrl } = lambdaConfig;
-  const response = await fetch(lambdaUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${lambdaInvokeSecret}`,
-    },
-  });
-  if (!response.ok) {
-    console.error(
-      "Failed to invoke lambda",
-      response.status,
-      response.statusText,
-      await response.text(),
-    );
-    throw new Error("Failed to invoke lambda");
-  }
+
+  const lambdaResponse = await invokeLambdaSearch(params.query, lambdaConfig);
+
   const useHnswIndex = matchingCount > HNSW_ISSUE_COUNT_THRESHOLD;
   // (1) if higher, we HNSW index and apply the filter afterwards
   // (2) if lower, we filter before the vector search and do a full seq scan

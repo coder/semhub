@@ -5,8 +5,12 @@ import (
 	"strings"
 )
 
-// VerifyAuth verifies the bearer token in the Authorization header
-func VerifyAuth(headers map[string]string, expectedSecret string) error {
+// VerifyHeaders verifies the bearer token in the Authorization header
+func VerifyHeaders(headers map[string]string) error {
+	expectedSecret, err := GetKeysSecret("lambdaInvokeSecret")
+	if err != nil {
+		return fmt.Errorf("failed to get lambda invoke secret: %w", err)
+	}
 	auth := headers["authorization"]
 	if auth == "" {
 		return fmt.Errorf("missing authorization header")
@@ -18,19 +22,7 @@ func VerifyAuth(headers map[string]string, expectedSecret string) error {
 	}
 
 	if parts[1] != expectedSecret {
-		return fmt.Errorf("invalid authorization token")
+		return fmt.Errorf("authorization token does not match expected secret")
 	}
-
-	return fmt.Errorf("authentication unsuccessful")
-	// return nil
-}
-
-// VerifyLambdaAuth retrieves the lambda invoke secret and verifies the request auth
-func VerifyLambdaAuth(headers map[string]string) error {
-	lambdaInvokeSecret, err := GetKeysSecret("lambdaInvokeSecret")
-	if err != nil {
-		return fmt.Errorf("failed to get lambda invoke secret: %w", err)
-	}
-
-	return VerifyAuth(headers, lambdaInvokeSecret)
+	return nil
 }
