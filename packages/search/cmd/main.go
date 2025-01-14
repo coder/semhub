@@ -7,21 +7,14 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/semhub/packages/search/internal/auth"
+	"github.com/semhub/packages/search/pkg/types"
 )
 
-type ErrorResponse struct {
-	Message string `json:"message"`
-	Error   string `json:"error,omitempty"`
-}
-
-type SuccessResponse struct {
-	Message string `json:"message"`
-}
-
 func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	if err := VerifyHeaders(request.Headers); err != nil {
+	if err := auth.VerifyHeaders(request.Headers); err != nil {
 		fmt.Printf("Authentication failed: %v\n", err)
-		errResp := ErrorResponse{
+		errResp := types.ErrorResponse{
 			Message: "Authentication failed",
 			Error:   "Unauthorized",
 		}
@@ -38,13 +31,10 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	// Print the raw body for debugging
 	fmt.Printf("Raw request body: %s\n", request.Body)
 	// Parse the request body
-	var requestBody struct {
-		Query     string    `json:"query"`
-		Embedding []float64 `json:"embedding"`
-	}
+	var requestBody types.SearchRequest
 	if err := json.Unmarshal([]byte(request.Body), &requestBody); err != nil {
 		fmt.Printf("Failed to parse request body: %v\n", err)
-		errResp := ErrorResponse{
+		errResp := types.ErrorResponse{
 			Message: "Invalid request body",
 			Error:   err.Error(),
 		}
@@ -61,7 +51,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	fmt.Printf("Received query: %s\n", requestBody.Query)
 	fmt.Printf("Received embedding length: %d\n", len(requestBody.Embedding))
 
-	successResp := SuccessResponse{
+	successResp := types.SuccessResponse{
 		Message: "Hello from search lambda!",
 	}
 	body, _ := json.Marshal(successResp)

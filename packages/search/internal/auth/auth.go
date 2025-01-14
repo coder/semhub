@@ -1,13 +1,15 @@
-package main
+package auth
 
 import (
 	"fmt"
 	"strings"
+
+	"github.com/semhub/packages/search/internal/secrets"
 )
 
 // VerifyHeaders verifies the bearer token in the Authorization header
 func VerifyHeaders(headers map[string]string) error {
-	expectedSecret, err := GetKeysSecret("lambdaInvokeSecret")
+	expectedSecret, err := secrets.GetKeysSecret("lambdaInvokeSecret")
 	if err != nil {
 		return fmt.Errorf("failed to get lambda invoke secret: %w", err)
 	}

@@ -1,4 +1,4 @@
-module semhub/search
+module github.com/semhub/packages/search
 
 go 1.23.4
 
