@@ -23,6 +23,7 @@ export default {
     const { db } = getDeps();
     switch (controller.cron) {
       case CRON_PATTERNS.INIT: {
+        await Repo.unstuckReposForInit(db);
         await initNextRepos(db, env.REPO_INIT_WORKFLOW);
         break;
       }

@@ -159,6 +159,18 @@ export const Repo = {
       });
   },
 
+  unstuckReposForInit: async (db: DbClient) => {
+    await db
+      .update(repos)
+      .set({ initStatus: "ready" })
+      .where(
+        and(
+          eq(repos.initStatus, "in_progress"),
+          lt(repos.updatedAt, sql`NOW() - INTERVAL '1 hour'`),
+        ),
+      );
+  },
+
   unstuckReposForIssueSync: async (db: DbClient) => {
     await db
       .update(repos)
