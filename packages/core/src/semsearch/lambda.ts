@@ -2,7 +2,10 @@ import { HTTPException } from "hono/http-exception";
 
 import type { AwsLambdaConfig } from "@/util/aws";
 
-import { lambdaResponseSchema, type LambdaSearchRequest } from "./lambda.schema";
+import {
+  lambdaResponseSchema,
+  type LambdaSearchRequest,
+} from "./lambda.schema";
 
 export async function invokeLambdaSearch(
   searchRequest: LambdaSearchRequest,
@@ -42,7 +45,14 @@ export async function invokeLambdaSearch(
 
   // Validate response using schema
   try {
-    return lambdaResponseSchema.parse(jsonResponse);
+    const result = lambdaResponseSchema.parse(jsonResponse);
+    if (!result.success) {
+      console.error("something went wrong at lambda", result.error);
+      throw new HTTPException(502, {
+        message: "Search service returned invalid response",
+      });
+    }
+    return result;
   } catch (error) {
     console.error("Invalid lambda response format:", error);
     throw new HTTPException(502, {

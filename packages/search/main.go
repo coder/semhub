@@ -15,8 +15,8 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	if err := auth.VerifyHeaders(request.Headers); err != nil {
 		fmt.Printf("Authentication failed: %v\n", err)
 		errResp := types.ErrorResponse{
-			Message: "Authentication failed",
-			Error:   "Unauthorized",
+			Success: false,
+			Error:   "Authentication failed",
 		}
 		body, _ := json.Marshal(errResp)
 		return events.APIGatewayProxyResponse{
@@ -33,7 +33,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	if err := json.Unmarshal([]byte(request.Body), &requestBody); err != nil {
 		fmt.Printf("Failed to parse request body: %v\n", err)
 		errResp := types.ErrorResponse{
-			Message: "Invalid request body",
+			Success: false,
 			Error:   err.Error(),
 		}
 		body, _ := json.Marshal(errResp)
@@ -47,7 +47,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	}
 
 	successResp := types.SuccessResponse{
-		Message: "Hello from search lambda!",
+		Success: true,
 	}
 	body, _ := json.Marshal(successResp)
 	return events.APIGatewayProxyResponse{

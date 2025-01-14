@@ -5,8 +5,8 @@ type RankingConfig struct {
 	Weights struct {
 		SemanticSimilarity float64
 		CommentCount       float64
-		Recency           float64
-		IssueState        float64
+		Recency            float64
+		IssueState         float64
 	}
 	TimeConstants struct {
 		RecencyBaseDays int
@@ -21,13 +21,13 @@ var Config = RankingConfig{
 	Weights: struct {
 		SemanticSimilarity float64
 		CommentCount       float64
-		Recency           float64
-		IssueState        float64
+		Recency            float64
+		IssueState         float64
 	}{
 		SemanticSimilarity: 0.8,
 		CommentCount:       0.12,
-		Recency:           0.05,
-		IssueState:        0.03,
+		Recency:            0.05,
+		IssueState:         0.03,
 	},
 	TimeConstants: struct {
 		RecencyBaseDays int

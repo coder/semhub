@@ -55,6 +55,10 @@ export async function routeSearch(
     {
       query: params.query,
       embedding,
+      sqlQueries: {
+        getFilteredIssueEmbeddings: "",
+        getSearchResultIssues: "",
+      },
     },
     lambdaConfig,
   );
