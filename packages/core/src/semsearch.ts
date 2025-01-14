@@ -23,19 +23,16 @@ import {
 } from "./semsearch.ranking";
 import type { SearchParams, SearchResult } from "./semsearch.schema";
 import { parseSearchQuery } from "./semsearch.util";
+import { type AwsLambdaConfig } from "./util/aws";
 
-export async function searchIssues(
+async function getCountAndEmbeddingInParallel(
   params: SearchParams,
   db: DbClient,
   openai: OpenAIClient,
-): Promise<SearchResult> {
-  // setting the query at 25000 issues, sequential scan takes around 3 seconds (which is still acceptable)
-  // sequential scans scales at O(n^2), so at higher thresholds, HNSW index starts to outperform
-  // tested with 50k issues, HNSW takes 8 seconds, seq scan takes 18 seconds
+) {
   const parsedSearchQuery = parseSearchQuery(params.query);
-
   const [matchingCount, embedding] = await Promise.all([
-    getFilteredIssuesCount(params, parsedSearchQuery, db),
+    getFilteredIssuesCount(params, db),
     createEmbedding(
       {
         // embed query without operators, not sure if this gets better results
@@ -45,21 +42,50 @@ export async function searchIssues(
       openai,
     ),
   ]);
+  return { matchingCount, embedding };
+}
 
+export async function routeSearch(
+  params: SearchParams,
+  db: DbClient,
+  openai: OpenAIClient,
+  lambdaConfig: AwsLambdaConfig,
+): Promise<SearchResult> {
+  const { matchingCount, embedding } = await getCountAndEmbeddingInParallel(
+    params,
+    db,
+    openai,
+  );
+  const { lambdaInvokeSecret, lambdaUrl } = lambdaConfig;
+  const response = await fetch(lambdaUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${lambdaInvokeSecret}`,
+    },
+  });
+  if (!response.ok) {
+    console.error(
+      "Failed to invoke lambda",
+      response.status,
+      response.statusText,
+      await response.text(),
+    );
+    throw new Error("Failed to invoke lambda");
+  }
   const useHnswIndex = matchingCount > HNSW_ISSUE_COUNT_THRESHOLD;
   // (1) if higher, we HNSW index and apply the filter afterwards
   // (2) if lower, we filter before the vector search and do a full seq scan
   // downside of (1) if searching across not that many issues: end up with very few results
   // downside of (2) if searching across too many issues:queries are too slow
   const result = useHnswIndex
-    ? await filterAfterVectorSearch(params, parsedSearchQuery, db, embedding)
-    : await filterBeforeVectorSearch(params, parsedSearchQuery, db, embedding);
+    ? await filterAfterVectorSearch(params, db, embedding)
+    : await filterBeforeVectorSearch(params, db, embedding);
   return result;
 }
 
 async function getFilteredIssuesCount(
   searchParams: SearchParams,
-  parsedSearchQuery: ReturnType<typeof parseSearchQuery>,
   db: DbClient,
 ) {
   return db.transaction(async (tx) => {
@@ -74,7 +100,7 @@ async function getFilteredIssuesCount(
       )
       .$dynamic();
 
-    query = applyFilters(query, searchParams, parsedSearchQuery);
+    query = applyFilters(query, searchParams);
     const [result] = await query;
     return result?.count ?? 0;
   });
@@ -82,7 +108,6 @@ async function getFilteredIssuesCount(
 
 async function filterAfterVectorSearch(
   params: SearchParams,
-  parsedSearchQuery: ReturnType<typeof parseSearchQuery>,
   db: DbClient,
   embedding: number[],
 ) {
@@ -147,7 +172,7 @@ async function filterAfterVectorSearch(
       )
       .$dynamic();
 
-    query = applyFilters(query, params, parsedSearchQuery);
+    query = applyFilters(query, params);
     const finalQuery = applyPagination(query, params, offset).orderBy(
       desc(rankingScore),
     );
@@ -164,7 +189,6 @@ async function filterAfterVectorSearch(
 
 async function filterBeforeVectorSearch(
   params: SearchParams,
-  parsedSearchQuery: ReturnType<typeof parseSearchQuery>,
   db: DbClient,
   embedding: number[],
 ) {
@@ -187,7 +211,7 @@ async function filterBeforeVectorSearch(
       )
       .$dynamic();
 
-    query = applyFilters(query, params, parsedSearchQuery);
+    query = applyFilters(query, params);
 
     const vectorSearchSubquery = query
       .orderBy(cosineDistance(issueEmbeddings.embedding, embedding))
