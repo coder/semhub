@@ -4,7 +4,7 @@ package types
 import "time"
 
 type SearchRequest struct {
-	Embedding []float64 `json:"embedding"`
+	Embedding []float32 `json:"embedding"`
 	SqlQuery  string    `json:"sqlQuery"`
 }
 
@@ -26,7 +26,7 @@ type SuccessResponseDataLabels struct {
 
 type SuccessResponseData struct {
 	Id               string                      `json:"id"`
-	Number           float64                     `json:"number"`
+	Number           float32                     `json:"number"`
 	Title            string                      `json:"title"`
 	Author           *SuccessResponseDataAuthor  `json:"author"`
 	IssueState       string                      `json:"issueState"`
@@ -40,13 +40,13 @@ type SuccessResponseData struct {
 	RepoOwnerName    string                      `json:"repoOwnerName"`
 	RepoUrl          string                      `json:"repoUrl"`
 	RepoLastSyncedAt *time.Time                  `json:"repoLastSyncedAt"`
-	CommentCount     float64                     `json:"commentCount"`
-	SimilarityScore  float64                     `json:"similarityScore"`
-	RankingScore     float64                     `json:"rankingScore"`
+	CommentCount     float32                     `json:"commentCount"`
+	SimilarityScore  float32                     `json:"similarityScore"`
+	RankingScore     float32                     `json:"rankingScore"`
 }
 
 type SuccessResponse struct {
 	Data       []SuccessResponseData `json:"data"`
-	TotalCount float64               `json:"totalCount"`
+	TotalCount float32               `json:"totalCount"`
 	Success    bool                  `json:"success"`
 }

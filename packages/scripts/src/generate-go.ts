@@ -51,7 +51,7 @@ function zodToGoStruct(
       if (schema instanceof z.ZodString) {
         return { type: "string", usesTime: false };
       } else if (schema instanceof z.ZodNumber) {
-        return { type: "float64", usesTime: false };
+        return { type: "float32", usesTime: false };
       } else if (schema instanceof z.ZodArray) {
         // Handle nested effects/transforms in array elements
         let finalElementSchema = schema.element;

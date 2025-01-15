@@ -14,6 +14,7 @@ const search = new sst.aws.Function("Search", {
   handler: "./packages/search",
   // 256 vectors * 4 bytes * 1 million vectors = 1 GB
   // at this point, probably dominated by db select + bandwidth
+
   memory: "2048 MB",
   link: [...allSecrets],
   timeout: "30 seconds",
