@@ -27,7 +27,6 @@
     "drizzle-zod": "^0.5.1",
     "gql.tada": "^1.8.10",
     "graphql": "^16.9.0",
-    "hnsw": "^1.0.3",
     "octokit": "^4.0.2",
     "openai": "^4.69.0",
     "postgres": "^3.4.4",

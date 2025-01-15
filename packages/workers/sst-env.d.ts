@@ -22,7 +22,6 @@ declare module "sst" {
     "Keys": {
       "githubWebhookSecret": string
       "hmacSecretKey": string
-      "lambdaInvokeSecret": string
       "type": "sst.sst.Linkable"
     }
     "OPENAI_API_KEY": {
@@ -52,11 +51,6 @@ declare module "sst" {
     "SEMHUB_GITHUB_PUBLIC_LINK": {
       "type": "sst.sst.Secret"
       "value": string
-    }
-    "Search": {
-      "name": string
-      "type": "sst.aws.Function"
-      "url": string
     }
     "Web": {
       "type": "sst.aws.StaticSite"

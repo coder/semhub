@@ -1,6 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { Resource } from "sst";
 
 import { routeSearch } from "@/core/semsearch/index";
 import { getDeps } from "@/deps";
@@ -28,10 +27,6 @@ export const searchRouter = new Hono<AuthedContext>().get(
       },
       db,
       openai,
-      {
-        lambdaUrl: Resource.Search.url,
-        lambdaInvokeSecret: Resource.Keys.lambdaInvokeSecret,
-      },
     );
 
     return c.json(

@@ -21,7 +21,6 @@ export const searchRouter = new Hono<Context>().get(
 
     // Early return for lucky searches
     if (lucky) {
-      const luckyStart = performance.now();
       const results = await routeSearch(
         {
           query,
@@ -32,12 +31,7 @@ export const searchRouter = new Hono<Context>().get(
         },
         db,
         openai,
-        {
-          lambdaUrl: Resource.Search.url,
-          lambdaInvokeSecret: Resource.Keys.lambdaInvokeSecret,
-        },
       );
-      console.log(`Lucky search took ${performance.now() - luckyStart}ms`);
       return c.json(
         createPaginatedResponse({
           data: results.data,
@@ -51,13 +45,11 @@ export const searchRouter = new Hono<Context>().get(
 
     // Use cache
     const cacheKey = `public:search:q=${query}:page=${pageNumber}:size=${pageSize}`;
-    const cacheStart = performance.now();
     const cachedData = await getJson<SearchResult>(
       Resource.SearchCacheKv,
       cacheKey,
       searchResultSchema,
     );
-    console.log(`Cache lookup took ${performance.now() - cacheStart}ms`);
 
     if (cachedData) {
       const { data, totalCount } = cachedData;
@@ -72,7 +64,6 @@ export const searchRouter = new Hono<Context>().get(
       );
     }
 
-    const searchStart = performance.now();
     const results = await routeSearch(
       {
         query,
@@ -83,14 +74,8 @@ export const searchRouter = new Hono<Context>().get(
       },
       db,
       openai,
-      {
-        lambdaUrl: Resource.Search.url,
-        lambdaInvokeSecret: Resource.Keys.lambdaInvokeSecret,
-      },
     );
-    console.log(`Route search took ${performance.now() - searchStart}ms`);
 
-    const cacheWriteStart = performance.now();
     await putJson<SearchResult>(
       Resource.SearchCacheKv,
       cacheKey,
@@ -99,7 +84,6 @@ export const searchRouter = new Hono<Context>().get(
       // so on average, a cached result will be at most 10 minutes stale
       { expirationTtl: 600 },
     );
-    console.log(`Cache write took ${performance.now() - cacheWriteStart}ms`);
 
     return c.json(
       createPaginatedResponse({

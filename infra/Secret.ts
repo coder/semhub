@@ -6,16 +6,10 @@ const githubWebhookSecret = new random.RandomString("GithubWebhookSecret", {
   special: false,
   length: 20,
 });
-const lambdaInvokeSecret = new random.RandomString("LambdaInvokeSecret", {
-  special: false,
-  length: 20,
-});
-
 const keys = new sst.Linkable("Keys", {
   properties: {
     hmacSecretKey: hmacSecretKey.result,
     githubWebhookSecret: githubWebhookSecret.result,
-    lambdaInvokeSecret: lambdaInvokeSecret.result,
   },
 });
 
