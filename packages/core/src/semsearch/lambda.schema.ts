@@ -6,6 +6,7 @@ import { searchResultSchema } from "./schema";
 
 export const lambdaSearchRequestSchema = z.object({
   embedding: z.array(z.number()),
+  filteredIssueCount: z.number(),
   sqlQuery: z.string(),
 });
 

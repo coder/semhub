@@ -240,6 +240,8 @@ const lambdaTypesPath = path.join(
   "../../../packages/search/pkg/types/dto_gen.go",
 );
 fs.writeFileSync(lambdaTypesPath, generateLambdaTypes());
+// eslint-disable-next-line no-console
+console.log("Generated Go lambda types at:", lambdaTypesPath);
 
 const rankingConfigPath = path.join(
   __dirname,

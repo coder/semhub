@@ -4,8 +4,9 @@ package types
 import "time"
 
 type SearchRequest struct {
-	Embedding []float32 `json:"embedding"`
-	SqlQuery  string    `json:"sqlQuery"`
+	Embedding          []float32 `json:"embedding"`
+	FilteredIssueCount float32   `json:"filteredIssueCount"`
+	SqlQuery           string    `json:"sqlQuery"`
 }
 
 type ErrorResponse struct {

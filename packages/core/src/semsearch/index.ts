@@ -72,6 +72,7 @@ export async function routeSearch(
       const getFilteredIssueEmbeddingsQuery =
         convertSqlWrapperToSqlString(query);
       const request: LambdaSearchRequest = {
+        filteredIssueCount,
         embedding,
         sqlQuery: getFilteredIssueEmbeddingsQuery,
       };
