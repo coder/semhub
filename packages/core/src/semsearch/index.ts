@@ -1,5 +1,5 @@
 import type { DbClient } from "@/db";
-import { and, desc, eq, sql } from "@/db";
+import { and, count, desc, eq, sql } from "@/db";
 import { issueEmbeddings } from "@/db/schema/entities/issue-embedding.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
 import { repos } from "@/db/schema/entities/repo.sql";
@@ -37,12 +37,13 @@ export async function routeSearch(
   openai: OpenAIClient,
   lambdaConfig: AwsLambdaConfig,
 ): Promise<SearchResult> {
-  const { filteredIssueCount, total, embedding } =
+  const { filteredIssueCount, filteredIssueApproxCount, total, embedding } =
     await getApproxCountsAndEmbedding(params, db, openai);
 
   console.log(
-    "🚀 ~ file: index.ts:66 ~ filteredIssueCount:",
+    "🚀 ~ file: ~ filteredIssueCount:",
     { filteredIssueCount },
+    { filteredIssueApproxCount },
     { total },
   );
   const strategy = determineSearchStrategy(filteredIssueCount, total);
@@ -83,11 +84,11 @@ export async function routeSearch(
 }
 
 function determineSearchStrategy(filteredIssueCount: number, total: number) {
+  return "inMemoryHnsw";
   // if number of issues is small, sequential scan is fast enough
   if (filteredIssueCount <= SEQ_SCAN_THRESHOLD) {
     return "sequential";
   }
-  return "inMemoryHnsw";
   // because of the filtering problem in vector search, we only use the db-wide
   // hnsw index if:
   // 1. the total number of issues is large
@@ -110,17 +111,39 @@ async function getApproxCountsAndEmbedding(
   openai: OpenAIClient,
 ) {
   const parsedSearchQuery = parseSearchQuery(params.query);
-  const [filteredIssueCount, total, embedding] = await Promise.all([
-    getFilteredIssuesApproxCount(params, db),
-    getTotalIssueEmbeddingApproxCount(db),
-    createEmbedding(
-      {
-        input: parsedSearchQuery.remainingQuery ?? params.query,
-      },
-      openai,
-    ),
-  ]);
-  return { filteredIssueCount, total, embedding };
+  const [filteredIssueCount, filteredIssueApproxCount, total, embedding] =
+    await Promise.all([
+      getFilteredIssuesExactCount(params, db),
+      getFilteredIssuesApproxCount(params, db),
+      getTotalIssueEmbeddingApproxCount(db),
+      createEmbedding(
+        {
+          input: parsedSearchQuery.remainingQuery ?? params.query,
+        },
+        openai,
+      ),
+    ]);
+  return { filteredIssueCount, filteredIssueApproxCount, total, embedding };
+}
+
+async function getFilteredIssuesExactCount(
+  searchParams: SearchParams,
+  db: DbClient,
+) {
+  let query = db
+    .select({
+      count: count(),
+    })
+    .from(issueTable)
+    .innerJoin(
+      repos,
+      and(eq(issueTable.repoId, repos.id), eq(repos.initStatus, "completed")),
+    )
+    .$dynamic();
+
+  query = applyFilters(query, searchParams);
+  const result = await query;
+  return result[0]?.count ?? 0;
 }
 
 async function getFilteredIssuesApproxCount(

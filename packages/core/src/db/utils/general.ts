@@ -52,6 +52,7 @@ export function coalesce<T>(value: SQL.Aliased<T> | SQL<T>, defaultValue: SQL) {
   return sql<T>`coalesce(${value}, ${defaultValue})`;
 }
 
+// NB use with caution, seems like it can be off by a lot
 export async function getEstimatedCount(
   query: SQLWrapper,
   db: DbClient,

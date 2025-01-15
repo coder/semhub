@@ -31,12 +31,15 @@ const selectRepoForSearchSchemaDuplicated = z.object({
   repoName: z.string(),
   repoOwnerName: z.string(),
   repoUrl: z.string().url(),
-  repoLastSyncedAt: z.date().nullable(),
+  repoLastSyncedAt: z.coerce.date().nullable(),
 }) satisfies z.ZodType<SelectRepoForSearch>;
 
 // Create a schema that matches exactly what we return in search results
 const searchIssueSchema = createSelectSchema(issueTable, {
   author: authorSchema,
+  issueCreatedAt: z.coerce.date(),
+  issueUpdatedAt: z.coerce.date(),
+  issueClosedAt: z.coerce.date().nullable(),
 })
   .pick({
     id: true,
