@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -13,6 +15,7 @@ import (
 	"github.com/coder/hnsw"
 	_ "github.com/lib/pq"
 	"github.com/semhub/packages/search/internal/auth"
+	"github.com/semhub/packages/search/internal/ranking"
 	"github.com/semhub/packages/search/internal/secrets"
 	"github.com/semhub/packages/search/internal/storage"
 	"github.com/semhub/packages/search/pkg/types"
@@ -43,7 +46,28 @@ type RowData struct {
 
 // Convert database row to SuccessResponseData
 func rowToResponseData(row RowData, distance float32) types.SuccessResponseData {
-	// Only handle nullable (pointer) fields
+	// Parse Labels if present
+	var labels []types.SuccessResponseDataLabels
+	if row.Labels.Valid && row.Labels.String != "" {
+		if err := json.Unmarshal([]byte(row.Labels.String), &labels); err != nil {
+			// If parsing fails, log error but continue with empty labels
+			fmt.Printf("Error parsing labels: %v\n", err)
+			labels = []types.SuccessResponseDataLabels{}
+		}
+	}
+
+	// Parse Author if present
+	var author *types.SuccessResponseDataAuthor
+	if row.Author.Valid && row.Author.String != "" {
+		author = &types.SuccessResponseDataAuthor{}
+		if err := json.Unmarshal([]byte(row.Author.String), author); err != nil {
+			// If parsing fails, log error but continue with nil author
+			fmt.Printf("Error parsing author: %v\n", err)
+			author = nil
+		}
+	}
+
+	// Rest of the existing nullable field handling
 	var stateReason *string
 	if row.StateReason.Valid {
 		s := row.StateReason.String
@@ -62,10 +86,39 @@ func rowToResponseData(row RowData, distance float32) types.SuccessResponseData 
 		lastSyncedAt = &t
 	}
 
-	// For required fields, we should error if they're NULL
-	// but for now we'll use zero values
+	// Calculate similarity score (1 - distance)
+	similarityScore := float32(1.0 - distance)
+
+	// Calculate recency score using exponential decay
+	// exp(-t/τ) where t is time elapsed in days and τ is the characteristic decay time
+	timeSinceUpdate := time.Since(row.UpdatedAt.Time)
+	recencyScore := float32(math.Exp(
+		-1.0 * float64(timeSinceUpdate.Seconds()) /
+			float64(86400*ranking.Config.TimeConstants.RecencyBaseDays),
+	))
+
+	// Calculate comment score using logarithmic normalization
+	// ln(x + 1) / ln(51) to normalize to 0-1 range
+	commentCount := float32(row.CommentCount.Float64)
+	commentScore := float32(math.Log(float64(commentCount+1)) / math.Log(51))
+
+	// Calculate issue state multiplier
+	var stateMultiplier float32
+	if row.IssueState.String == "OPEN" {
+		stateMultiplier = float32(ranking.Config.ScoreMultipliers.OpenIssue)
+	} else {
+		stateMultiplier = float32(ranking.Config.ScoreMultipliers.ClosedIssue)
+	}
+
+	// Calculate final ranking score
+	rankingScore := float32(ranking.Config.Weights.SemanticSimilarity)*similarityScore +
+		float32(ranking.Config.Weights.Recency)*recencyScore +
+		float32(ranking.Config.Weights.CommentCount)*commentScore +
+		float32(ranking.Config.Weights.IssueState)*stateMultiplier
+
+	// Create response with all the scores
 	return types.SuccessResponseData{
-		// Required fields - these should not be NULL in the database
+		// Required fields remain the same
 		Id:             row.ID.String,
 		Number:         float32(row.Number.Float64),
 		Title:          row.Title.String,
@@ -78,29 +131,29 @@ func rowToResponseData(row RowData, distance float32) types.SuccessResponseData 
 		RepoOwnerName:  row.OwnerLogin.String,
 		CommentCount:   float32(row.CommentCount.Float64),
 
-		// Optional fields - these can be NULL
-		IssueStateReason: stateReason,  // *string
-		IssueClosedAt:    closedAt,     // *time.Time
-		RepoLastSyncedAt: lastSyncedAt, // *time.Time
+		// Optional fields
+		IssueStateReason: stateReason,
+		IssueClosedAt:    closedAt,
+		RepoLastSyncedAt: lastSyncedAt,
 
-		// Computed fields
-		SimilarityScore: 1.0 - distance,
-		// RankingScore will be calculated later
+		// Now properly parsed complex types
+		Labels: labels,
+		Author: author,
 
-		// TODO: Handle Labels and Author which are complex types
-		Labels: []types.SuccessResponseDataLabels{}, // Parse from row.Labels.String
-		Author: nil,                                 // Parse from row.Author.String
+		RankingScore: rankingScore,
 	}
 }
 
 func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	start := time.Now()
+	totalStart := time.Now()
 	defer func() {
-		fmt.Printf("Total function execution time: %v\n", time.Since(start))
+		fmt.Printf("Total function execution time: %v\n", time.Since(totalStart))
 	}()
 
+	// Auth check
+	authStart := time.Now()
 	if err := auth.VerifyHeaders(request.Headers); err != nil {
-		fmt.Printf("Authentication failed: %v\n", err)
+		fmt.Printf("Authentication failed in %v: %v\n", time.Since(authStart), err)
 		errResp := types.ErrorResponse{
 			Success: false,
 			Error:   "Authentication failed",
@@ -114,11 +167,13 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			Body: string(body),
 		}, nil
 	}
+	fmt.Printf("Authentication completed in %v\n", time.Since(authStart))
 
-	// Parse the request body
+	// Request parsing
+	parseStart := time.Now()
 	var requestBody types.SearchRequest
 	if err := json.Unmarshal([]byte(request.Body), &requestBody); err != nil {
-		fmt.Printf("Failed to parse request body: %v\n", err)
+		fmt.Printf("Failed to parse request body in %v: %v\n", time.Since(parseStart), err)
 		errResp := types.ErrorResponse{
 			Success: false,
 			Error:   err.Error(),
@@ -132,25 +187,31 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			Body: string(body),
 		}, nil
 	}
+	fmt.Printf("Request parsing completed in %v\n", time.Since(parseStart))
 
-	fmt.Printf("Received query: %s\n", requestBody.SqlQuery)
-
+	// Database setup
+	dbSetupStart := time.Now()
 	dbUrl, err := secrets.GetSecret("DATABASE_URL")
 	if err != nil {
-		fmt.Printf("Failed to get database URL: %v\n", err)
+		fmt.Printf("Failed to get database URL in %v: %v\n", time.Since(dbSetupStart), err)
+		errResp := types.ErrorResponse{
+			Success: false,
+			Error:   "Failed to get database URL",
+		}
+		body, _ := json.Marshal(errResp)
 		return events.APIGatewayProxyResponse{
 			StatusCode: 500,
 			Headers: map[string]string{
 				"Content-Type": "application/json",
 			},
-			Body: "Failed to get database URL",
+			Body: string(body),
 		}, nil
 	}
-
 	sessionPoolerDbUrl := storage.UseSessionPooler(dbUrl)
 
-	// Validate SQL query is SELECT only
+	// SQL validation
 	if !strings.HasPrefix(strings.TrimSpace(strings.ToUpper(requestBody.SqlQuery)), "SELECT") {
+		fmt.Printf("SQL validation failed in %v\n", time.Since(dbSetupStart))
 		errResp := types.ErrorResponse{
 			Success: false,
 			Error:   "Only SELECT queries are allowed",
@@ -164,12 +225,13 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			Body: string(body),
 		}, nil
 	}
+	fmt.Printf("Database setup completed in %v\n", time.Since(dbSetupStart))
 
-	// Connect to database
-	dbStart := time.Now()
+	// Database connection
+	dbConnectStart := time.Now()
 	db, err := sql.Open("postgres", sessionPoolerDbUrl)
 	if err != nil {
-		fmt.Printf("Failed to connect to database: %v\n", err)
+		fmt.Printf("Failed to connect to database in %v: %v\n", time.Since(dbConnectStart), err)
 		errResp := types.ErrorResponse{
 			Success: false,
 			Error:   "Database connection failed",
@@ -184,13 +246,13 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 	defer db.Close()
-	fmt.Printf("Database connection time: %v\n", time.Since(dbStart))
+	fmt.Printf("Database connection established in %v\n", time.Since(dbConnectStart))
 
-	// Execute query
+	// Query execution
 	queryStart := time.Now()
 	rows, err := db.QueryContext(ctx, requestBody.SqlQuery)
 	if err != nil {
-		fmt.Printf("Failed to execute query: %v\n", err)
+		fmt.Printf("Failed to execute query in %v: %v\n", time.Since(queryStart), err)
 		errResp := types.ErrorResponse{
 			Success: false,
 			Error:   "Query execution failed",
@@ -205,36 +267,16 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		}, nil
 	}
 	defer rows.Close()
-	fmt.Printf("Query execution time: %v\n", time.Since(queryStart))
+	fmt.Printf("Query execution completed in %v\n", time.Since(queryStart))
 
-	// Get column information
-	columns, err := rows.Columns()
-	if err != nil {
-		fmt.Printf("Failed to get column info: %v\n", err)
-		errResp := types.ErrorResponse{
-			Success: false,
-			Error:   "Failed to get result structure",
-		}
-		body, _ := json.Marshal(errResp)
-		return events.APIGatewayProxyResponse{
-			StatusCode: 500,
-			Headers: map[string]string{
-				"Content-Type": "application/json",
-			},
-			Body: string(body),
-		}, nil
-	}
-
-	fmt.Printf("Query returned %d columns: %v\n", len(columns), columns)
-
-	// Store all rows and prepare nodes for HNSW
+	// Row processing and HNSW indexing
+	processingStart := time.Now()
 	var allRows []RowData
 	var nodes []hnsw.Node[int]
-
-	indexStart := time.Now()
 	rowIdx := 0
 	// TODO: optimize by running in parallel
-	// determine optimal memory + cores later
+	// determine optimal memory + core later
+	scanStart := time.Now()
 	for rows.Next() {
 		var row RowData
 		err := rows.Scan(
@@ -294,24 +336,27 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	if err = rows.Err(); err != nil {
 		fmt.Printf("Error iterating rows: %v\n", err)
 	}
+	fmt.Printf("Scanned %d rows in %v\n", len(allRows), time.Since(scanStart))
 
-	// Bulk insert all nodes into HNSW graph
+	// HNSW graph building
+	hnswStart := time.Now()
 	g := hnsw.NewGraph[int]()
 	g.Add(nodes...)
-	fmt.Printf("Indexed %d rows in %v\n", len(allRows), time.Since(indexStart))
+	fmt.Printf("Built HNSW graph with %d nodes in %v\n", len(nodes), time.Since(hnswStart))
+	fmt.Printf("Total processing and indexing completed in %v\n", time.Since(processingStart))
 
-	// Convert request embedding from float64 to float32
+	// Vector search
+	searchStart := time.Now()
+	// Convert request embedding
 	searchEmbedding := make([]float32, len(requestBody.Embedding))
 	for i, v := range requestBody.Embedding {
 		searchEmbedding[i] = float32(v)
 	}
-
-	// Get top 120 nearest neighbors for scoring
-	searchStart := time.Now()
-	neighbors := g.Search(searchEmbedding, 120)
+	neighbors := g.Search(searchEmbedding, ranking.Config.SearchLimits.VectorSimilarity)
 	fmt.Printf("Found %d nearest neighbors in %v\n", len(neighbors), time.Since(searchStart))
 
-	// Create result with distances and convert to response type
+	// Result processing and ranking
+	rankingStart := time.Now()
 	var results []types.SuccessResponseData
 	for _, n := range neighbors {
 		// Calculate cosine distance manually
@@ -326,15 +371,24 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		results = append(results, rowToResponseData(row, distance))
 	}
 
-	// TODO: Calculate ranking scores and sort results
+	// Sorting
+	sortStart := time.Now()
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].RankingScore > results[j].RankingScore
+	})
+	fmt.Printf("Sorted %d results in %v\n", len(results), time.Since(sortStart))
+	fmt.Printf("Total ranking and processing completed in %v\n", time.Since(rankingStart))
 
-	// Return results
+	// Response preparation
+	responseStart := time.Now()
 	successResp := types.SuccessResponse{
 		Success:    true,
-		Data:       results[:100], // Return top 100 after ranking
+		Data:       results,
 		TotalCount: float32(len(allRows)),
 	}
 	body, _ := json.Marshal(successResp)
+	fmt.Printf("Response prepared in %v\n", time.Since(responseStart))
+
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 		Headers: map[string]string{

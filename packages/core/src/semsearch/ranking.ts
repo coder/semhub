@@ -2,6 +2,10 @@ import type { AnyColumn, SQL } from "@/db";
 import { sql } from "@/db";
 import { comments } from "@/db/schema/entities/comment.sql";
 
+// ⚠️ IMPORTANT: SHARED LOGIC WITH GO ⚠️
+// These constants are replicated in the Go codebase, but the logic implementation differs
+// Any changes to these constants must be synchronized with the Go implementation
+
 // Ranking weights (should sum to 1)
 export const RANKING_WEIGHTS = {
   SEMANTIC_SIMILARITY: 0.8, // Start with higher weight for semantic search

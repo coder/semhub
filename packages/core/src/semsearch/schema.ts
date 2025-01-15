@@ -55,7 +55,6 @@ const searchIssueSchema = createSelectSchema(issueTable, {
     ...selectRepoForSearchSchemaDuplicated.shape,
     // Search-specific fields
     commentCount: z.number(),
-    similarityScore: z.number(),
     rankingScore: z.number(),
   })
   .transform((issue) => ({

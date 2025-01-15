@@ -15,6 +15,9 @@ type RankingConfig struct {
 		OpenIssue   float64
 		ClosedIssue float64
 	}
+	SearchLimits struct {
+		VectorSimilarity int
+	}
 }
 
 var Config = RankingConfig{
@@ -40,5 +43,10 @@ var Config = RankingConfig{
 	}{
 		OpenIssue:   1,
 		ClosedIssue: 0.8,
+	},
+	SearchLimits: struct {
+		VectorSimilarity int
+	}{
+		VectorSimilarity: 10000,
 	},
 }

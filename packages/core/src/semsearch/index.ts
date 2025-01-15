@@ -216,7 +216,6 @@ async function filterAfterVectorSearch(
     let query = tx
       .select({
         ...getBaseSelect(),
-        similarityScore,
         rankingScore,
         // Add a window function to get the total count in the same query
         totalCount: sql<number>`count(*) over()`.as("total_count"),
@@ -307,7 +306,6 @@ async function filterBeforeVectorSearch(
         repoOwnerName: vectorSearchSubquery.repoOwnerName,
         repoLastSyncedAt: vectorSearchSubquery.repoLastSyncedAt,
         commentCount: vectorSearchSubquery.commentCount,
-        similarityScore,
         rankingScore,
         // Add window function to get total count in same query
         totalCount: sql<number>`count(*) over()`.as("total_count"),

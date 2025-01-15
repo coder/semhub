@@ -7,6 +7,7 @@ import {
   lambdaSearchRequestSchema,
   lambdaSuccessResponseSchema,
 } from "@/core/semsearch/lambda.schema";
+import { VECTOR_SIMILARITY_SEARCH_LIMIT } from "@/core/semsearch/params";
 import {
   RANKING_WEIGHTS,
   SCORE_MULTIPLIERS,
@@ -196,6 +197,9 @@ type RankingConfig struct {
 		OpenIssue   float64
 		ClosedIssue float64
 	}
+	SearchLimits struct {
+		VectorSimilarity int
+	}
 }
 
 var Config = RankingConfig{
@@ -221,6 +225,11 @@ var Config = RankingConfig{
 	}{
 		OpenIssue:   ${SCORE_MULTIPLIERS.OPEN_ISSUE},
 		ClosedIssue: ${SCORE_MULTIPLIERS.CLOSED_ISSUE},
+	},
+	SearchLimits: struct {
+		VectorSimilarity int
+	}{
+		VectorSimilarity: ${VECTOR_SIMILARITY_SEARCH_LIMIT},
 	},
 }
 `;

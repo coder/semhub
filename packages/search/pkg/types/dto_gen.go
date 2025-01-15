@@ -41,7 +41,6 @@ type SuccessResponseData struct {
 	RepoUrl          string                      `json:"repoUrl"`
 	RepoLastSyncedAt *time.Time                  `json:"repoLastSyncedAt"`
 	CommentCount     float32                     `json:"commentCount"`
-	SimilarityScore  float32                     `json:"similarityScore"`
 	RankingScore     float32                     `json:"rankingScore"`
 }
 
