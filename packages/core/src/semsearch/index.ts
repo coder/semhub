@@ -47,7 +47,7 @@ function determineSearchStrategy(
   //    reduce the number of issues too much)
   const filteredIssueCountRatio = filteredIssueCount / total;
   const useDbHnswIndex =
-    total > IN_MEMORY_HNSW_THRESHOLD ||
+    filteredIssueCount > IN_MEMORY_HNSW_THRESHOLD ||
     filteredIssueCountRatio > DB_HNSW_INDEX_PROPORTION_THRESHOLD;
 
   if (useDbHnswIndex) {
