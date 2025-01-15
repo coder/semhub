@@ -7,7 +7,7 @@ import {
   type LambdaSearchRequest,
 } from "./lambda.schema";
 
-export async function invokeLambdaSearch(
+export async function inMemorySearch(
   searchRequest: LambdaSearchRequest,
   lambdaConfig: AwsLambdaConfig,
 ) {

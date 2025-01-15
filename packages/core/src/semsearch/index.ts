@@ -10,7 +10,7 @@ import type { OpenAIClient } from "@/openai";
 import { type AwsLambdaConfig } from "@/util/aws";
 
 import { applyFilters, applyPagination, getBaseSelect } from "./db";
-import { invokeLambdaSearch } from "./lambda";
+import { inMemorySearch } from "./lambda";
 import {
   DB_HNSW_INDEX_PROPORTION_THRESHOLD,
   HNSW_EF_SEARCH,
@@ -29,6 +29,33 @@ import {
 import type { SearchParams, SearchResult } from "./schema";
 import { parseSearchQuery } from "./util";
 
+type SearchStrategy = "sequential" | "dbHnsw" | "inMemoryHnsw";
+
+function determineSearchStrategy(
+  filteredIssueCount: number,
+  total: number,
+): SearchStrategy {
+  // if number of issues is small, sequential scan is fast enough
+  if (filteredIssueCount <= SEQ_SCAN_THRESHOLD) {
+    return "sequential";
+  }
+  return "dbHnsw";
+  // because of the filtering problem in vector search, we only use the db-wide
+  // hnsw index if:
+  // 1. the total number of issues is large
+  // 2. the proportion of issues that match the filter is large (so filtering won't
+  //    reduce the number of issues too much)
+  const filteredIssueCountRatio = filteredIssueCount / total;
+  const useDbHnswIndex =
+    total > IN_MEMORY_HNSW_THRESHOLD ||
+    filteredIssueCountRatio > DB_HNSW_INDEX_PROPORTION_THRESHOLD;
+
+  if (useDbHnswIndex) {
+    return "dbHnsw";
+  }
+  return "inMemoryHnsw";
+}
+
 export async function routeSearch(
   params: SearchParams,
   db: DbClient,
@@ -38,30 +65,32 @@ export async function routeSearch(
   const { filteredIssueCount, total, embedding } =
     await getApproxCountsAndEmbedding(params, db, openai);
 
-  if (filteredIssueCount <= SEQ_SCAN_THRESHOLD) {
-    return await filterBeforeVectorSearch(params, db, embedding);
-  }
-
-  const useDbHnswIndex =
-    total > IN_MEMORY_HNSW_THRESHOLD ||
-    filteredIssueCount / total > DB_HNSW_INDEX_PROPORTION_THRESHOLD;
-
-  if (useDbHnswIndex) {
-    return await filterAfterVectorSearch(params, db, embedding);
-  }
-
-  // Otherwise, use lambda search
-  return await invokeLambdaSearch(
-    {
-      query: params.query,
-      embedding,
-      sqlQueries: {
-        getFilteredIssueEmbeddings: "",
-        getSearchResultIssues: "",
-      },
-    },
-    lambdaConfig,
+  console.log(
+    "🚀 ~ file: index.ts:66 ~ filteredIssueCount:",
+    { filteredIssueCount },
+    { total },
   );
+  const strategy = determineSearchStrategy(filteredIssueCount, total);
+  console.log("🚀 ~ file: index.ts:74 ~ strategy:", strategy);
+  switch (strategy) {
+    case "sequential":
+      return await filterBeforeVectorSearch(params, db, embedding);
+    case "dbHnsw":
+      return await filterAfterVectorSearch(params, db, embedding);
+    case "inMemoryHnsw":
+      return await inMemorySearch(
+        {
+          query: params.query,
+          embedding,
+          sqlQueries: {
+            getFilteredIssueEmbeddings: "",
+            getSearchResultIssues: "",
+          },
+        },
+        lambdaConfig,
+      );
+  }
+  strategy satisfies never;
 }
 
 async function getApproxCountsAndEmbedding(
