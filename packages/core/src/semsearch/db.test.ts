@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { modifyUserQuery, parseSearchQuery } from "./semsearch.util";
+import { modifyUserQuery, parseSearchQuery } from "./util";
 
 describe("parseSearchQuery", () => {
   const testQueries = [

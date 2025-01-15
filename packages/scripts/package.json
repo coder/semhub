@@ -8,6 +8,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "shell": "sst shell -- bun",
+    "shell:uat": "sst shell --stage uat -- bun",
     "shell:prod": "sst shell --stage prod -- bun"
   }
 }

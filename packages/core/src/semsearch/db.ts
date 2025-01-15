@@ -1,22 +1,23 @@
 import type { SQL } from "drizzle-orm";
 import type { PgSelect } from "drizzle-orm/pg-core";
 
-import { and, eq, ilike, or, sql } from "./db";
-import { comments } from "./db/schema/entities/comment.sql";
-import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
+import { and, eq, ilike, or, sql } from "@/db";
+import { comments } from "@/db/schema/entities/comment.sql";
+import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import {
   convertToIssueStateSql,
   issueTable,
-} from "./db/schema/entities/issue.sql";
-import { hasAllLabels, labels } from "./db/schema/entities/label.sql";
-import { publicCollectionsToRepos } from "./db/schema/entities/public-collection-to-repo.sql";
-import { publicCollections } from "./db/schema/entities/public-collection.sql";
-import { repos } from "./db/schema/entities/repo.sql";
-import { usersToRepos } from "./db/schema/entities/user-to-repo.sql";
-import { lower } from "./db/utils/general";
-import { jsonAggBuildObjectFromJoin, jsonContains } from "./db/utils/json";
-import type { SearchParams } from "./semsearch.schema";
-import type { parseSearchQuery } from "./semsearch.util";
+} from "@/db/schema/entities/issue.sql";
+import { hasAllLabels, labels } from "@/db/schema/entities/label.sql";
+import { publicCollectionsToRepos } from "@/db/schema/entities/public-collection-to-repo.sql";
+import { publicCollections } from "@/db/schema/entities/public-collection.sql";
+import { repos } from "@/db/schema/entities/repo.sql";
+import { usersToRepos } from "@/db/schema/entities/user-to-repo.sql";
+import { lower } from "@/db/utils/general";
+import { jsonAggBuildObjectFromJoin, jsonContains } from "@/db/utils/json";
+
+import type { SearchParams } from "./schema";
+import { parseSearchQuery } from "./util";
 
 export function getBaseSelect() {
   return {
@@ -57,7 +58,6 @@ export function getBaseSelect() {
 export function applyFilters<T extends PgSelect>(
   query: T,
   params: SearchParams,
-  parsedSearchQuery: ReturnType<typeof parseSearchQuery>,
 ) {
   let result = query as PgSelect;
   // undefined necessary because of `or` function's return type
@@ -84,6 +84,7 @@ export function applyFilters<T extends PgSelect>(
       mode satisfies never;
   }
 
+  const parsedSearchQuery = parseSearchQuery(params.query);
   // ===== Collection Filter =====
   // Only apply if collection queries exist
   const { collectionQueries } = parsedSearchQuery;

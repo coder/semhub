@@ -2,8 +2,8 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { Resource } from "sst";
 
-import { searchIssues } from "@/core/semsearch";
-import { searchResultSchema, type SearchResult } from "@/core/semsearch.schema";
+import { routeSearch } from "@/core/semsearch/index";
+import { searchResultSchema, type SearchResult } from "@/core/semsearch/schema";
 import { getDeps } from "@/deps";
 import type { Context } from "@/server/app";
 import { getJson, putJson } from "@/server/kv";
@@ -21,7 +21,7 @@ export const searchRouter = new Hono<Context>().get(
 
     // Early return for lucky searches
     if (lucky) {
-      const results = await searchIssues(
+      const results = await routeSearch(
         {
           query,
           mode: "public",
@@ -63,7 +63,8 @@ export const searchRouter = new Hono<Context>().get(
         200,
       );
     }
-    const results = await searchIssues(
+
+    const results = await routeSearch(
       {
         query,
         mode: "public",
@@ -83,6 +84,7 @@ export const searchRouter = new Hono<Context>().get(
       // so on average, a cached result will be at most 10 minutes stale
       { expirationTtl: 600 },
     );
+
     return c.json(
       createPaginatedResponse({
         data: results.data,

@@ -1,88 +1,139 @@
-import type { DbClient } from "./db";
-import { and, count as countFn, desc, eq, sql } from "./db";
-import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
-import { issueTable } from "./db/schema/entities/issue.sql";
-import { repos } from "./db/schema/entities/repo.sql";
-import { convertToSqlRaw } from "./db/utils/general";
-import { cosineDistance } from "./db/utils/vector";
-import { createEmbedding } from "./embedding";
-import type { OpenAIClient } from "./openai";
-import { applyFilters, applyPagination, getBaseSelect } from "./semsearch.db";
+import type { DbClient } from "@/db";
+import { and, count, desc, eq, sql } from "@/db";
+import { issueEmbeddings } from "@/db/schema/entities/issue-embedding.sql";
+import { issueTable } from "@/db/schema/entities/issue.sql";
+import { repos } from "@/db/schema/entities/repo.sql";
+import { convertToSqlRaw } from "@/db/utils/general";
+import { cosineDistance } from "@/db/utils/vector";
+import { createEmbedding } from "@/embedding";
+import type { OpenAIClient } from "@/openai";
+
+import { applyFilters, applyPagination, getBaseSelect } from "./db";
 import {
   HNSW_EF_SEARCH,
-  HNSW_ISSUE_COUNT_THRESHOLD,
   HNSW_MAX_SCAN_TUPLES,
   HNSW_SCAN_MEM_MULTIPLIER,
+  SEQ_SCAN_THRESHOLD,
   VECTOR_SIMILARITY_SEARCH_LIMIT,
-} from "./semsearch.param";
+} from "./params";
 import {
   calculateCommentScore,
   calculateRankingScore,
   calculateRecencyScore,
   calculateSimilarityScore,
-} from "./semsearch.ranking";
-import type { SearchParams, SearchResult } from "./semsearch.schema";
-import { parseSearchQuery } from "./semsearch.util";
+} from "./ranking";
+import type { SearchParams, SearchResult } from "./schema";
+import { parseSearchQuery } from "./util";
 
-export async function searchIssues(
+export async function routeSearch(
   params: SearchParams,
   db: DbClient,
   openai: OpenAIClient,
 ): Promise<SearchResult> {
-  // setting the query at 25000 issues, sequential scan takes around 3 seconds (which is still acceptable)
-  // sequential scans scales at O(n^2), so at higher thresholds, HNSW index starts to outperform
-  // tested with 50k issues, HNSW takes 8 seconds, seq scan takes 18 seconds
-  const parsedSearchQuery = parseSearchQuery(params.query);
+  const { filteredIssueCount, embedding } = await getCountsAndEmbedding(
+    params,
+    db,
+    openai,
+  );
+  const strategy = determineSearchStrategy(filteredIssueCount);
+  switch (strategy) {
+    case "sequential":
+      return await filterBeforeVectorSearch(params, db, embedding);
+    case "dbHnsw":
+      return await filterAfterVectorSearch(params, db, embedding);
+  }
+  strategy satisfies never;
+}
 
-  const [matchingCount, embedding] = await Promise.all([
-    getFilteredIssuesCount(params, parsedSearchQuery, db),
+function determineSearchStrategy(filteredIssueCount: number) {
+  // if number of issues is small, sequential scan is fast enough
+  if (filteredIssueCount <= SEQ_SCAN_THRESHOLD) {
+    return "sequential";
+  }
+  return "dbHnsw";
+}
+
+async function getCountsAndEmbedding(
+  params: SearchParams,
+  db: DbClient,
+  openai: OpenAIClient,
+) {
+  const parsedSearchQuery = parseSearchQuery(params.query);
+  const [filteredIssueCount, embedding] = await Promise.all([
+    getFilteredIssuesExactCount(params, db),
     createEmbedding(
       {
-        // embed query without operators, not sure if this gets better results
-        // if remainingQuery is empty, pass the whole original query
         input: parsedSearchQuery.remainingQuery ?? params.query,
       },
       openai,
     ),
   ]);
-
-  const useHnswIndex = matchingCount > HNSW_ISSUE_COUNT_THRESHOLD;
-  // (1) if higher, we HNSW index and apply the filter afterwards
-  // (2) if lower, we filter before the vector search and do a full seq scan
-  // downside of (1) if searching across not that many issues: end up with very few results
-  // downside of (2) if searching across too many issues:queries are too slow
-  const result = useHnswIndex
-    ? await filterAfterVectorSearch(params, parsedSearchQuery, db, embedding)
-    : await filterBeforeVectorSearch(params, parsedSearchQuery, db, embedding);
-  return result;
+  return { filteredIssueCount, embedding };
 }
 
-async function getFilteredIssuesCount(
+async function getFilteredIssuesExactCount(
   searchParams: SearchParams,
-  parsedSearchQuery: ReturnType<typeof parseSearchQuery>,
   db: DbClient,
 ) {
-  return db.transaction(async (tx) => {
-    let query = tx
-      .select({
-        count: countFn(),
-      })
-      .from(issueTable)
-      .innerJoin(
-        repos,
-        and(eq(issueTable.repoId, repos.id), eq(repos.initStatus, "completed")),
-      )
-      .$dynamic();
+  let query = db
+    .select({
+      count: count(),
+    })
+    .from(issueTable)
+    .innerJoin(
+      repos,
+      and(eq(issueTable.repoId, repos.id), eq(repos.initStatus, "completed")),
+    )
+    .$dynamic();
 
-    query = applyFilters(query, searchParams, parsedSearchQuery);
-    const [result] = await query;
-    return result?.count ?? 0;
-  });
+  query = applyFilters(query, searchParams);
+  const result = await query;
+  return result[0]?.count ?? 0;
 }
+
+// async function getFilteredIssuesApproxCount(
+//   searchParams: SearchParams,
+//   db: DbClient,
+// ) {
+//   let query = db
+//     .select({
+//       id: issueTable.id,
+//     })
+//     .from(issueTable)
+//     .innerJoin(
+//       repos,
+//       and(eq(issueTable.repoId, repos.id), eq(repos.initStatus, "completed")),
+//     )
+//     .$dynamic();
+
+//   query = applyFilters(query, searchParams);
+//   // TODO: in the future, can store in KV cache
+//   const approxCount = await getEstimatedCount(query, db);
+//   if (approxCount === null) {
+//     throw new Error("getEstimatedCount failed");
+//   }
+//   return approxCount;
+// }
+
+/**
+ * Gets an approximate count of issue embeddings using PostgreSQL's statistics.
+ * This is much faster than COUNT(*) but may be slightly out of date as it relies
+ * on statistics that are updated by ANALYZE operations.
+ */
+// async function getTotalIssueEmbeddingApproxCount(db: DbClient) {
+//   const [result] = await db.execute(
+//     sql`SELECT reltuples::bigint AS estimate FROM pg_class WHERE relname = 'issue_embeddings'`,
+//   );
+
+//   if (!result || !("estimate" in result)) {
+//     throw new Error("Failed to get estimate from pg_class");
+//   }
+
+//   return Number(result.estimate);
+// }
 
 async function filterAfterVectorSearch(
   params: SearchParams,
-  parsedSearchQuery: ReturnType<typeof parseSearchQuery>,
   db: DbClient,
   embedding: number[],
 ) {
@@ -134,7 +185,6 @@ async function filterAfterVectorSearch(
     let query = tx
       .select({
         ...getBaseSelect(),
-        similarityScore,
         rankingScore,
         // Add a window function to get the total count in the same query
         totalCount: sql<number>`count(*) over()`.as("total_count"),
@@ -147,7 +197,7 @@ async function filterAfterVectorSearch(
       )
       .$dynamic();
 
-    query = applyFilters(query, params, parsedSearchQuery);
+    query = applyFilters(query, params);
     const finalQuery = applyPagination(query, params, offset).orderBy(
       desc(rankingScore),
     );
@@ -164,7 +214,6 @@ async function filterAfterVectorSearch(
 
 async function filterBeforeVectorSearch(
   params: SearchParams,
-  parsedSearchQuery: ReturnType<typeof parseSearchQuery>,
   db: DbClient,
   embedding: number[],
 ) {
@@ -187,7 +236,7 @@ async function filterBeforeVectorSearch(
       )
       .$dynamic();
 
-    query = applyFilters(query, params, parsedSearchQuery);
+    query = applyFilters(query, params);
 
     const vectorSearchSubquery = query
       .orderBy(cosineDistance(issueEmbeddings.embedding, embedding))
@@ -226,7 +275,6 @@ async function filterBeforeVectorSearch(
         repoOwnerName: vectorSearchSubquery.repoOwnerName,
         repoLastSyncedAt: vectorSearchSubquery.repoLastSyncedAt,
         commentCount: vectorSearchSubquery.commentCount,
-        similarityScore,
         rankingScore,
         // Add window function to get total count in same query
         totalCount: sql<number>`count(*) over()`.as("total_count"),

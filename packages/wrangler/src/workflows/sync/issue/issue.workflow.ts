@@ -32,6 +32,7 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
   async run(_: WorkflowEvent<{}>, step: WorkflowStep) {
     const {
       db,
+      dbSession,
       graphqlOctokit,
       emailClient,
       restOctokitAppFactory,
@@ -132,7 +133,10 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
           `upsert issues and comments/labels of ${name}`,
           getStepDuration("long"),
           async () => {
-            await Repo.upsertIssuesCommentsLabels(issuesAndCommentsLabels, db);
+            await Repo.upsertIssuesCommentsLabels(
+              issuesAndCommentsLabels,
+              dbSession,
+            );
           },
         );
 

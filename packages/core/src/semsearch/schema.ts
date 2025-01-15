@@ -1,10 +1,10 @@
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
-import { issueTable } from "./db/schema/entities/issue.sql";
-import { selectLabelForSearchSchema } from "./db/schema/entities/label.schema";
-import type { SelectRepoForSearch } from "./db/schema/entities/repo.schema";
-import { authorSchema } from "./db/schema/shared";
+import { issueTable } from "../db/schema/entities/issue.sql";
+import { selectLabelForSearchSchema } from "../db/schema/entities/label.schema";
+import type { SelectRepoForSearch } from "../db/schema/entities/repo.schema";
+import { authorSchema } from "../db/schema/shared";
 
 type BaseSearchParams = {
   query: string;
@@ -31,12 +31,15 @@ const selectRepoForSearchSchemaDuplicated = z.object({
   repoName: z.string(),
   repoOwnerName: z.string(),
   repoUrl: z.string().url(),
-  repoLastSyncedAt: z.date().nullable(),
+  repoLastSyncedAt: z.coerce.date().nullable(),
 }) satisfies z.ZodType<SelectRepoForSearch>;
 
 // Create a schema that matches exactly what we return in search results
 const searchIssueSchema = createSelectSchema(issueTable, {
   author: authorSchema,
+  issueCreatedAt: z.coerce.date(),
+  issueUpdatedAt: z.coerce.date(),
+  issueClosedAt: z.coerce.date().nullable(),
 })
   .pick({
     id: true,
@@ -55,7 +58,6 @@ const searchIssueSchema = createSelectSchema(issueTable, {
     ...selectRepoForSearchSchemaDuplicated.shape,
     // Search-specific fields
     commentCount: z.number(),
-    similarityScore: z.number(),
     rankingScore: z.number(),
   })
   .transform((issue) => ({

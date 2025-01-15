@@ -1,6 +1,6 @@
-import type { AnyColumn, SQL } from "./db";
-import { sql } from "./db";
-import { comments } from "./db/schema/entities/comment.sql";
+import type { AnyColumn, SQL } from "@/db";
+import { sql } from "@/db";
+import { comments } from "@/db/schema/entities/comment.sql";
 
 // Ranking weights (should sum to 1)
 const RANKING_WEIGHTS = {

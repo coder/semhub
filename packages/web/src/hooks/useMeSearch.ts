@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 
-import { modifyUserQuery } from "@/core/semsearch.util";
+import { modifyUserQuery } from "@/core/semsearch/util";
 
 export const useMeSearch = (setQuery: (query: string) => void) => {
   const navigate = useNavigate();

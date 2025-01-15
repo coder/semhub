@@ -50,10 +50,10 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
 > {
   async run(event: WorkflowEvent<EmbeddingParams>, step: WorkflowStep) {
     const { mode } = event.payload;
-    const { db, openai, emailClient } = getDeps(this.env);
+    const { db, dbSession, openai, emailClient } = getDeps(this.env);
     const issuesToEmbed = await step.do(
       `get issues to embed from db (${mode})`,
-      getStepDuration("medium"),
+      getStepDuration("short"),
       async () => {
         return mode === "init"
           ? await selectIssuesForEmbeddingInit(event.payload.issueIds, db)
@@ -99,7 +99,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
           `upsert issue embeddings in db (batch ${idx + 1})`,
           getStepDuration("medium"),
           async () => {
-            await upsertIssueEmbeddings(embeddings, db);
+            await upsertIssueEmbeddings(embeddings, dbSession);
           },
         );
       };
