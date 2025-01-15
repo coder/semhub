@@ -13,6 +13,16 @@ name = "semhub-sync-embedding-workflow-dev"
 binding = "SYNC_EMBEDDING_WORKFLOW"
 class_name = "EmbeddingWorkflow"
 
+# UAT environment
+[env.uat]
+name = "semhub-sync-embedding-uat"
+vars = { ENVIRONMENT = "uat" }
+
+[[env.uat.workflows]]
+name = "semhub-sync-embedding-workflow-uat"
+binding = "SYNC_EMBEDDING_WORKFLOW"
+class_name = "EmbeddingWorkflow"
+
 # Production environment
 [env.prod]
 name = "semhub-sync-embedding-prod"

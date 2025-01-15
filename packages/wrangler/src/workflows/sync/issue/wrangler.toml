@@ -13,6 +13,16 @@ name = "semhub-sync-issue-workflow-dev"
 binding = "SYNC_ISSUE_WORKFLOW"
 class_name = "IssueWorkflow"
 
+# UAT environment
+[env.uat]
+name = "semhub-sync-issue-uat"
+vars = { ENVIRONMENT = "uat" }
+
+[[env.uat.workflows]]
+name = "semhub-sync-issue-workflow-uat"
+binding = "SYNC_ISSUE_WORKFLOW"
+class_name = "IssueWorkflow"
+
 # Production environment
 [env.prod]
 name = "semhub-sync-issue-prod"

@@ -1,3 +1,4 @@
+import { mapStageToEnv } from "./helper";
 import { allSecrets } from "./Secret";
 import type { CronPatterns } from "./types";
 
@@ -17,15 +18,15 @@ const createCronJob = (name: string, schedule: string) => {
           serviceBindings: [
             {
               name: "REPO_INIT_WORKFLOW",
-              service: `semhub-sync-repo-init-${$app.stage === "prod" ? "prod" : "dev"}`,
+              service: `semhub-sync-repo-init-${mapStageToEnv($app.stage)}`,
             },
             {
               name: "SYNC_EMBEDDING_WORKFLOW",
-              service: `semhub-sync-embedding-${$app.stage === "prod" ? "prod" : "dev"}`,
+              service: `semhub-sync-embedding-${mapStageToEnv($app.stage)}`,
             },
             {
               name: "SYNC_ISSUE_WORKFLOW",
-              service: `semhub-sync-issue-${$app.stage === "prod" ? "prod" : "dev"}`,
+              service: `semhub-sync-issue-${mapStageToEnv($app.stage)}`,
             },
           ],
         },

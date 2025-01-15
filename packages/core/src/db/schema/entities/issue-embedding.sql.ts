@@ -29,7 +29,7 @@ export const issueEmbeddings = pgTable(
     // if we use text-embedding-3-large, which has 3072 dimensions, we need to reduce dimensions
     // see: https://platform.openai.com/docs/api-reference/embeddings/create#embeddings-create-dimensions
     // use PLAIN storage for maximised performance; see: packages/core/migrations/0033_vector-plain-storage.sql
-    embedding: vector("embedding", { dimensions: 1536 }),
+    embedding: vector("embedding", { dimensions: 256 }),
     embeddingGeneratedAt: timestamptz("embedding_generated_at"),
     embeddingSyncStatus: issueEmbeddingSyncStatusEnum(
       "issue_embedding_sync_status",

@@ -14,9 +14,11 @@
     "lint": "eslint . && cd packages/web && eslint . || (echo '⚠️  Warning: Linting issues found' && exit 0)",
     "lint:fix": "eslint . --fix && cd packages/web && eslint . --fix",
     "deploy:stg": "sst deploy --stage stg",
+    "deploy:uat": "sst deploy --stage uat",
     "deploy:prod": "sst deploy --stage prod",
     "secret:load": "sst secret load .secrets.dev",
     "secret:load:stg": "sst secret load .secrets.stg --stage stg",
+    "secret:load:uat": "sst secret load .secrets.uat --stage uat",
     "secret:load:prod": "sst secret load .secrets.prod --stage prod",
     "script": "cd packages/scripts && bun run shell",
     "check:all": "concurrently -g --prefix \"[{name}]\" --prefix-colors \"blue.bold,green.bold,yellow.bold,red.bold,magenta.bold\" --names \"typecheck,test,lint,format\" \"bun typecheck\" \"bun --filter=* test\" \"bun lint\" \"bun format:check\""
