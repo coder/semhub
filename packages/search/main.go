@@ -45,7 +45,16 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			Body: string(body),
 		}, nil
 	}
+	// print embedding
+	fmt.Printf("Embedding: %v\n", requestBody.Embedding)
+	fmt.Printf("SQL Query: %v\n", requestBody.SqlQuery)
 
+	return events.APIGatewayProxyResponse{
+		StatusCode: 401,
+		Headers: map[string]string{
+			"Content-Type": "application/json",
+		},
+	}, nil
 	successResp := types.SuccessResponse{
 		Success: true,
 	}

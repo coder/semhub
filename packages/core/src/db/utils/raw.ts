@@ -1,3 +1,6 @@
+import type { SQLWrapper } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
+
 /**
  * Counts the number of parameter placeholders ($1, $2, etc) in a SQL string
  */
@@ -10,12 +13,17 @@ function countPlaceholders(sqlStr: string): number {
   return Math.max(...numbers);
 }
 
+export function convertSqlWrapperToSqlString(query: SQLWrapper): string {
+  const { params, sql: sqlStr } = new PgDialect().sqlToQuery(query.getSQL());
+  return substituteSqlParams(sqlStr, params);
+}
+
 /**
  * Substitutes parameters into a SQL query string with $1, $2, etc placeholders
  * Returns a SQL.Placeholder that can be used in other queries
  * @throws {Error} if number of params doesn't match placeholders
  */
-export function substituteSqlParams(sqlStr: string, params: unknown[]): string {
+function substituteSqlParams(sqlStr: string, params: unknown[]): string {
   const expectedCount = countPlaceholders(sqlStr);
   if (expectedCount !== params.length) {
     throw new Error(

@@ -5,12 +5,8 @@ import { searchResultSchema } from "./schema";
 // NB used in generate-go.ts to generate structs in Golang
 
 export const lambdaSearchRequestSchema = z.object({
-  query: z.string(),
   embedding: z.array(z.number()),
-  sqlQueries: z.object({
-    getFilteredIssueEmbeddings: z.string(),
-    getSearchResultIssues: z.string(),
-  }),
+  sqlQuery: z.string(),
 });
 
 export const lambdaErrorResponseSchema = z.object({

@@ -3,15 +3,9 @@ package types
 
 import "time"
 
-type SearchRequestSqlQueries struct {
-	GetFilteredIssueEmbeddings string `json:"getFilteredIssueEmbeddings"`
-	GetSearchResultIssues      string `json:"getSearchResultIssues"`
-}
-
 type SearchRequest struct {
-	Query      string                  `json:"query"`
-	Embedding  []float64               `json:"embedding"`
-	SqlQueries SearchRequestSqlQueries `json:"sqlQueries"`
+	Embedding []float64 `json:"embedding"`
+	SqlQuery  string    `json:"sqlQuery"`
 }
 
 type ErrorResponse struct {

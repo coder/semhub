@@ -1,10 +1,9 @@
 import type { AnyColumn, SQL, SQLWrapper } from "drizzle-orm";
 import { sql } from "drizzle-orm";
-import { PgDialect } from "drizzle-orm/pg-core";
 
 import type { DbClient } from "@/db";
 
-import { substituteSqlParams } from "./raw";
+import { convertSqlWrapperToSqlString } from "./raw";
 
 export function convertToSqlRaw(value: number | string) {
   return sql.raw(value.toString());
@@ -58,9 +57,7 @@ export async function getEstimatedCount(
   db: DbClient,
 ): Promise<number | null> {
   try {
-    const pgDialect = new PgDialect();
-    const { params, sql: sqlStr } = pgDialect.sqlToQuery(query.getSQL());
-    const rawQuery = substituteSqlParams(sqlStr, params);
+    const rawQuery = convertSqlWrapperToSqlString(query);
     const [result] = await db.execute<{
       "QUERY PLAN": Array<{
         Plan: {
@@ -73,7 +70,6 @@ export async function getEstimatedCount(
       return null;
     }
     const [planData] = result["QUERY PLAN"];
-    console.log
     return planData?.Plan?.["Plan Rows"] ?? null;
   } catch (_e) {
     // If EXPLAIN fails or returns invalid data, return null

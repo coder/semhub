@@ -4,6 +4,7 @@ import { issueEmbeddings } from "@/db/schema/entities/issue-embedding.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
 import { repos } from "@/db/schema/entities/repo.sql";
 import { convertToSqlRaw, getEstimatedCount } from "@/db/utils/general";
+import { convertSqlWrapperToSqlString } from "@/db/utils/raw";
 import { cosineDistance } from "@/db/utils/vector";
 import { createEmbedding } from "@/embedding";
 import type { OpenAIClient } from "@/openai";
@@ -11,6 +12,7 @@ import { type AwsLambdaConfig } from "@/util/aws";
 
 import { applyFilters, applyPagination, getBaseSelect } from "./db";
 import { inMemorySearch } from "./lambda";
+import type { LambdaSearchRequest } from "./lambda.schema";
 import {
   DB_HNSW_INDEX_PROPORTION_THRESHOLD,
   HNSW_EF_SEARCH,
@@ -28,33 +30,6 @@ import {
 } from "./ranking";
 import type { SearchParams, SearchResult } from "./schema";
 import { parseSearchQuery } from "./util";
-
-type SearchStrategy = "sequential" | "dbHnsw" | "inMemoryHnsw";
-
-function determineSearchStrategy(
-  filteredIssueCount: number,
-  total: number,
-): SearchStrategy {
-  // if number of issues is small, sequential scan is fast enough
-  if (filteredIssueCount <= SEQ_SCAN_THRESHOLD) {
-    return "sequential";
-  }
-  return "dbHnsw";
-  // because of the filtering problem in vector search, we only use the db-wide
-  // hnsw index if:
-  // 1. the total number of issues is large
-  // 2. the proportion of issues that match the filter is large (so filtering won't
-  //    reduce the number of issues too much)
-  const filteredIssueCountRatio = filteredIssueCount / total;
-  const useDbHnswIndex =
-    filteredIssueCount > IN_MEMORY_HNSW_THRESHOLD ||
-    filteredIssueCountRatio > DB_HNSW_INDEX_PROPORTION_THRESHOLD;
-
-  if (useDbHnswIndex) {
-    return "dbHnsw";
-  }
-  return "inMemoryHnsw";
-}
 
 export async function routeSearch(
   params: SearchParams,
@@ -77,20 +52,55 @@ export async function routeSearch(
       return await filterBeforeVectorSearch(params, db, embedding);
     case "dbHnsw":
       return await filterAfterVectorSearch(params, db, embedding);
-    case "inMemoryHnsw":
-      return await inMemorySearch(
-        {
-          query: params.query,
-          embedding,
-          sqlQueries: {
-            getFilteredIssueEmbeddings: "",
-            getSearchResultIssues: "",
-          },
-        },
-        lambdaConfig,
-      );
+    case "inMemoryHnsw": {
+      let query = db
+        .select({
+          ...getBaseSelect(),
+          embedding: issueEmbeddings.embedding,
+        })
+        .from(issueTable)
+        .innerJoin(
+          repos,
+          and(
+            eq(issueTable.repoId, repos.id),
+            eq(repos.initStatus, "completed"),
+          ),
+        )
+        .innerJoin(issueEmbeddings, eq(issueTable.id, issueEmbeddings.issueId))
+        .$dynamic();
+      query = applyFilters(query, params);
+      const getFilteredIssueEmbeddingsQuery =
+        convertSqlWrapperToSqlString(query);
+      const request: LambdaSearchRequest = {
+        embedding,
+        sqlQuery: getFilteredIssueEmbeddingsQuery,
+      };
+      return await inMemorySearch(request, lambdaConfig);
+    }
   }
   strategy satisfies never;
+}
+
+function determineSearchStrategy(filteredIssueCount: number, total: number) {
+  // if number of issues is small, sequential scan is fast enough
+  if (filteredIssueCount <= SEQ_SCAN_THRESHOLD) {
+    return "sequential";
+  }
+  return "inMemoryHnsw";
+  // because of the filtering problem in vector search, we only use the db-wide
+  // hnsw index if:
+  // 1. the total number of issues is large
+  // 2. the proportion of issues that match the filter is large (so filtering won't
+  //    reduce the number of issues too much)
+  const filteredIssueCountRatio = filteredIssueCount / total;
+  const useDbHnswIndex =
+    filteredIssueCount > IN_MEMORY_HNSW_THRESHOLD ||
+    filteredIssueCountRatio > DB_HNSW_INDEX_PROPORTION_THRESHOLD;
+
+  if (useDbHnswIndex) {
+    return "dbHnsw";
+  }
+  return "inMemoryHnsw";
 }
 
 async function getApproxCountsAndEmbedding(
