@@ -149,9 +149,6 @@ export function applyFilters<T extends PgSelect>(
     ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
     ...ownerQueries.map((subQuery) => ilike(repos.ownerLogin, `${subQuery}`)),
     ...stateQueries.map((state) => convertToIssueStateSql(state)),
-    // TODO: remove before merging
-    isNotNull(issueTable.aggregateReactions),
-    isNotNull(issueTable.topCommenters),
   );
 
   if (labelQueries.length > 0) {
