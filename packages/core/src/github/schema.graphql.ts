@@ -6,6 +6,7 @@ import { truncateCodeBlocks, truncateToByteSize } from "@/util/truncate";
 export const loadRepoIssuesQueryAuthorSchema = z
   .object({
     login: z.string(),
+    avatarUrl: z.string().url(),
     url: z.string().url(),
   })
   // when user is deleted, author is null
@@ -29,6 +30,20 @@ export const loadRepoIssuesQueryCommentSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 
+export const loadRepoIssuesQueryReactionSchema = z.object({
+  id: z.string(),
+  content: z.enum([
+    "THUMBS_UP",
+    "THUMBS_DOWN",
+    "LAUGH",
+    "HOORAY",
+    "CONFUSED",
+    "HEART",
+    "ROCKET",
+    "EYES",
+  ]),
+});
+
 export type CommentGraphql = z.infer<typeof loadRepoIssuesQueryCommentSchema>;
 
 export const loadRepoIssuesQueryIssueSchema = z.object({
@@ -45,6 +60,9 @@ export const loadRepoIssuesQueryIssueSchema = z.object({
   updatedAt: z.string().datetime(),
   closedAt: z.string().datetime().nullable(),
   author: loadRepoIssuesQueryAuthorSchema,
+  reactions: z.object({
+    nodes: z.array(loadRepoIssuesQueryReactionSchema),
+  }),
   comments: z.object({
     nodes: z.array(loadRepoIssuesQueryCommentSchema),
   }),

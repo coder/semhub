@@ -152,7 +152,6 @@ function mapCreateComment(
 
 function getGithubIssuesWithMetadataForUpsert() {
   // use explorer to test GraphQL queries: https://docs.github.com/en/graphql/overview/explorer
-  // for extension: get Reactions to body as well as to comments, and aggregate them somehow hmm
   const query = graphql(`
     query paginate(
       $cursor: String
@@ -191,6 +190,12 @@ function getGithubIssuesWithMetadataForUpsert() {
                 description
               }
             }
+            reactions(first: 100) {
+              nodes {
+                id
+                content
+              }
+            }
             comments(
               first: 100
               orderBy: { field: UPDATED_AT, direction: ASC }
@@ -199,6 +204,7 @@ function getGithubIssuesWithMetadataForUpsert() {
                 id
                 author {
                   login
+                  avatarUrl
                   url
                 }
                 body
@@ -235,13 +241,16 @@ export async function getLatestGithubRepoIssues({
   after: string | null;
   numIssues?: number;
 }) {
-  const response = await octokit.graphql(getGithubIssuesWithMetadataForUpsert(), {
-    organization: repoOwner,
-    repo: repoName,
-    cursor: after,
-    since: since?.toISOString() ?? null,
-    first: numIssues,
-  });
+  const response = await octokit.graphql(
+    getGithubIssuesWithMetadataForUpsert(),
+    {
+      organization: repoOwner,
+      repo: repoName,
+      cursor: after,
+      since: since?.toISOString() ?? null,
+      first: numIssues,
+    },
+  );
   const data = loadIssuesWithCommentsResSchema.parse(response);
   const issues = data.repository.issues.nodes;
   const hasNextPage = data.repository.issues.pageInfo.hasNextPage;

@@ -11,6 +11,7 @@ import {
 import type { StateSubmenuValue } from "@/constants/search.constant";
 
 import { getBaseColumns, timestamptz } from "../base.sql";
+import type { AggregateReactions, TopCommenters } from "../shared";
 import { type Author } from "../shared";
 import { issuesToLabels } from "./issue-to-label.sql";
 import { repos } from "./repo.sql";
@@ -39,6 +40,10 @@ export const issueTable = pgTable(
     htmlUrl: text("html_url").notNull(),
     title: text("title").notNull(),
     body: text("body").notNull(),
+    aggregateReactions: jsonb(
+      "aggregate_reactions",
+    ).$type<AggregateReactions>(),
+    topCommenters: jsonb("top_commenters").$type<TopCommenters>(),
     issueCreatedAt: timestamptz("issue_created_at").notNull(),
     issueUpdatedAt: timestamptz("issue_updated_at").notNull(),
     issueClosedAt: timestamptz("issue_closed_at"),
