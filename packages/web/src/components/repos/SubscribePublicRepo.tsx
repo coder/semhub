@@ -23,7 +23,8 @@ import {
   type RepoPreviewProps,
 } from "@/components/repos/RepoPreview";
 import {
-  githubUrlSchema,
+  githubRepoFormSchema,
+  githubRepoSubmitSchema,
   ValidationErrors,
 } from "@/components/repos/subscribe";
 
@@ -35,15 +36,23 @@ export function SubscribePublicRepo() {
   const subscribeRepoMutation = useSubscribeRepo();
   const form = useForm({
     defaultValues: {
-      url: "",
+      input: "",
     },
     validatorAdapter: zodValidator(),
     validators: {
-      onChange: githubUrlSchema,
+      onChange: githubRepoFormSchema,
     },
     onSubmit: async ({ value }) => {
       try {
-        const { owner, repo } = githubUrlSchema.parse(value);
+        const result = githubRepoSubmitSchema.safeParse(value);
+        if (!result.success) {
+          return {
+            onSubmit:
+              result.error.errors[0]?.message ?? "Invalid repository format",
+          };
+        }
+
+        const { owner, repo } = result.data;
         await subscribeRepoMutation.mutateAsync({
           type: "public",
           owner,
@@ -94,6 +103,7 @@ export function SubscribePublicRepo() {
       });
       setError(null);
     } catch (error) {
+      console.error("Preview fetch error:", error);
       setError(
         error instanceof Error ? error.message : "Failed to fetch repository",
       );
@@ -103,9 +113,9 @@ export function SubscribePublicRepo() {
     }
   };
 
-  const debouncedValidateAndPreview = useDebounce((url: string) => {
+  const debouncedValidateAndPreview = useDebounce((input: string) => {
     setError(null);
-    const { success, data } = githubUrlSchema.safeParse({ url });
+    const { success, data } = githubRepoSubmitSchema.safeParse({ input });
     if (success) {
       void fetchPreview(data.owner, data.repo);
     } else {
@@ -124,7 +134,8 @@ export function SubscribePublicRepo() {
         <DialogHeader>
           <DialogTitle>Add Public Repository</DialogTitle>
           <DialogDescription>
-            Enter the URL of the GitHub repository you want to subscribe to.
+            Enter the repository in the format <code>org/repo</code> or as a
+            GitHub URL
           </DialogDescription>
         </DialogHeader>
 
@@ -137,11 +148,11 @@ export function SubscribePublicRepo() {
           className="grid gap-4"
         >
           <form.Field
-            name="url"
+            name="input"
             children={(field) => (
               <div className="grid gap-2">
                 <Input
-                  placeholder="Enter GitHub repository URL"
+                  placeholder="org/repo or github.com/org/repo"
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   variant="url"

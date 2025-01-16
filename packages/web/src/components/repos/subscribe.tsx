@@ -4,49 +4,69 @@ import { z } from "zod";
 
 import { repoValidationSchema } from "@/core/github/schema.validation";
 
-export const githubUrlSchema = z
-  .object({
-    url: z.string().url("Please enter a valid URL"),
-  })
-  .refine(({ url }) => {
-    try {
-      const parsed = new URL(url);
-      return (
-        parsed.hostname === "github.com" &&
-        parsed.pathname.split("/").filter(Boolean).length === 2
-      );
-    } catch {
-      return false;
-    }
-  }, "Please enter a valid GitHub repository URL")
-  .transform(({ url }) => {
-    const parsedUrl = new URL(url);
-    const parts = parsedUrl.pathname.split("/").filter(Boolean);
-    const repoSubscribe = {
-      owner: parts[0]!,
-      repo: parts[1]!,
-    };
-    return repoValidationSchema.parse(repoSubscribe);
-  });
+// Shared error message
+const INVALID_REPO_MESSAGE = "Please enter a valid GitHub repository";
 
-export const githubRepoPathSchema = z
+// Utility function to extract owner and repo, with validation
+const validateAndExtractGithubOwnerAndRepo = (input: string, ctx?: z.RefinementCtx) => {
+  // Normalize the input to handle both URL and owner/repo format
+  const normalizedInput = input.includes("github.com")
+    ? new URL(
+        input.startsWith("http") ? input : `https://${input}`,
+      ).pathname.slice(1)
+    : input;
+  // Split and filter out empty strings
+  const parts = normalizedInput.split("/").filter(Boolean);
+  // Validate we have exactly owner and repo
+  if (parts.length !== 2) {
+    if (ctx) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: INVALID_REPO_MESSAGE,
+      });
+    }
+    return null;
+  }
+  const [owner, repo] = parts;
+  // Validate against schema
+  const result = repoValidationSchema.safeParse({ owner, repo });
+  if (!result.success) {
+    if (ctx) {
+      result.error.errors.forEach((err) => ctx.addIssue(err));
+    }
+    return null;
+  }
+
+  return result.data;
+};
+
+// Schema for form validation (used by TanStack Form)
+// need to maintain separate schema because transform is not supported
+// https://github.com/TanStack/form/issues/418
+export const githubRepoFormSchema = z.object({
+  input: z.string().refine((val) => {
+    return (
+      val
+        // adding these so validation doesn't kick in too early
+        .replace("https://github.com/", "")
+        .replace("www.github.com/", "")
+        .replace("github.com/", "")
+        .replace("github", "").length <= 5
+        ? true
+        : validateAndExtractGithubOwnerAndRepo(val) !== null
+    );
+  }, INVALID_REPO_MESSAGE),
+});
+
+// Schema for submission (with transform)
+export const githubRepoSubmitSchema = z
   .object({
-    path: z.string(),
+    input: z.string(),
   })
-  .refine(
-    ({ path }) => {
-      const parts = path.split("/").filter(Boolean);
-      return parts.length === 2;
-    },
-    { message: "Please enter in the format 'org/repo'" },
-  )
-  .transform(({ path }) => {
-    const parts = path.split("/").filter(Boolean);
-    const repoSubscribe = {
-      owner: parts[0]!,
-      repo: parts[1]!,
-    };
-    return repoValidationSchema.parse(repoSubscribe);
+  .transform((data, ctx) => {
+    const result = validateAndExtractGithubOwnerAndRepo(data.input, ctx);
+    if (!result) return z.NEVER;
+    return result;
   });
 
 interface ValidationErrorsProps {

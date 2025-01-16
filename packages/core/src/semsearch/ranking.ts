@@ -2,6 +2,9 @@ import type { AnyColumn, SQL } from "@/db";
 import { sql } from "@/db";
 import { comments } from "@/db/schema/entities/comment.sql";
 
+// would need to recalibrate normalization + score colors in IssueCard.tsx
+// if we change weights/algorithm here
+
 // Ranking weights (should sum to 1)
 const RANKING_WEIGHTS = {
   SEMANTIC_SIMILARITY: 0.8, // Start with higher weight for semantic search
