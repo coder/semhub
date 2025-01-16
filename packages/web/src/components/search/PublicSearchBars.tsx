@@ -28,19 +28,24 @@ const owners = [
     avatarUrl: "https://avatars.githubusercontent.com/u/6154722?v=4",
   },
   {
-    value: "golang",
-    label: "golang",
-    avatarUrl: "https://avatars.githubusercontent.com/u/4314092?v=4",
+    value: "facebook",
+    label: "Meta",
+    avatarUrl: "https://avatars.githubusercontent.com/u/69631?v=4",
+  },
+  {
+    value: "openai",
+    label: "OpenAI",
+    avatarUrl: "https://avatars.githubusercontent.com/u/14957082?v=4",
+  },
+  {
+    value: "hashicorp",
+    label: "HashiCorp",
+    avatarUrl: "https://avatars.githubusercontent.com/u/761456?v=4",
   },
   {
     value: "vercel",
     label: "Vercel",
     avatarUrl: "https://avatars.githubusercontent.com/u/14985020?v=4",
-  },
-  {
-    value: "vuejs",
-    label: "Vue",
-    avatarUrl: "https://avatars.githubusercontent.com/u/6128107?v=4",
   },
   {
     value: "coder",
@@ -61,7 +66,8 @@ const repos = [
   {
     value: "golang/go",
     label: "Go",
-    avatarUrl: "https://avatars.githubusercontent.com/u/4314092?v=4",
+    avatarUrl:
+      "https://cdn.icon-icons.com/icons2/2699/PNG/512/golang_logo_icon_171073.png",
   },
   {
     value: "rust-lang/rust",
@@ -69,21 +75,10 @@ const repos = [
     avatarUrl: "https://avatars.githubusercontent.com/u/5430905?v=4",
   },
   {
-    value: "facebook/react",
-    label: "React",
-    avatarUrl:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/React_Logo_SVG.svg/512px-React_Logo_SVG.svg.png",
-  },
-  {
     value: "microsoft/vscode",
     label: "VS Code",
     avatarUrl:
       "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Visual_Studio_Code_1.35_icon.svg/512px-Visual_Studio_Code_1.35_icon.svg.png",
-  },
-  {
-    value: "neovim/neovim",
-    label: "Neovim",
-    avatarUrl: "https://avatars.githubusercontent.com/u/6471485?v=4",
   },
   {
     value: "getcursor/cursor",

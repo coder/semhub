@@ -4,50 +4,52 @@ import { z } from "zod";
 
 import { repoValidationSchema } from "@/core/github/schema.validation";
 
-export const githubUrlSchema = z
-  .object({
-    url: z.string().url("Please enter a valid URL"),
-  })
-  .refine(({ url }) => {
-    try {
-      const parsed = new URL(url);
-      return (
-        parsed.hostname === "github.com" &&
-        parsed.pathname.split("/").filter(Boolean).length === 2
-      );
-    } catch {
-      return false;
+const extractOwnerAndRepo = (input: string, ctx: z.RefinementCtx) => {
+  // Try parsing as URL first
+  try {
+    const url = input.startsWith("http") ? input : `https://${input}`;
+    const parsed = new URL(url);
+    if (parsed.hostname !== "github.com") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Not a GitHub URL",
+      });
+      return z.NEVER;
     }
-  }, "Please enter a valid GitHub repository URL")
-  .transform(({ url }) => {
-    const parsedUrl = new URL(url);
-    const parts = parsedUrl.pathname.split("/").filter(Boolean);
-    const repoSubscribe = {
-      owner: parts[0]!,
-      repo: parts[1]!,
-    };
-    return repoValidationSchema.parse(repoSubscribe);
-  });
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (parts.length !== 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Invalid repository path",
+      });
+      return z.NEVER;
+    }
+    return { owner: parts[0], repo: parts[1] };
+  } catch {
+    // If not a URL, try org/repo format
+    const parts = input.split("/").filter(Boolean);
+    if (parts.length !== 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Please enter a valid GitHub repository (e.g. 'org/repo' or 'github.com/org/repo')",
+      });
+      return z.NEVER;
+    }
+    return { owner: parts[0], repo: parts[1] };
+  }
+};
 
-export const githubRepoPathSchema = z
+export const githubRepoSchema = z
   .object({
-    path: z.string(),
+    input: z.string().min(1, "Please enter a repository"),
   })
-  .refine(
-    ({ path }) => {
-      const parts = path.split("/").filter(Boolean);
-      return parts.length === 2;
-    },
-    { message: "Please enter in the format 'org/repo'" },
-  )
-  .transform(({ path }) => {
-    const parts = path.split("/").filter(Boolean);
-    const repoSubscribe = {
-      owner: parts[0]!,
-      repo: parts[1]!,
-    };
-    return repoValidationSchema.parse(repoSubscribe);
-  });
+  .transform((data, ctx) => {
+    const result = extractOwnerAndRepo(data.input, ctx);
+    if (result === z.NEVER) return z.NEVER;
+    return result;
+  })
+  .pipe(repoValidationSchema);
 
 interface ValidationErrorsProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

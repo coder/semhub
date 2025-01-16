@@ -23,7 +23,7 @@ import {
   type RepoPreviewProps,
 } from "@/components/repos/RepoPreview";
 import {
-  githubRepoPathSchema,
+  githubRepoSchema,
   ValidationErrors,
 } from "@/components/repos/subscribe";
 
@@ -35,15 +35,16 @@ export function SubscribePrivateRepo() {
   const subscribeRepoMutation = useSubscribeRepo();
   const form = useForm({
     defaultValues: {
-      path: "",
+      input: "",
     },
     validatorAdapter: zodValidator(),
     validators: {
-      onChange: githubRepoPathSchema,
+      onSubmit: githubRepoSchema,
+      onBlur: githubRepoSchema,
     },
     onSubmit: async ({ value }) => {
       try {
-        const { owner, repo } = githubRepoPathSchema.parse(value);
+        const { owner, repo } = githubRepoSchema.parse(value);
         await subscribeRepoMutation.mutateAsync({
           type: "private",
           owner,
@@ -100,9 +101,9 @@ export function SubscribePrivateRepo() {
     }
   };
 
-  const debouncedValidateAndPreview = useDebounce((path: string) => {
+  const debouncedValidateAndPreview = useDebounce((input: string) => {
     setError(null);
-    const { success, data } = githubRepoPathSchema.safeParse({ path });
+    const { success, data } = githubRepoSchema.safeParse({ input });
     if (success) {
       void fetchPreview(data.owner, data.repo);
     } else {
@@ -121,7 +122,8 @@ export function SubscribePrivateRepo() {
         <DialogHeader>
           <DialogTitle>Add Private Repository</DialogTitle>
           <DialogDescription>
-            Enter the repository in the format <code>org/repo</code>
+            Enter the repository in the format <code>org/repo</code> or as a
+            GitHub URL
           </DialogDescription>
         </DialogHeader>
 
@@ -134,11 +136,11 @@ export function SubscribePrivateRepo() {
           className="grid gap-4"
         >
           <form.Field
-            name="path"
+            name="input"
             children={(field) => (
               <div className="grid gap-2">
                 <Input
-                  placeholder="org/repo"
+                  placeholder="org/repo or github.com/org/repo"
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => {
