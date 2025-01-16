@@ -263,6 +263,8 @@ async function filterBeforeVectorSearch(
         number: vectorSearchSubquery.number,
         title: vectorSearchSubquery.title,
         labels: vectorSearchSubquery.labels,
+        aggregateReactions: vectorSearchSubquery.aggregateReactions,
+        topCommenters: vectorSearchSubquery.topCommenters,
         issueUrl: vectorSearchSubquery.issueUrl,
         author: vectorSearchSubquery.author,
         issueState: vectorSearchSubquery.issueState,

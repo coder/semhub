@@ -3,6 +3,7 @@ import { print } from "graphql";
 import type { CreateComment } from "@/db/schema/entities/comment.sql";
 import type { CreateIssue } from "@/db/schema/entities/issue.schema";
 import type { CreateLabel } from "@/db/schema/entities/label.schema";
+import type { AggregateReactions } from "@/db/schema/shared";
 
 import { graphql } from "./graphql";
 import {
@@ -77,7 +78,7 @@ interface IssToLblRelationNodeIds {
   labelNodeIds: string[];
 }
 
-function mapIssuesLabels(
+function normalizeDataPerIssue(
   issue: IssueGraphql,
   repoId: string,
 ): {
@@ -85,25 +86,78 @@ function mapIssuesLabels(
   labels: CreateLabel[];
   issToLblRelationsNodeIds: IssToLblRelationNodeIds[];
 } {
-  const nodeIdToLabel = new Map<string, CreateLabel>();
-  issue.labels.nodes.forEach((label) => {
-    const newLabel = {
-      nodeId: label.id,
-      name: label.name,
-      color: label.color,
-      description: label.description,
-      issueId: issue.id,
-    };
-    // since we are updating from oldest to newest, we want later label to always overwrite earlier ones
-    nodeIdToLabel.set(label.id, newLabel);
-  });
-  const dedupedLabels = Array.from(nodeIdToLabel.values());
+  // Aggregate reactions by type
+  const reactionCounts = issue.reactionGroups.reduce(
+    (acc: Record<string, number>, reaction) => {
+      acc[reaction.content] = reaction.reactors.totalCount;
+      return acc;
+    },
+    {},
+  );
+
+  const aggregateReactions: AggregateReactions = {
+    THUMBS_UP: reactionCounts.THUMBS_UP || 0,
+    THUMBS_DOWN: reactionCounts.THUMBS_DOWN || 0,
+    LAUGH: reactionCounts.LAUGH || 0,
+    HOORAY: reactionCounts.HOORAY || 0,
+    CONFUSED: reactionCounts.CONFUSED || 0,
+    HEART: reactionCounts.HEART || 0,
+    ROCKET: reactionCounts.ROCKET || 0,
+    EYES: reactionCounts.EYES || 0,
+  };
+
+  // Return null if all reactions are 0
+  const hasReactions = Object.values(aggregateReactions).some(
+    (count) => count > 0,
+  );
+  const finalAggregateReactions = hasReactions ? aggregateReactions : null;
+
+  // Get top 5 commenters by frequency
+  const commentFrequency = issue.comments.nodes
+    .filter((comment) => comment.author != null)
+    .reduce((acc, comment) => {
+      const author = comment.author!;
+      const key = author.login;
+      if (!acc.has(key)) {
+        acc.set(key, {
+          count: 0,
+          name: author.login,
+          htmlUrl: author.url,
+          avatarUrl: author.avatarUrl,
+        });
+      }
+      acc.get(key)!.count++;
+      return acc;
+    }, new Map<string, { count: number; name: string; htmlUrl: string; avatarUrl: string }>());
+
+  const topCommenters = Array.from(commentFrequency.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+    .map(({ name, htmlUrl, avatarUrl }) => ({
+      name,
+      htmlUrl,
+      avatarUrl,
+    }));
+
+  // Return null if no commenters
+  const finalTopCommenters = topCommenters.length > 0 ? topCommenters : null;
+
+  const labels = issue.labels.nodes.map((label) => ({
+    nodeId: label.id,
+    name: label.name,
+    color: label.color,
+    description: label.description,
+    issueId: issue.id,
+  }));
+
+  // we need this for the many-to-many relationship in our SQL
   const issueToLabelNodeIds = [
     {
       issueNodeId: issue.id,
-      labelNodeIds: dedupedLabels.map((label) => label.nodeId),
+      labelNodeIds: labels.map((label) => label.nodeId),
     },
   ];
+
   return {
     issue: {
       repoId,
@@ -113,6 +167,7 @@ function mapIssuesLabels(
         ? {
             name: issue.author.login,
             htmlUrl: issue.author.url,
+            avatarUrl: issue.author.avatarUrl,
           }
         : null,
       issueState: issue.state,
@@ -120,11 +175,13 @@ function mapIssuesLabels(
       htmlUrl: issue.url,
       title: issue.title,
       body: issue.body,
+      aggregateReactions: finalAggregateReactions,
+      topCommenters: finalTopCommenters,
       issueCreatedAt: new Date(issue.createdAt),
       issueUpdatedAt: new Date(issue.updatedAt),
       issueClosedAt: issue.closedAt ? new Date(issue.closedAt) : null,
     },
-    labels: dedupedLabels,
+    labels,
     issToLblRelationsNodeIds: issueToLabelNodeIds,
   };
 }
@@ -142,6 +199,7 @@ function mapCreateComment(
       ? {
           name: comment.author.login,
           htmlUrl: comment.author.url,
+          avatarUrl: comment.author.avatarUrl,
         }
       : null,
     body: comment.body,
@@ -152,7 +210,6 @@ function mapCreateComment(
 
 function getGithubIssuesWithMetadataForUpsert() {
   // use explorer to test GraphQL queries: https://docs.github.com/en/graphql/overview/explorer
-  // for extension: get Reactions to body as well as to comments, and aggregate them somehow hmm
   const query = graphql(`
     query paginate(
       $cursor: String
@@ -181,6 +238,7 @@ function getGithubIssuesWithMetadataForUpsert() {
             closedAt
             author {
               login
+              avatarUrl
               url
             }
             labels(first: 10) {
@@ -191,6 +249,12 @@ function getGithubIssuesWithMetadataForUpsert() {
                 description
               }
             }
+            reactionGroups {
+              content
+              reactors {
+                totalCount
+              }
+            }
             comments(
               first: 100
               orderBy: { field: UPDATED_AT, direction: ASC }
@@ -199,6 +263,7 @@ function getGithubIssuesWithMetadataForUpsert() {
                 id
                 author {
                   login
+                  avatarUrl
                   url
                 }
                 body
@@ -235,13 +300,16 @@ export async function getLatestGithubRepoIssues({
   after: string | null;
   numIssues?: number;
 }) {
-  const response = await octokit.graphql(getGithubIssuesWithMetadataForUpsert(), {
-    organization: repoOwner,
-    repo: repoName,
-    cursor: after,
-    since: since?.toISOString() ?? null,
-    first: numIssues,
-  });
+  const response = await octokit.graphql(
+    getGithubIssuesWithMetadataForUpsert(),
+    {
+      organization: repoOwner,
+      repo: repoName,
+      cursor: after,
+      since: since?.toISOString() ?? null,
+      first: numIssues,
+    },
+  );
   const data = loadIssuesWithCommentsResSchema.parse(response);
   const issues = data.repository.issues.nodes;
   const hasNextPage = data.repository.issues.pageInfo.hasNextPage;
@@ -258,15 +326,15 @@ export async function getLatestGithubRepoIssues({
       },
     };
   }
-  const issueLabelsToInsert = issues.map((issue) =>
-    mapIssuesLabels(issue, repoId),
+  const normalizedIssues = issues.map((issue) =>
+    normalizeDataPerIssue(issue, repoId),
   );
-  const rawIssues = issueLabelsToInsert.map((entity) => entity.issue);
+  const rawIssues = normalizedIssues.map((entity) => entity.issue);
   const rawComments = issues.flatMap((issue) =>
     issue.comments.nodes.map((comment) => mapCreateComment(comment, issue.id)),
   );
-  const rawLabels = issueLabelsToInsert.flatMap((entity) => entity.labels);
-  const rawIssueToLabelRelations = issueLabelsToInsert.flatMap(
+  const rawLabels = normalizedIssues.flatMap((entity) => entity.labels);
+  const rawIssueToLabelRelations = normalizedIssues.flatMap(
     (entity) => entity.issToLblRelationsNodeIds,
   );
   // Dedupe labels across all issues
@@ -293,10 +361,10 @@ export async function getLatestGithubRepoIssues({
     },
   );
 
-  const allIssues = [
+  const issuesNodeIdMap = [
     ...new Map(rawIssues.map((issue) => [issue.nodeId, issue])).values(),
   ];
-  const allComments = [
+  const commentsNodeIdMap = [
     ...new Map(
       rawComments.map((comment) => [comment.nodeId, comment]),
     ).values(),
@@ -307,8 +375,8 @@ export async function getLatestGithubRepoIssues({
     hasNextPage,
     endCursor,
     issuesAndCommentsLabels: {
-      issuesToInsert: allIssues,
-      commentsToInsert: allComments,
+      issuesToInsert: issuesNodeIdMap,
+      commentsToInsert: commentsNodeIdMap,
       labelsToInsert: allLabels,
       issueToLabelRelationsToInsertNodeIds: allIssueToLabelRelations,
     },
@@ -358,7 +426,7 @@ export async function getGithubIssuesViaIterator(
     }
     lastIssueUpdatedAt = new Date(issues[issues.length - 1]!.updatedAt);
     const issueLabelsToInsert = issues.map((issue) =>
-      mapIssuesLabels(issue, repoId),
+      normalizeDataPerIssue(issue, repoId),
     );
     const commentsToInsert = issues.flatMap((issue) =>
       issue.comments.nodes.map((comment) =>

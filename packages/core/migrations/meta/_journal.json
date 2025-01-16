@@ -267,6 +267,13 @@
       "when": 1736815196673,
       "tag": "0037_sticky_night_thrasher",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1737014116202,
+      "tag": "0038_fancy_red_hulk",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,7 @@
 import type { SQL } from "drizzle-orm";
 import type { PgSelect } from "drizzle-orm/pg-core";
 
-import { and, eq, ilike, or, sql } from "@/db";
+import { and, eq, ilike, isNotNull, or, sql } from "@/db";
 import { comments } from "@/db/schema/entities/comment.sql";
 import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import {
@@ -44,6 +44,8 @@ export function getBaseSelect() {
     issueCreatedAt: issueTable.issueCreatedAt,
     issueClosedAt: issueTable.issueClosedAt,
     issueUpdatedAt: issueTable.issueUpdatedAt,
+    aggregateReactions: issueTable.aggregateReactions,
+    topCommenters: issueTable.topCommenters,
     repoName: repos.name,
     repoUrl: sql<string>`${repos.htmlUrl}`.as("repoUrl"),
     repoOwnerName: repos.ownerLogin,

@@ -6,6 +6,7 @@ import {
   MessageSquareIcon,
 } from "lucide-react";
 
+import type { AggregateReactions } from "@/core/db/schema/shared";
 import type { PublicSearchIssuesResponse } from "@/lib/api/search";
 import { formatLocalDateTime, getTimeAgo } from "@/lib/time";
 import { Badge } from "@/components/ui/badge";
@@ -30,9 +31,11 @@ export function IssueCard({ issue }: { issue: Issue }) {
               />
               <IssueTitleWithLabels issue={issue} />
             </div>
-          </div>
-          <div className="ml-6 text-sm text-muted-foreground">
-            <RepoTag issue={issue} /> <IssueMetadata issue={issue} />
+            <div className="ml-6 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <RepoTag issue={issue} />
+              <IssueBasicInfo issue={issue} />
+              <IssueInteractions issue={issue} />
+            </div>
           </div>
         </TooltipProvider>
       </div>
@@ -202,7 +205,7 @@ function IssueTitleWithLabels({ issue }: { issue: Issue }) {
   );
 }
 
-function IssueMetadata({ issue }: { issue: Issue }) {
+function IssueBasicInfo({ issue }: { issue: Issue }) {
   const openedAt = getTimeAgo(new Date(issue.issueCreatedAt));
   const closedAt = issue.issueClosedAt
     ? getTimeAgo(new Date(issue.issueClosedAt))
@@ -239,7 +242,26 @@ function IssueMetadata({ issue }: { issue: Issue }) {
     </FastTooltip>
   );
 
-  // we show 99+ because we only save the first 100 comments from GitHub API and 3-digit numbers may clutter
+  const showLastUpdated =
+    (issueState === "OPEN" && updatedAt !== openedAt) ||
+    (issueState === "CLOSED" && updatedAt !== closedAt);
+
+  const lastUpdatedElement = showLastUpdated && (
+    <FastTooltip content={formatLocalDateTime(new Date(issue.issueUpdatedAt))}>
+      updated {updatedAt}
+    </FastTooltip>
+  );
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      {issueNumber} by {authorElement} was {stateTimestamp}
+      {showLastUpdated && " | "}
+      {lastUpdatedElement}
+    </span>
+  );
+}
+
+function IssueInteractions({ issue }: { issue: Issue }) {
   const commentCount = issue.commentCount >= 100 ? "99+" : issue.commentCount;
   const commentElement = (
     <Tooltip>
@@ -255,21 +277,81 @@ function IssueMetadata({ issue }: { issue: Issue }) {
     </Tooltip>
   );
 
-  const showLastUpdated =
-    (issueState === "OPEN" && updatedAt !== openedAt) ||
-    (issueState === "CLOSED" && updatedAt !== closedAt);
-
-  const lastUpdatedElement = (
-    <FastTooltip content={formatLocalDateTime(new Date(issue.issueUpdatedAt))}>
-      updated {updatedAt}
-    </FastTooltip>
+  const reactionElements = issue.aggregateReactions && (
+    <>
+      {(
+        Object.entries(issue.aggregateReactions) as [
+          keyof AggregateReactions,
+          number,
+        ][]
+      )
+        .filter(([, count]) => count > 0)
+        .sort(([, a], [, b]) => b - a)
+        .map(([reaction, count]) => (
+          <FastTooltip
+            key={reaction}
+            content={`${reaction.toLowerCase().replace("_", " ")}`}
+          >
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 hover:bg-muted/80">
+              <span className="text-xs leading-none">
+                {getReactionEmoji(reaction)} {count}
+              </span>
+            </span>
+          </FastTooltip>
+        ))}
+    </>
   );
+
+  const topCommenterElements =
+    issue.topCommenters && issue.topCommenters.length > 0 ? (
+      <span className="inline-flex -space-x-2">
+        {issue.topCommenters.map((commenter, index) => (
+          <FastTooltip key={commenter.name} content={commenter.name}>
+            <a
+              href={commenter.htmlUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="relative block rounded-full ring-2 ring-background hover:z-[11]"
+              style={{ zIndex: issue.topCommenters!.length - index }}
+            >
+              <img
+                src={commenter.avatarUrl}
+                alt={commenter.name}
+                className="size-6 rounded-full"
+              />
+            </a>
+          </FastTooltip>
+        ))}
+      </span>
+    ) : null;
 
   return (
     <>
-      {issueNumber} by {authorElement} was {stateTimestamp}
-      {showLastUpdated && " | "}
-      {showLastUpdated && lastUpdatedElement} {commentElement}
+      {commentElement}
+      {reactionElements}
+      {topCommenterElements}
     </>
   );
+}
+
+function getReactionEmoji(reaction: keyof AggregateReactions): string {
+  switch (reaction) {
+    case "THUMBS_UP":
+      return "👍";
+    case "THUMBS_DOWN":
+      return "👎";
+    case "LAUGH":
+      return "😄";
+    case "HOORAY":
+      return "🎉";
+    case "CONFUSED":
+      return "😕";
+    case "HEART":
+      return "❤️";
+    case "ROCKET":
+      return "🚀";
+    case "EYES":
+      return "👀";
+  }
+  reaction satisfies never;
 }

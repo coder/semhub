@@ -4,7 +4,11 @@ import { z } from "zod";
 import { issueTable } from "../db/schema/entities/issue.sql";
 import { selectLabelForSearchSchema } from "../db/schema/entities/label.schema";
 import type { SelectRepoForSearch } from "../db/schema/entities/repo.schema";
-import { authorSchema } from "../db/schema/shared";
+import {
+  aggregateReactionsSchema,
+  authorSchema,
+  topCommentersSchema,
+} from "../db/schema/shared";
 
 type BaseSearchParams = {
   query: string;
@@ -37,6 +41,8 @@ const selectRepoForSearchSchemaDuplicated = z.object({
 // Create a schema that matches exactly what we return in search results
 const searchIssueSchema = createSelectSchema(issueTable, {
   author: authorSchema,
+  aggregateReactions: aggregateReactionsSchema,
+  topCommenters: topCommentersSchema,
   issueCreatedAt: z.coerce.date(),
   issueUpdatedAt: z.coerce.date(),
   issueClosedAt: z.coerce.date().nullable(),
@@ -46,6 +52,8 @@ const searchIssueSchema = createSelectSchema(issueTable, {
     number: true,
     title: true,
     author: true,
+    aggregateReactions: true,
+    topCommenters: true,
     issueState: true,
     issueStateReason: true,
     issueCreatedAt: true,

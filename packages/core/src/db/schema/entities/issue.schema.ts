@@ -3,11 +3,17 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import type { z } from "zod";
 
-import { authorSchema } from "../shared";
+import {
+  aggregateReactionsSchema,
+  authorSchema,
+  topCommentersSchema,
+} from "../shared";
 import { issueTable } from "./issue.sql";
 
 export const createIssueSchema = createInsertSchema(issueTable, {
   author: authorSchema,
+  aggregateReactions: aggregateReactionsSchema,
+  topCommenters: topCommentersSchema,
 }).omit({
   id: true,
 });

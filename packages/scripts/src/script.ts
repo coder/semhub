@@ -1,7 +1,19 @@
-import { selectIssuesForEmbeddingCron } from "@/core/embedding";
+import { getLatestGithubRepoIssues } from "@/core/github";
 
 import { getDeps } from "./deps";
 
-const { db, closeConnection } = await getDeps();
-await selectIssuesForEmbeddingCron({ db, numIssues: 100, intervalInHours: 12 });
-await closeConnection();
+const { graphqlOctokit } = await getDeps();
+try {
+  const res = await getLatestGithubRepoIssues({
+    repoId: "rep_01JHHB967ZCNTEKV1ZVM2RAKQR",
+    repoName: "coder",
+    repoOwner: "coder",
+    octokit: graphqlOctokit,
+    since: null,
+    after: null,
+    numIssues: 100,
+  });
+  console.log(res);
+} catch (e) {
+  console.error(e);
+}
