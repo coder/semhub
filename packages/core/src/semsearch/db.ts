@@ -44,6 +44,8 @@ export function getBaseSelect() {
     issueCreatedAt: issueTable.issueCreatedAt,
     issueClosedAt: issueTable.issueClosedAt,
     issueUpdatedAt: issueTable.issueUpdatedAt,
+    aggregateReactions: issueTable.aggregateReactions,
+    topCommenters: issueTable.topCommenters,
     repoName: repos.name,
     repoUrl: sql<string>`${repos.htmlUrl}`.as("repoUrl"),
     repoOwnerName: repos.ownerLogin,
