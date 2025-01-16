@@ -167,6 +167,7 @@ function normalizeDataPerIssue(
         ? {
             name: issue.author.login,
             htmlUrl: issue.author.url,
+            avatarUrl: issue.author.avatarUrl,
           }
         : null,
       issueState: issue.state,
@@ -198,6 +199,7 @@ function mapCreateComment(
       ? {
           name: comment.author.login,
           htmlUrl: comment.author.url,
+          avatarUrl: comment.author.avatarUrl,
         }
       : null,
     body: comment.body,
@@ -236,6 +238,7 @@ function getGithubIssuesWithMetadataForUpsert() {
             closedAt
             author {
               login
+              avatarUrl
               url
             }
             labels(first: 10) {
