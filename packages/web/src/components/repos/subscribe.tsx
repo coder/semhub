@@ -4,52 +4,70 @@ import { z } from "zod";
 
 import { repoValidationSchema } from "@/core/github/schema.validation";
 
-const extractOwnerAndRepo = (input: string, ctx: z.RefinementCtx) => {
-  // Try parsing as URL first
-  try {
-    const url = input.startsWith("http") ? input : `https://${input}`;
-    const parsed = new URL(url);
-    if (parsed.hostname !== "github.com") {
+// Shared error message
+const INVALID_REPO_MESSAGE = "Please enter a valid GitHub repository";
+
+// Utility function to extract owner and repo, with validation
+const validateAndExtractGithubOwnerAndRepo = (input: string, ctx?: z.RefinementCtx) => {
+  // Normalize the input to handle both URL and owner/repo format
+  const normalizedInput = input.includes("github.com")
+    ? new URL(
+        input.startsWith("http") ? input : `https://${input}`,
+      ).pathname.slice(1)
+    : input;
+  // Split and filter out empty strings
+  const parts = normalizedInput.split("/").filter(Boolean);
+  // Validate we have exactly owner and repo
+  if (parts.length !== 2) {
+    if (ctx) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Not a GitHub URL",
+        message: INVALID_REPO_MESSAGE,
       });
-      return z.NEVER;
     }
-    const parts = parsed.pathname.split("/").filter(Boolean);
-    if (parts.length !== 2) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Invalid repository path",
-      });
-      return z.NEVER;
-    }
-    return { owner: parts[0], repo: parts[1] };
-  } catch {
-    // If not a URL, try org/repo format
-    const parts = input.split("/").filter(Boolean);
-    if (parts.length !== 2) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          "Please enter a valid GitHub repository (e.g. 'org/repo' or 'github.com/org/repo')",
-      });
-      return z.NEVER;
-    }
-    return { owner: parts[0], repo: parts[1] };
+    return null;
   }
+  const [owner, repo] = parts;
+  // Validate against schema
+  const result = repoValidationSchema.safeParse({ owner, repo });
+  if (!result.success) {
+    if (ctx) {
+      result.error.errors.forEach((err) => ctx.addIssue(err));
+    }
+    return null;
+  }
+
+  return result.data;
 };
 
-export const githubRepoSchema = z
+// Schema for form validation (used by TanStack Form)
+// need to maintain separate schema because transform is not supported
+// https://github.com/TanStack/form/issues/418
+export const githubRepoFormSchema = z.object({
+  input: z.string().refine((val) => {
+    return (
+      val
+        // adding these so validation doesn't kick in too early
+        .replace("https://github.com/", "")
+        .replace("www.github.com/", "")
+        .replace("github.com/", "")
+        .replace("github", "").length <= 5
+        ? true
+        : validateAndExtractGithubOwnerAndRepo(val) !== null
+    );
+  }, INVALID_REPO_MESSAGE),
+});
+
+// Schema for submission (with transform)
+export const githubRepoSubmitSchema = z
   .object({
-    input: z.string().min(1, "Please enter a repository"),
+    input: z.string(),
   })
   .transform((data, ctx) => {
-    const result = extractOwnerAndRepo(data.input, ctx);
-    if (result === z.NEVER) return z.NEVER;
+    const result = validateAndExtractGithubOwnerAndRepo(data.input, ctx);
+    if (!result) return z.NEVER;
     return result;
-  })
-  .pipe(repoValidationSchema);
+  });
 
 interface ValidationErrorsProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

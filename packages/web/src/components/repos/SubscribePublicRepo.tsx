@@ -23,7 +23,8 @@ import {
   type RepoPreviewProps,
 } from "@/components/repos/RepoPreview";
 import {
-  githubRepoSchema,
+  githubRepoFormSchema,
+  githubRepoSubmitSchema,
   ValidationErrors,
 } from "@/components/repos/subscribe";
 
@@ -39,11 +40,19 @@ export function SubscribePublicRepo() {
     },
     validatorAdapter: zodValidator(),
     validators: {
-      onChange: githubRepoSchema,
+      onChange: githubRepoFormSchema,
     },
     onSubmit: async ({ value }) => {
       try {
-        const { owner, repo } = githubRepoSchema.parse(value);
+        const result = githubRepoSubmitSchema.safeParse(value);
+        if (!result.success) {
+          return {
+            onSubmit:
+              result.error.errors[0]?.message ?? "Invalid repository format",
+          };
+        }
+
+        const { owner, repo } = result.data;
         await subscribeRepoMutation.mutateAsync({
           type: "public",
           owner,
@@ -106,7 +115,7 @@ export function SubscribePublicRepo() {
 
   const debouncedValidateAndPreview = useDebounce((input: string) => {
     setError(null);
-    const { success, data } = githubRepoSchema.safeParse({ input });
+    const { success, data } = githubRepoSubmitSchema.safeParse({ input });
     if (success) {
       void fetchPreview(data.owner, data.repo);
     } else {

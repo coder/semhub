@@ -23,7 +23,8 @@ import {
   type RepoPreviewProps,
 } from "@/components/repos/RepoPreview";
 import {
-  githubRepoSchema,
+  githubRepoFormSchema,
+  githubRepoSubmitSchema,
   ValidationErrors,
 } from "@/components/repos/subscribe";
 
@@ -39,12 +40,11 @@ export function SubscribePrivateRepo() {
     },
     validatorAdapter: zodValidator(),
     validators: {
-      onSubmit: githubRepoSchema,
-      onBlur: githubRepoSchema,
+      onChange: githubRepoFormSchema,
     },
     onSubmit: async ({ value }) => {
       try {
-        const { owner, repo } = githubRepoSchema.parse(value);
+        const { owner, repo } = githubRepoSubmitSchema.parse(value);
         await subscribeRepoMutation.mutateAsync({
           type: "private",
           owner,
@@ -103,7 +103,7 @@ export function SubscribePrivateRepo() {
 
   const debouncedValidateAndPreview = useDebounce((input: string) => {
     setError(null);
-    const { success, data } = githubRepoSchema.safeParse({ input });
+    const { success, data } = githubRepoSubmitSchema.safeParse({ input });
     if (success) {
       void fetchPreview(data.owner, data.repo);
     } else {
