@@ -87,12 +87,12 @@ function normalizeDataPerIssue(
   issToLblRelationsNodeIds: IssToLblRelationNodeIds[];
 } {
   // Aggregate reactions by type
-  const reactionCounts = issue.reactions.nodes.reduce(
-    (acc, reaction) => {
-      acc[reaction.content] = (acc[reaction.content] || 0) + 1;
+  const reactionCounts = issue.reactionGroups.reduce(
+    (acc: Record<string, number>, reaction) => {
+      acc[reaction.content] = reaction.reactors.totalCount;
       return acc;
     },
-    {} as Record<string, number>,
+    {},
   );
 
   const aggregateReactions: AggregateReactions = {
@@ -249,10 +249,10 @@ function getGithubIssuesWithMetadataForUpsert() {
                 description
               }
             }
-            reactions(first: 100) {
-              nodes {
-                id
-                content
+            reactionGroups {
+              content
+              reactors {
+                totalCount
               }
             }
             comments(

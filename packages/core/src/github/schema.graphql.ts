@@ -60,9 +60,23 @@ export const loadRepoIssuesQueryIssueSchema = z.object({
   updatedAt: z.string().datetime(),
   closedAt: z.string().datetime().nullable(),
   author: loadRepoIssuesQueryAuthorSchema,
-  reactions: z.object({
-    nodes: z.array(loadRepoIssuesQueryReactionSchema),
-  }),
+  reactionGroups: z.array(
+    z.object({
+      content: z.enum([
+        "THUMBS_UP",
+        "THUMBS_DOWN",
+        "LAUGH",
+        "HOORAY",
+        "CONFUSED",
+        "HEART",
+        "ROCKET",
+        "EYES",
+      ]),
+      reactors: z.object({
+        totalCount: z.number(),
+      }),
+    }),
+  ),
   comments: z.object({
     nodes: z.array(loadRepoIssuesQueryCommentSchema),
   }),
