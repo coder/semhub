@@ -392,4 +392,43 @@ export const Repo = {
       .set({ issuesLastUpdatedAt: result.lastUpdated })
       .where(eq(repos.id, repoId));
   },
+
+  readyForPublicSearch: async ({
+    owner,
+    name,
+    db,
+  }: {
+    owner: string;
+    name: string;
+    db: DbClient;
+  }) => {
+    const [result] = await db
+      .select({
+        initStatus: repos.initStatus,
+        syncStatus: repos.syncStatus,
+        lastSyncedAt: repos.lastSyncedAt,
+        issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
+        avatarUrl: repos.ownerAvatarUrl,
+      })
+      .from(repos)
+      .where(
+        and(
+          eq(repos.ownerLogin, owner),
+          eq(repos.name, name),
+          eq(repos.isPrivate, false),
+        ),
+      );
+
+    if (!result) {
+      return null;
+    }
+
+    return {
+      initStatus: result.initStatus,
+      lastSyncedAt: result.lastSyncedAt,
+      issuesLastUpdatedAt: result.issuesLastUpdatedAt,
+      syncStatus: result.syncStatus,
+      avatarUrl: result.avatarUrl,
+    };
+  },
 };

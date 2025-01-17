@@ -26,3 +26,11 @@ export const unsubscribeRepo = async (repoId: string) => {
   });
   return handleResponse(response, "Failed to unsubscribe from repository");
 };
+
+export async function getRepoStatus(owner: string, repo: string) {
+  const response = await fetch(`/api/public/repo/${owner}/${repo}/status`);
+  if (!response.ok) {
+    throw new Error("Failed to get repository status");
+  }
+  return response.json();
+}
