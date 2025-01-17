@@ -311,6 +311,7 @@ export async function getLatestGithubRepoIssues({
   if (issues.length === 0) {
     return {
       hasNextPage,
+      lastIssueUpdatedAt: null,
       issuesAndCommentsLabels: {
         issuesToInsert: [],
         commentsToInsert: [],

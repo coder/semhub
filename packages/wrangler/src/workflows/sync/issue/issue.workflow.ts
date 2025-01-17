@@ -69,32 +69,37 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
       const name = `${repoOwner}/${repoName}`;
       caughtName = name;
       caughtRepoId = repoId;
-      const octokit = await step.do("get octokit", async () => {
-        if (!isPrivate) {
-          return graphqlOctokit;
-        }
-        const installation = await Installation.getActiveGithubInstallationId({
-          userId: null,
-          repoName,
-          repoOwner,
-          db,
-          restOctokitAppFactory,
-        });
-        if (!installation) {
-          throw new NonRetryableError("Installation not found");
-        }
-        return graphqlOctokitAppFactory(installation.githubInstallationId);
-      });
+      // don't have to worry about getting same issues twice because
+      // we are using hasNextPage to determine if we should continue
       let currentSince = repoIssuesLastUpdatedAtRaw
         ? new Date(repoIssuesLastUpdatedAtRaw)
         : null;
-      let hasMoreIssues = true;
 
-      while (hasMoreIssues) {
+      while (true) {
         const { hasNextPage, issuesAndCommentsLabels, lastIssueUpdatedAt } =
           await step.do(
             `get latest issues of ${name} from GitHub`,
             async () => {
+              // NB octokit cannot be serialized
+              const octokit = await (async () => {
+                if (!isPrivate) {
+                  return graphqlOctokit;
+                }
+                const installation =
+                  await Installation.getActiveGithubInstallationId({
+                    userId: null,
+                    repoName,
+                    repoOwner,
+                    db,
+                    restOctokitAppFactory,
+                  });
+                if (!installation) {
+                  throw new NonRetryableError("Installation not found");
+                }
+                return graphqlOctokitAppFactory(
+                  installation.githubInstallationId,
+                );
+              })();
               for (
                 let attempt = 0;
                 attempt <= REDUCE_ISSUES_MAX_ATTEMPTS;
@@ -140,7 +145,6 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
         );
 
         if (!hasNextPage) {
-          hasMoreIssues = false;
           break;
         }
         if (!lastIssueUpdatedAt) {
