@@ -32,7 +32,13 @@ function RepoSearch() {
       </div>
     );
   }
-  const { avatarUrl, issuesLastUpdatedAt, lastSyncedAt } = repoStatus;
+  const {
+    avatarUrl,
+    issuesLastUpdatedAt,
+    lastSyncedAt,
+    initStatus,
+    syncStatus,
+  } = repoStatus;
 
   return (
     <div className="relative flex w-full justify-center pt-28">
@@ -72,6 +78,7 @@ function RepoSearch() {
         <RepoStatusTooltip
           lastSyncedAt={lastSyncedAt}
           issuesLastUpdatedAt={issuesLastUpdatedAt}
+          syncStatus={syncStatus}
         />
         <EmbedBadgePopover owner={owner} repo={repo} />
       </div>

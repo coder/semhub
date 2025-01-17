@@ -22,18 +22,36 @@ function TimeDisplay({ label, date }: { label: string; date: string | null }) {
   );
 }
 
+function StatusDisplay({
+  label,
+  status,
+}: {
+  label: string;
+  status: string | null;
+}) {
+  if (!status) return null;
+  return (
+    <span>
+      {label}: {status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()}
+    </span>
+  );
+}
+
 export function RepoStatusTooltip({
   lastSyncedAt,
   issuesLastUpdatedAt,
+  syncStatus,
 }: {
   lastSyncedAt: string | null;
   issuesLastUpdatedAt: string | null;
+  syncStatus: string | null;
 }) {
   return (
     <TooltipProvider>
       <FastTooltip
         content={
           <div className="flex flex-col gap-1 text-sm">
+            <StatusDisplay label="Repo status" status={syncStatus} />
             <TimeDisplay label="Last synced" date={lastSyncedAt} />
             <TimeDisplay label="Issues updated" date={issuesLastUpdatedAt} />
           </div>
