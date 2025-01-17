@@ -5,7 +5,12 @@ import {
 } from "@tanstack/react-query";
 import { produce } from "immer";
 
-import { listRepos, subscribeRepo, unsubscribeRepo } from "@/lib/api/repo";
+import {
+  getRepoStatus,
+  listRepos,
+  subscribeRepo,
+  unsubscribeRepo,
+} from "@/lib/api/repo";
 import { queryKeys } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -97,5 +102,12 @@ export const useUnsubscribeRepo = () => {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.repos.list });
     },
+  });
+};
+
+export const useRepoStatus = (owner: string, repo: string) => {
+  return useSuspenseQuery({
+    queryKey: queryKeys.repos.status(owner, repo),
+    queryFn: () => getRepoStatus(owner, repo),
   });
 };

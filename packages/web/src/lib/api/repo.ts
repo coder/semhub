@@ -28,9 +28,12 @@ export const unsubscribeRepo = async (repoId: string) => {
 };
 
 export async function getRepoStatus(owner: string, repo: string) {
-  const response = await fetch(`/api/public/repo/${owner}/${repo}/status`);
-  if (!response.ok) {
-    throw new Error("Failed to get repository status");
-  }
-  return response.json();
+  const response = await client.public.repo[":owner"][":repo"].status.$get({
+    param: { owner, repo },
+  });
+  const { data } = await handleResponse(
+    response,
+    "Failed to get repository status",
+  );
+  return data;
 }

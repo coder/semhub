@@ -9,6 +9,8 @@ export const queryKeys = {
   session: ["session"] as const,
   repos: {
     list: ["repos", "list"] as const,
+    status: (owner: string, repo: string) =>
+      ["repos", "status", owner, repo] as const,
   },
   issues: {
     search: {
