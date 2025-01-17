@@ -47,7 +47,7 @@ function RepoSearch() {
         could not be found.
       </p>
       <p className="mt-2 text-muted-foreground">
-        Please ensure this repository has been added to Semhub.
+        Please ensure this repository has been added to SemHub.
       </p>
     </div>
   );
