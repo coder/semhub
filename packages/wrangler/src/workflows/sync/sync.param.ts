@@ -2,7 +2,7 @@
 // where we truncate body size and code blocks
 
 //* Parameters for init workflow *//
-export const NUM_CONCURRENT_INITS = 10;
+export const NUM_CONCURRENT_INITS = 20;
 // for GitHub API calls
 export const NUM_EMBEDDING_WORKERS = 3; // also corresponds to number of consecutive API calls + upserts before spinning up workers
 
