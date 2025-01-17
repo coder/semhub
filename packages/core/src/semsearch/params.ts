@@ -1,4 +1,4 @@
-export const SEQ_SCAN_THRESHOLD = 15000;
+export const SEQ_SCAN_THRESHOLD = 25000;
 export const VECTOR_SIMILARITY_SEARCH_LIMIT = 10000;
 export const HNSW_EF_SEARCH = 200;
 export const HNSW_MAX_SCAN_TUPLES = 20000;
