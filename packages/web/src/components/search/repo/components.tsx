@@ -1,6 +1,7 @@
 import { CheckIcon, CopyIcon, InfoIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 
+import { RepoStatus } from "@/lib/hooks/useRepo";
 import { getTimeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -23,35 +24,40 @@ function TimeDisplay({ label, date }: { label: string; date: string | null }) {
 }
 
 function StatusDisplay({
-  label,
-  status,
+  initStatus,
+  syncStatus,
 }: {
-  label: string;
-  status: string | null;
+  initStatus: RepoStatus["initStatus"];
+  syncStatus: RepoStatus["syncStatus"];
 }) {
-  if (!status) return null;
-  return (
-    <span>
-      {label}: {status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()}
-    </span>
-  );
+  let displayText = "";
+
+  if (initStatus && initStatus !== "completed") {
+    displayText = `Initialization: ${initStatus.charAt(0).toUpperCase() + initStatus.slice(1).toLowerCase()}`;
+  } else if (syncStatus) {
+    displayText = `Status: ${syncStatus.charAt(0).toUpperCase() + syncStatus.slice(1).toLowerCase()}`;
+  }
+
+  return displayText ? <span>{displayText}</span> : null;
 }
 
 export function RepoStatusTooltip({
   lastSyncedAt,
   issuesLastUpdatedAt,
   syncStatus,
+  initStatus,
 }: {
-  lastSyncedAt: string | null;
-  issuesLastUpdatedAt: string | null;
-  syncStatus: string | null;
+  lastSyncedAt: RepoStatus["lastSyncedAt"];
+  issuesLastUpdatedAt: RepoStatus["issuesLastUpdatedAt"];
+  syncStatus: RepoStatus["syncStatus"];
+  initStatus: RepoStatus["initStatus"];
 }) {
   return (
     <TooltipProvider>
       <FastTooltip
         content={
           <div className="flex flex-col gap-1 text-sm">
-            <StatusDisplay label="Repo status" status={syncStatus} />
+            <StatusDisplay initStatus={initStatus} syncStatus={syncStatus} />
             <TimeDisplay label="Last synced" date={lastSyncedAt} />
             <TimeDisplay label="Issues updated" date={issuesLastUpdatedAt} />
           </div>

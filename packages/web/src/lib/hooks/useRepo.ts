@@ -111,3 +111,5 @@ export const useRepoStatus = (owner: string, repo: string) => {
     queryFn: () => getRepoStatus(owner, repo),
   });
 };
+
+export type RepoStatus = NonNullable<ReturnType<typeof useRepoStatus>["data"]>;
