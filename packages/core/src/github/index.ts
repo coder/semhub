@@ -212,7 +212,6 @@ function getGithubIssuesWithMetadataForUpsert() {
   // use explorer to test GraphQL queries: https://docs.github.com/en/graphql/overview/explorer
   const query = graphql(`
     query paginate(
-      $cursor: String
       $organization: String!
       $repo: String!
       $since: DateTime
@@ -221,7 +220,6 @@ function getGithubIssuesWithMetadataForUpsert() {
       repository(owner: $organization, name: $repo) {
         issues(
           first: $first
-          after: $cursor
           orderBy: { field: UPDATED_AT, direction: ASC }
           filterBy: { since: $since }
         ) {
@@ -289,7 +287,6 @@ export async function getLatestGithubRepoIssues({
   repoOwner,
   octokit,
   since,
-  after,
   numIssues = 100,
 }: {
   repoId: string;
@@ -297,7 +294,6 @@ export async function getLatestGithubRepoIssues({
   repoOwner: string;
   octokit: GraphqlOctokit;
   since: Date | null;
-  after: string | null;
   numIssues?: number;
 }) {
   const response = await octokit.graphql(
@@ -305,7 +301,6 @@ export async function getLatestGithubRepoIssues({
     {
       organization: repoOwner,
       repo: repoName,
-      cursor: after,
       since: since?.toISOString() ?? null,
       first: numIssues,
     },
@@ -313,11 +308,10 @@ export async function getLatestGithubRepoIssues({
   const data = loadIssuesWithCommentsResSchema.parse(response);
   const issues = data.repository.issues.nodes;
   const hasNextPage = data.repository.issues.pageInfo.hasNextPage;
-  const endCursor = data.repository.issues.pageInfo.endCursor;
   if (issues.length === 0) {
     return {
       hasNextPage,
-      endCursor,
+      lastIssueUpdatedAt: null,
       issuesAndCommentsLabels: {
         issuesToInsert: [],
         commentsToInsert: [],
@@ -373,7 +367,6 @@ export async function getLatestGithubRepoIssues({
   const lastIssueUpdatedAt = new Date(issues[issues.length - 1]!.updatedAt);
   return {
     hasNextPage,
-    endCursor,
     issuesAndCommentsLabels: {
       issuesToInsert: issuesNodeIdMap,
       commentsToInsert: commentsNodeIdMap,

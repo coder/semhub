@@ -111,7 +111,6 @@ export const Repo = {
           repoId: repos.id,
           repoName: repos.name,
           repoOwner: repos.ownerLogin,
-          issuesLastEndCursor: repos.issuesLastEndCursor,
           isPrivate: repos.isPrivate,
           repoIssuesLastUpdatedAt: repos.issuesLastUpdatedAt,
         })

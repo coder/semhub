@@ -32,7 +32,9 @@ export const repos = pgTable(
     lastSyncedAt: timestamptz("last_synced_at"),
     initStatus: initStatusEnum("init_status").notNull().default("ready"),
     initializedAt: timestamptz("initialized_at"),
-    issuesLastEndCursor: text("issues_last_end_cursor"),
+    // NB based on setIssuesLastUpdatedAt, we only consider issues with embeddings in this col
+    // this is because we display this on the frontend and issues without embeddings are not searchable
+    // this means we may be upserting extra issues during sync, but that's ok
     issuesLastUpdatedAt: timestamptz("issues_last_updated_at"),
   },
   (table) => ({

@@ -64,7 +64,6 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             initStatus: repos.initStatus,
             repoName: repos.name,
             repoOwner: repos.ownerLogin,
-            issuesLastEndCursor: repos.issuesLastEndCursor,
             isPrivate: repos.isPrivate,
             repoIssuesLastUpdatedAt: repos.issuesLastUpdatedAt,
           })
@@ -80,13 +79,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         return result;
       },
     );
-    const {
-      repoName,
-      repoOwner,
-      repoIssuesLastUpdatedAt,
-      issuesLastEndCursor,
-      isPrivate,
-    } = result;
+    const { repoName, repoOwner, repoIssuesLastUpdatedAt, isPrivate } = result;
     const name = `${repoOwner}/${repoName}`;
     let responseSizeForDebugging = 0;
     try {
@@ -106,7 +99,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         }
         return graphqlOctokitAppFactory(installation.githubInstallationId);
       })();
-      const { issueIdsArray, hasMoreIssues, after } = await step.do(
+      const { issueIdsArray, hasMoreIssues } = await step.do(
         `get ${NUM_EMBEDDING_WORKERS} API calls worth of data for ${name}`,
         {
           timeout: "12 minutes",
@@ -122,54 +115,46 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             ? new Date(repoIssuesLastUpdatedAt)
             : null;
           let hasMoreIssues = true;
-          let after = issuesLastEndCursor ?? null;
 
           for (let i = 0; i < NUM_EMBEDDING_WORKERS && hasMoreIssues; i++) {
-            const {
-              hasNextPage,
-              issuesAndCommentsLabels,
-              lastIssueUpdatedAt,
-              endCursor,
-            } = await step.do(
-              `get latest issues of ${name} from GitHub (batch ${i + 1})`,
-              async () => {
-                for (
-                  let attempt = 0;
-                  attempt <= REDUCE_ISSUES_MAX_ATTEMPTS;
-                  attempt++
-                ) {
-                  const numIssues = getNumIssues(attempt);
-                  const result = await getLatestGithubRepoIssues({
-                    repoId,
-                    repoName,
-                    repoOwner,
-                    octokit,
-                    since: currentSince,
-                    numIssues,
-                    after,
-                  });
+            const { hasNextPage, issuesAndCommentsLabels, lastIssueUpdatedAt } =
+              await step.do(
+                `get latest issues of ${name} from GitHub (batch ${i + 1})`,
+                async () => {
+                  for (
+                    let attempt = 0;
+                    attempt <= REDUCE_ISSUES_MAX_ATTEMPTS;
+                    attempt++
+                  ) {
+                    const numIssues = getNumIssues(attempt);
+                    const result = await getLatestGithubRepoIssues({
+                      repoId,
+                      repoName,
+                      repoOwner,
+                      octokit,
+                      since: currentSince,
+                      numIssues,
+                    });
 
-                  const responseSize = getApproximateSizeInBytes(result);
-                  if (responseSize <= getSizeLimit(name)) {
-                    responseSizeForDebugging = responseSize;
-                    return result;
-                  }
-                  if (attempt < REDUCE_ISSUES_MAX_ATTEMPTS) {
-                    continue;
+                    const responseSize = getApproximateSizeInBytes(result);
+                    if (responseSize <= getSizeLimit(name)) {
+                      responseSizeForDebugging = responseSize;
+                      return result;
+                    }
+                    if (attempt < REDUCE_ISSUES_MAX_ATTEMPTS) {
+                      continue;
+                    }
+                    throw new NonRetryableError(
+                      `Response size (${Math.round(responseSize / 1024)}KB) too large even with numIssues=${numIssues}. See: ${result.issuesAndCommentsLabels.issuesToInsert.map((issue) => issue.htmlUrl).join(", ")}`,
+                    );
                   }
                   throw new NonRetryableError(
-                    `Response size (${Math.round(responseSize / 1024)}KB) too large even with numIssues=${numIssues}. See: ${result.issuesAndCommentsLabels.issuesToInsert.map((issue) => issue.htmlUrl).join(", ")}`,
+                    `Failed to get issues for ${name} after ${REDUCE_ISSUES_MAX_ATTEMPTS} attempts`,
                   );
-                }
-                throw new NonRetryableError(
-                  `Failed to get issues for ${name} after ${REDUCE_ISSUES_MAX_ATTEMPTS} attempts`,
-                );
-              },
-            );
-            after = endCursor;
+                },
+              );
             if (!hasNextPage) {
               hasMoreIssues = false;
-              break;
             }
             if (!lastIssueUpdatedAt) {
               throw new NonRetryableError("lastIssueUpdatedAt is undefined");
@@ -188,7 +173,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             currentSince = lastIssueUpdatedAt;
           }
 
-          return { issueIdsArray, hasMoreIssues, after };
+          return { issueIdsArray, hasMoreIssues };
         },
       );
       await Promise.all(
@@ -228,13 +213,10 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         }),
       );
       await step.do(
-        "update repo issuesLastEndCursor",
+        "set issuesLastUpdatedAt",
         getStepDuration("short"),
         async () => {
-          await db
-            .update(repos)
-            .set({ issuesLastEndCursor: after })
-            .where(eq(repos.id, repoId));
+          await Repo.setIssuesLastUpdatedAt(repoId, db);
         },
       );
       if (hasMoreIssues) {

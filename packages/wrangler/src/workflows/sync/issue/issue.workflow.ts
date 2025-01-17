@@ -49,85 +49,89 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
           return await Repo.markNextEnqueuedRepoInProgress(db);
         },
       );
-      if (!res) {
-        // all repos have been synced, return early
+      const syncComplete = !res;
+      await step.do(
+        syncComplete ? "sync complete, returning early" : "proceed to sync",
+        async () => {
+          return;
+        },
+      );
+      if (syncComplete) {
         return;
       }
       const {
         repoId,
         repoName,
         repoOwner,
-        issuesLastEndCursor,
         repoIssuesLastUpdatedAt: repoIssuesLastUpdatedAtRaw,
         isPrivate,
       } = res;
       const name = `${repoOwner}/${repoName}`;
       caughtName = name;
       caughtRepoId = repoId;
-      const octokit = await (async () => {
-        if (!isPrivate) {
-          return graphqlOctokit;
-        }
-        const installation = await Installation.getActiveGithubInstallationId({
-          userId: null,
-          repoName,
-          repoOwner,
-          db,
-          restOctokitAppFactory,
-        });
-        if (!installation) {
-          throw new NonRetryableError("Installation not found");
-        }
-        return graphqlOctokitAppFactory(installation.githubInstallationId);
-      })();
+      // don't have to worry about getting same issues twice because
+      // we are using hasNextPage to determine if we should continue
       let currentSince = repoIssuesLastUpdatedAtRaw
         ? new Date(repoIssuesLastUpdatedAtRaw)
         : null;
-      let hasMoreIssues = true;
-      let after = issuesLastEndCursor ?? null;
 
-      while (hasMoreIssues) {
-        const {
-          hasNextPage,
-          issuesAndCommentsLabels,
-          lastIssueUpdatedAt,
-          endCursor,
-        } = await step.do(
-          `get latest issues of ${name} from GitHub`,
-          async () => {
-            for (
-              let attempt = 0;
-              attempt <= REDUCE_ISSUES_MAX_ATTEMPTS;
-              attempt++
-            ) {
-              const numIssues = getNumIssues(attempt, name);
-              const result = await getLatestGithubRepoIssues({
-                repoId,
-                repoName,
-                repoOwner,
-                octokit,
-                since: currentSince,
-                numIssues,
-                after,
-              });
+      while (true) {
+        const { hasNextPage, issuesAndCommentsLabels, lastIssueUpdatedAt } =
+          await step.do(
+            `get latest issues of ${name} from GitHub`,
+            async () => {
+              // NB octokit cannot be serialized
+              const octokit = await (async () => {
+                if (!isPrivate) {
+                  return graphqlOctokit;
+                }
+                const installation =
+                  await Installation.getActiveGithubInstallationId({
+                    userId: null,
+                    repoName,
+                    repoOwner,
+                    db,
+                    restOctokitAppFactory,
+                  });
+                if (!installation) {
+                  throw new NonRetryableError("Installation not found");
+                }
+                return graphqlOctokitAppFactory(
+                  installation.githubInstallationId,
+                );
+              })();
+              for (
+                let attempt = 0;
+                attempt <= REDUCE_ISSUES_MAX_ATTEMPTS;
+                attempt++
+              ) {
+                const numIssues = getNumIssues(attempt, name);
+                const result = await getLatestGithubRepoIssues({
+                  repoId,
+                  repoName,
+                  repoOwner,
+                  octokit,
+                  since: currentSince,
+                  numIssues,
+                });
 
-              const responseSize = getApproximateSizeInBytes(result);
-              if (responseSize <= getSizeLimit(name)) {
-                responseSizeForDebugging = responseSize;
-                return result;
-              }
-              if (attempt < REDUCE_ISSUES_MAX_ATTEMPTS) {
-                continue;
+                const responseSize = getApproximateSizeInBytes(result);
+                if (responseSize <= getSizeLimit(name)) {
+                  responseSizeForDebugging = responseSize;
+                  return result;
+                }
+                if (attempt < REDUCE_ISSUES_MAX_ATTEMPTS) {
+                  continue;
+                }
+                throw new NonRetryableError(
+                  `Response size (${Math.round(responseSize / 1024)}KB) too large even with numIssues=${numIssues}. See: ${result.issuesAndCommentsLabels.issuesToInsert.map((issue) => issue.htmlUrl).join(", ")}`,
+                );
               }
               throw new NonRetryableError(
-                `Response size (${Math.round(responseSize / 1024)}KB) too large even with numIssues=${numIssues}. See: ${result.issuesAndCommentsLabels.issuesToInsert.map((issue) => issue.htmlUrl).join(", ")}`,
+                `Failed to get issues for ${name} after ${REDUCE_ISSUES_MAX_ATTEMPTS} attempts`,
               );
-            }
-            throw new NonRetryableError(
-              `Failed to get issues for ${name} after ${REDUCE_ISSUES_MAX_ATTEMPTS} attempts`,
-            );
-          },
-        );
+            },
+          );
 
         await step.do(
           `upsert issues and comments/labels of ${name}`,
@@ -140,10 +144,7 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
           },
         );
 
-        // endCursor is null if there is no more issues
-        after = endCursor ?? after;
         if (!hasNextPage) {
-          hasMoreIssues = false;
           break;
         }
         if (!lastIssueUpdatedAt) {
@@ -151,18 +152,6 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
         }
         currentSince = lastIssueUpdatedAt;
       }
-      await step.do(
-        "update repo issuesLastEndCursor",
-        getStepDuration("short"),
-        async () => {
-          if (after) {
-            await db
-              .update(repos)
-              .set({ issuesLastEndCursor: after })
-              .where(eq(repos.id, repoId));
-          }
-        },
-      );
       await step.do(
         "set issuesLastUpdatedAt",
         getStepDuration("short"),
