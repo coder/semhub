@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { useRepoStatus } from "@/lib/hooks/useRepo";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   EmbedBadgePopover,
   RepoStatusTooltip,
@@ -9,7 +10,27 @@ import { RepoSearchBar } from "@/components/search/RepoSearchBar";
 
 export const Route = createFileRoute("/r/$owner/$repo")({
   component: RepoSearch,
+  pendingComponent: () => <RepoSearchSkeleton />,
 });
+
+function RepoSearchSkeleton() {
+  return (
+    <div className="relative flex w-full justify-center pt-28">
+      <div className="w-full max-w-screen-xl px-4">
+        <div className="mb-8 flex flex-col items-center">
+          <div className="mb-2 flex items-center gap-2">
+            <Skeleton className="size-6 rounded-full" />
+            <Skeleton className="h-8 w-64" />
+          </div>
+          <Skeleton className="mb-8 h-6 w-96" />
+          <div className="mx-auto w-full max-w-2xl">
+            <Skeleton className="h-10 w-full rounded-lg" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function RepoSearch() {
   const { owner, repo } = Route.useParams();
@@ -113,6 +134,7 @@ function RepoSearch() {
         </div>
       );
     default:
+      initStatus satisfies never;
       return <NotFoundView />;
   }
 }
