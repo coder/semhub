@@ -34,7 +34,7 @@ interface SuggestedSearchCardProps {
 }
 
 export function SuggestedSearchCard({ search }: SuggestedSearchCardProps) {
-  const { handleSearch } = usePublicSearch();
+  const { handleSearch } = usePublicSearch({ mode: "suggested" });
 
   return (
     <Button

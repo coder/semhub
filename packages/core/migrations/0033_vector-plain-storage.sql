@@ -1,7 +1,7 @@
 /*
 pg (or pgvector?) uses EXTENDED storage by default for for all columns bigger than 2KB
 
-Changes vector storage to PLAIN if vector operation is in hot path (which it is for Semhub):
+Changes vector storage to PLAIN if vector operation is in hot path (which it is for SemHub):
 - this only works if your row size is within PG page limit of 8KB
 - you cannot increase page limit beyond 8KB for index
 

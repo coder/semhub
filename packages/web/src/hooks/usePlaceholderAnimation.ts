@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 
 // need to be short for entire text to fit in mobile
 const PLACEHOLDER_TEXTS = [
-  "Semhub understands what you mean",
+  "SemHub understands what you mean",
   "Search issues across multiple repos",
   "Login to customize your search",
-  "Add Semhub Search to your repo",
+  "Add SemHub search to your repo",
 ] as const;
 
 const TYPING_DELAY_MS = 20;

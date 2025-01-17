@@ -220,6 +220,7 @@ function SearchFilters({
 export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
   const [selectedOrg, setSelectedOrg] = useState("all");
   const [selectedRepo, setSelectedRepo] = useState("all");
+  const removedOperators = ["collection"] as SearchOperator[];
   const {
     query,
     inputRef,
@@ -238,8 +239,11 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
     commandValue,
     setCommandValue,
     setQuery,
-  } = useSearchBar(initialQuery);
-  const { handleSearch } = usePublicSearch(setQuery);
+  } = useSearchBar({
+    initialQuery,
+    removedOperators,
+  });
+  const { handleSearch } = usePublicSearch({ mode: "search", setQuery });
 
   const handleOrgChange = (org: string) => {
     setSelectedOrg(org);
@@ -306,6 +310,7 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
               handleValueSelect={handleValueSelect}
               commandValue={commandValue}
               setCommandValue={setCommandValue}
+              removedOperators={removedOperators}
             />
           </div>
         )}
@@ -318,6 +323,7 @@ export function HomepageSearchBar() {
   const { theme } = useTheme();
   const [selectedOrg, setSelectedOrg] = useState("all");
   const [selectedRepo, setSelectedRepo] = useState("all");
+  const removedOperators = ["collection"] as SearchOperator[];
   const {
     query,
     inputRef,
@@ -336,8 +342,11 @@ export function HomepageSearchBar() {
     commandValue,
     setCommandValue,
     setQuery,
-  } = useSearchBar();
-  const { handleSearch, handleLuckySearch } = usePublicSearch(setQuery);
+  } = useSearchBar({ removedOperators });
+  const { handleSearch, handleLuckySearch } = usePublicSearch({
+    mode: "search",
+    setQuery,
+  });
   const placeholderText = usePlaceholderAnimation();
 
   const handleOrgChange = (org: string) => {
@@ -401,6 +410,7 @@ export function HomepageSearchBar() {
                 handleValueSelect={handleValueSelect}
                 commandValue={commandValue}
                 setCommandValue={setCommandValue}
+                removedOperators={removedOperators}
               />
             </div>
           )}

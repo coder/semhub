@@ -88,7 +88,7 @@ function RepoSection({ title, type, repos }: RepoSectionProps) {
           <InfoIcon className="size-4" />
           <AlertTitle>Want to add your private repos?</AlertTitle>
           <AlertDescription>
-            Click &ldquo;Authorize&rdquo; to grant Semhub access to your private
+            Click &ldquo;Authorize&rdquo; to grant SemHub access to your private
             repositories.
           </AlertDescription>
         </Alert>

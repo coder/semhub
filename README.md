@@ -1,4 +1,4 @@
-# Semhub
+# SemHub
 
 ## Development
 
@@ -84,7 +84,7 @@ To set up a GitHub App:
   - In terms of permissions:
     - Select the following read-only Repository permissions: Metadata (mandatory), Discussions, Issues, Pull Requests, Contents. (These should be tracked in code via `github-app.ts`.)
     - Select the following read-only User permissions: Emails (actually would've gotten the user's email from the login process)
-    - Select the following read-only Organization permissions: Members (to enable Semhub to work for users in the same organization after it has been installed by an admin)
+    - Select the following read-only Organization permissions: Members (to enable SemHub to work for users in the same organization after it has been installed by an admin)
   - Leave unchecked the box that says "Request user authorization (OAuth) during installation". Our app handles user login + creation.
   - Select redirect on update and use the frontend `/repos` page as the Setup URL
     - Local dev: `https://local.semhub.dev:3001/repos`
