@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { SEARCH_OPERATORS } from "@/core/constants/search.constant";
+import {
+  SEARCH_OPERATORS,
+  type SearchOperator,
+} from "@/core/constants/search.constant";
 import type {
   OperatorWithIcon,
   SubmenuValue,
@@ -81,7 +84,15 @@ const getValSelectCursorPosition = (
   return cursorPosition - commandInputValue.length + value.length;
 };
 
-export function useSearchBar(initialQuery = "") {
+interface UseSearchBarProps {
+  initialQuery?: string;
+  removedOperators?: SearchOperator[];
+}
+
+export function useSearchBar({
+  initialQuery = "",
+  removedOperators = [],
+}: UseSearchBarProps) {
   const [query, setQuery] = useState(initialQuery);
   const commandInputRef = useRef<HTMLInputElement>(null);
   const commandRef = useRef<HTMLDivElement>(null);
@@ -95,6 +106,12 @@ export function useSearchBar(initialQuery = "") {
   const defaultCommandValue = "__no_selection__";
   const [commandValue, setCommandValue] = useState(defaultCommandValue);
 
+  const searchOperators = useMemo(() => {
+    return SEARCH_OPERATORS.filter(
+      (op) => !removedOperators.includes(op.operator),
+    );
+  }, [removedOperators]);
+
   const cursorWord = useMemo(() => {
     return getCursorWord(query, cursorPosition).cursorWord;
   }, [query, cursorPosition]);
@@ -103,7 +120,7 @@ export function useSearchBar(initialQuery = "") {
     if (!cursorWord || !cursorWord.includes(":")) return null;
     const op = cursorWord.slice(0, cursorWord.indexOf(":")).toLowerCase();
     const val = cursorWord.slice(cursorWord.indexOf(":") + 1).toLowerCase();
-    const matchedOp = SEARCH_OPERATORS.find(
+    const matchedOp = searchOperators.find(
       ({ operator }) => operator === op,
     )?.operator;
     // user has not fully typed an operator, show main menu
@@ -115,7 +132,7 @@ export function useSearchBar(initialQuery = "") {
     if (!matchedVal) return matchedOp;
     // finally, revert to main menu when operator's submenu value is fully typed
     return null;
-  }, [cursorWord]);
+  }, [cursorWord, searchOperators]);
 
   const commandInputValue = useMemo(() => {
     // default menu to show
@@ -126,7 +143,8 @@ export function useSearchBar(initialQuery = "") {
 
   const shouldShowDropdown = useMemo(() => {
     const showOperatorList =
-      !subMenu && getFilteredOperators(commandInputValue).length > 0;
+      !subMenu &&
+      getFilteredOperators(commandInputValue, removedOperators).length > 0;
     const showSubmenuList =
       subMenu &&
       getFilteredSubmenuValues(commandInputValue, subMenu).length > 0;

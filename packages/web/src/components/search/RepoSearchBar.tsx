@@ -1,6 +1,7 @@
 import { SearchIcon, XIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 
+import { SearchOperator } from "@/core/constants/search.constant";
 import { usePublicSearch } from "@/hooks/usePublicSearch";
 import { useSearchBar } from "@/hooks/useSearchBar";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ interface RepoSearchBarProps {
 
 export function RepoSearchBar({ owner, repo }: RepoSearchBarProps) {
   const { theme } = useTheme();
+  const removedOperators = ["org", "repo", "collection"] as SearchOperator[];
   const {
     query,
     inputRef,
@@ -32,7 +34,9 @@ export function RepoSearchBar({ owner, repo }: RepoSearchBarProps) {
     commandValue,
     setCommandValue,
     setQuery,
-  } = useSearchBar();
+  } = useSearchBar({
+    removedOperators,
+  });
   const { handleSearch, handleLuckySearch } = usePublicSearch({
     mode: "repo_search",
     setQuery,
@@ -82,6 +86,7 @@ export function RepoSearchBar({ owner, repo }: RepoSearchBarProps) {
               handleValueSelect={handleValueSelect}
               commandValue={commandValue}
               setCommandValue={setCommandValue}
+              removedOperators={removedOperators}
             />
           </div>
         )}

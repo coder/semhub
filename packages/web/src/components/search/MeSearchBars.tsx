@@ -29,7 +29,9 @@ export function MyReposResultsSearchBar({
     handleBlur,
     commandValue,
     setCommandValue,
-  } = useSearchBar(initialQuery);
+  } = useSearchBar({
+    initialQuery,
+  });
   const { handleSearch } = useMeSearch(setQuery);
 
   return (
@@ -104,7 +106,7 @@ export function MyReposSearchBar() {
     commandValue,
     setCommandValue,
     setQuery,
-  } = useSearchBar();
+  } = useSearchBar({});
   const { handleSearch } = useMeSearch(setQuery);
 
   return (

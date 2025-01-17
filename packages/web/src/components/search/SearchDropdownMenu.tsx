@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/command";
 
 interface SearchDropdownMenuProps {
+  removedOperators?: SearchOperator[];
   commandRef: React.RefObject<HTMLDivElement>;
   commandInputRef: React.RefObject<HTMLInputElement>;
   commandInputValue: string;
@@ -41,11 +42,13 @@ const preventDefault = (e: React.MouseEvent | React.TouchEvent) => {
 function OperatorItems({
   commandInputValue,
   onSelect,
+  removedOperators,
 }: {
   commandInputValue: string;
   onSelect: (operator: OperatorWithIcon) => void;
+  removedOperators: SearchOperator[];
 }) {
-  return getFilteredOperators(commandInputValue).map((o) => (
+  return getFilteredOperators(commandInputValue, removedOperators).map((o) => (
     <CommandItem
       key={o.operator}
       onSelect={() => onSelect(o)}
@@ -89,6 +92,7 @@ export function SearchDropdownMenu({
   handleValueSelect,
   commandValue,
   setCommandValue,
+  removedOperators = [],
 }: SearchDropdownMenuProps) {
   return (
     <Command
@@ -113,6 +117,7 @@ export function SearchDropdownMenu({
             <OperatorItems
               commandInputValue={commandInputValue}
               onSelect={handleOperatorSelect}
+              removedOperators={removedOperators}
             />
           )}
           {subMenu === "state" && handleValueSelect && (
@@ -192,11 +197,15 @@ export const OPERATOR_SUBMENU_VALUES = new Map<SearchOperator, SubmenuValue[]>([
   ],
 ]);
 
-export function getFilteredOperators(word: string) {
+export function getFilteredOperators(
+  word: string,
+  removedOperators: SearchOperator[],
+) {
   return OPERATORS_WITH_ICONS.filter(
     (o) =>
-      o.operator.toLowerCase().startsWith(word.toLowerCase()) ||
-      o.name.toLowerCase().startsWith(word.toLowerCase()),
+      !removedOperators.includes(o.operator) &&
+      (o.operator.toLowerCase().startsWith(word.toLowerCase()) ||
+        o.name.toLowerCase().startsWith(word.toLowerCase())),
   );
 }
 
