@@ -32,8 +32,13 @@ export function RepoSearchBar({ owner, repo }: RepoSearchBarProps) {
     commandValue,
     setCommandValue,
     setQuery,
-  } = useSearchBar(`org:${owner} repo:${repo} `);
-  const { handleSearch, handleLuckySearch } = usePublicSearch(setQuery);
+  } = useSearchBar();
+  const { handleSearch, handleLuckySearch } = usePublicSearch({
+    mode: "repo_search",
+    setQuery,
+    owner,
+    repo,
+  });
 
   return (
     <form onSubmit={(e) => handleSearch(e, query)}>

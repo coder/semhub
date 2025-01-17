@@ -239,7 +239,7 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
     setCommandValue,
     setQuery,
   } = useSearchBar(initialQuery);
-  const { handleSearch } = usePublicSearch(setQuery);
+  const { handleSearch } = usePublicSearch({ mode: "search", setQuery });
 
   const handleOrgChange = (org: string) => {
     setSelectedOrg(org);
@@ -337,7 +337,10 @@ export function HomepageSearchBar() {
     setCommandValue,
     setQuery,
   } = useSearchBar();
-  const { handleSearch, handleLuckySearch } = usePublicSearch(setQuery);
+  const { handleSearch, handleLuckySearch } = usePublicSearch({
+    mode: "search",
+    setQuery,
+  });
   const placeholderText = usePlaceholderAnimation();
 
   const handleOrgChange = (org: string) => {
