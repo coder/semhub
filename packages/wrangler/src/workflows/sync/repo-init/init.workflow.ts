@@ -213,6 +213,13 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           }
         }),
       );
+      await step.do(
+        "set issuesLastUpdatedAt",
+        getStepDuration("short"),
+        async () => {
+          await Repo.setIssuesLastUpdatedAt(repoId, db);
+        },
+      );
       if (hasMoreIssues) {
         await step.do(
           "performed one unit of work, call itself recursively",
