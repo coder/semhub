@@ -33,6 +33,10 @@ export function Navbar() {
     prevSystemThemeRef.current = systemTheme;
   }, [theme, systemTheme, audio, showEasterEgg]);
 
+  const handleToggleCount = () => {
+    setToggleCount((prev) => prev + 1);
+  };
+
   const standardLogo = (
     <>
       <span className="text-blue-600">Sem</span>
@@ -80,7 +84,7 @@ export function Navbar() {
         ) : (
           <>
             <LoginButton />
-            <DarkModeToggle onToggleCountChange={setToggleCount} />
+            <DarkModeToggle onToggleCountChange={handleToggleCount} />
           </>
         )}
       </nav>
