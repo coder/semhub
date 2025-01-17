@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useTheme } from "next-themes";
+import { useEffect, useRef, useState } from "react";
 
 import { useSession } from "@/lib/hooks/useSession";
+import { useAudio } from "@/hooks/useAudio";
 import { DarkModeToggle } from "@/components/navbar/DarkModeToggle";
 import { LoginButton } from "@/components/navbar/LoginButton";
 import { UserNav } from "@/components/navbar/UserNav";
@@ -9,7 +11,27 @@ import { UserNav } from "@/components/navbar/UserNav";
 export function Navbar() {
   const { isAuthenticated, user } = useSession();
   const [toggleCount, setToggleCount] = useState(0);
+  const { theme, systemTheme } = useTheme();
+  const audio = useAudio("/sounds/dark-mode.mp3");
+  const prevThemeRef = useRef(theme);
+  const prevSystemThemeRef = useRef(systemTheme);
   const showEasterEgg = toggleCount >= 8;
+
+  useEffect(() => {
+    const wasInDarkMode =
+      prevThemeRef.current === "dark" ||
+      (prevThemeRef.current === "system" &&
+        prevSystemThemeRef.current === "dark");
+    const isInDarkMode =
+      theme === "dark" || (theme === "system" && systemTheme === "dark");
+
+    if (!wasInDarkMode && isInDarkMode && showEasterEgg) {
+      audio.play().catch(console.error);
+    }
+
+    prevThemeRef.current = theme;
+    prevSystemThemeRef.current = systemTheme;
+  }, [theme, systemTheme, audio, showEasterEgg]);
 
   const standardLogo = (
     <>
