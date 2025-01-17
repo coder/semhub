@@ -32,7 +32,6 @@ export const repos = pgTable(
     lastSyncedAt: timestamptz("last_synced_at"),
     initStatus: initStatusEnum("init_status").notNull().default("ready"),
     initializedAt: timestamptz("initialized_at"),
-    issuesLastEndCursor: text("issues_last_end_cursor"),
     issuesLastUpdatedAt: timestamptz("issues_last_updated_at"),
   },
   (table) => ({

@@ -10,7 +10,6 @@ try {
     repoOwner: "coder",
     octokit: graphqlOctokit,
     since: null,
-    after: null,
     numIssues: 100,
   });
   console.log(res);

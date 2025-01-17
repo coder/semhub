@@ -1,0 +1,1 @@
+ALTER TABLE "repos" DROP COLUMN IF EXISTS "issues_last_end_cursor";
