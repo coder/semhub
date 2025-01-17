@@ -155,7 +155,6 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
               );
             if (!hasNextPage) {
               hasMoreIssues = false;
-              break;
             }
             if (!lastIssueUpdatedAt) {
               throw new NonRetryableError("lastIssueUpdatedAt is undefined");
