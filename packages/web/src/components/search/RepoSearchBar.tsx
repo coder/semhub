@@ -42,8 +42,12 @@ export function RepoSearchBar({ owner, repo }: RepoSearchBarProps) {
 
   return (
     <form onSubmit={(e) => handleSearch(e, query)}>
-      <div className="relative mx-auto w-full">
+      <div className="relative mx-auto w-full max-w-xl">
         <div className="relative">
+          <SearchIcon
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+            size={18}
+          />
           <Input
             type="text"
             value={query}
@@ -52,29 +56,20 @@ export function RepoSearchBar({ owner, repo }: RepoSearchBarProps) {
             onFocus={handleFocus}
             onBlur={handleBlur}
             ref={inputRef}
-            className="pr-20"
-            placeholder="Search repository..."
+            className="rounded-full border-gray-300 pl-11 pr-10 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+            placeholder="Search GitHub issues..."
           />
           {query && (
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="absolute right-8 top-1/2 -translate-y-1/2"
+              className="absolute right-2 top-1/2 -translate-y-1/2"
               onClick={handleClear}
             >
               <XIcon className="size-4 text-muted-foreground" />
             </Button>
           )}
-
-          <Button
-            type="submit"
-            variant="ghost"
-            size="icon"
-            className="absolute right-0 top-1/2 -translate-y-1/2"
-          >
-            <SearchIcon className="size-4 text-muted-foreground" />
-          </Button>
         </div>
         {shouldShowDropdown && (
           <div className="absolute z-10 w-full">
