@@ -12,6 +12,7 @@ import { AuthorizeButton } from "@/components/repos/AuthorizeButton";
 import { RepoCard } from "@/components/repos/RepoCard";
 import { SubscribePrivateRepo } from "@/components/repos/SubscribePrivateRepo";
 import { SubscribePublicRepo } from "@/components/repos/SubscribePublicRepo";
+import { EmbedBadgePopover } from "@/components/search/EmbedBadgePopover";
 import { MyReposSearchBar } from "@/components/search/MeSearchBars";
 
 export const Route = createFileRoute("/repos/")({
@@ -27,30 +28,35 @@ function ReposPage() {
   const hasRepos = publicRepos.length > 0 || privateRepos.length > 0;
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-8">
-      <h1 className="mb-8 text-center text-2xl font-bold">My Repositories</h1>
-      <>
-        {!hasRepos && <EmptyState />}
-        {hasRepos && (
-          <div className="mb-8">
-            <MyReposSearchBar />
+    <div className="relative flex w-full justify-center">
+      <div className="container mx-auto max-w-3xl px-4 py-8">
+        <h1 className="mb-8 text-center text-2xl font-bold">My Repositories</h1>
+        <>
+          {!hasRepos && <EmptyState />}
+          {hasRepos && (
+            <div className="mb-8">
+              <MyReposSearchBar />
+            </div>
+          )}
+          <div className="space-y-8">
+            <TooltipProvider>
+              <RepoSection
+                title="Public Repos"
+                type="public"
+                repos={publicRepos}
+              />
+              <RepoSection
+                title="Private Repos"
+                type="private"
+                repos={privateRepos}
+              />
+            </TooltipProvider>
           </div>
-        )}
-        <div className="space-y-8">
-          <TooltipProvider>
-            <RepoSection
-              title="Public Repos"
-              type="public"
-              repos={publicRepos}
-            />
-            <RepoSection
-              title="Private Repos"
-              type="private"
-              repos={privateRepos}
-            />
-          </TooltipProvider>
-        </div>
-      </>
+        </>
+      </div>
+      <div className="fixed bottom-8 right-8">
+        <EmbedBadgePopover owner="your" repo="repo" />
+      </div>
     </div>
   );
 }

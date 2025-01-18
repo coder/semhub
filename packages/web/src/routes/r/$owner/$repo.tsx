@@ -2,11 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { useRepoStatus } from "@/lib/hooks/useRepo";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  EmbedBadgePopover,
-  RepoStatusTooltip,
-} from "@/components/search/repo/components";
+import { EmbedBadgePopover } from "@/components/search/EmbedBadgePopover";
 import { RepoSearchBar } from "@/components/search/RepoSearchBar";
+import { RepoStatusTooltip } from "@/components/search/RepoStatusTooltip";
 
 export const Route = createFileRoute("/r/$owner/$repo")({
   component: RepoSearch,

@@ -1,3 +1,4 @@
+import { EmbedBadgePopover } from "./EmbedBadgePopover";
 import { HomepageSearchBar } from "./PublicSearchBars";
 import {
   SuggestedSearchCard,
@@ -24,6 +25,9 @@ export function HomepageSearch() {
             <SuggestedSearchCard key={search} search={search} />
           ))}
         </div>
+      </div>
+      <div className="fixed bottom-8 right-8">
+        <EmbedBadgePopover owner="your" repo="repo" />
       </div>
     </div>
   );
