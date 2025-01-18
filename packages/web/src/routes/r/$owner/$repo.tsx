@@ -79,6 +79,7 @@ function RepoSearch() {
   );
 
   switch (initStatus) {
+    // should never be hit, this is for private repos only?
     case "pending":
       return <NotFoundView />;
     case "ready":

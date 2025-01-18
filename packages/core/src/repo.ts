@@ -228,6 +228,8 @@ export const Repo = {
             "issueUpdatedAt",
             "issueClosedAt",
             "updatedAt",
+            "aggregateReactions",
+            "topCommenters",
           ]),
         })
         .returning({
