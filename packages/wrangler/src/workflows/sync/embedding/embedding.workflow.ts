@@ -88,7 +88,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
       ): Promise<void> => {
         const embeddings = await step.do(
           `create embeddings for selected issues from API (batch ${idx + 1} of ${totalBatches})`,
-          getStepDuration("short"),
+          getStepDuration("medium"),
           async () => {
             return await createEmbeddings({
               issues,
