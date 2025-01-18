@@ -161,7 +161,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             }
             const insertedIssueIds = await step.do(
               "upsert issues, comments, and labels",
-              getStepDuration("long"),
+              getStepDuration("very long"),
               async () => {
                 return await Repo.upsertIssuesCommentsLabels(
                   issuesAndCommentsLabels,
