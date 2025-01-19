@@ -211,6 +211,7 @@ export const Repo = {
     }));
 
     return await db.transaction(async (tx) => {
+      await tx.execute(sql`SET LOCAL statement_timeout = '5min'`);
       const insertedIssueIds = await tx
         .insert(issueTable)
         .values(sanitizedIssuesToInsert)

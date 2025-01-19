@@ -42,7 +42,7 @@ export const getNumIssues = (attempt: number, name?: string) => {
 // arbitrarily larger than the response size limit set here (pending Cloudflare support response)
 // the problem with a limit that is too high is the return values will be too large to return
 // a limit that is too low will (1) result in lower throughput (2) if a single issue is too large, it will fail
-const DEFAULT_RESPONSE_SIZE_LIMIT_IN_BYTES = 800000;
+const DEFAULT_RESPONSE_SIZE_LIMIT_IN_BYTES = 750000;
 const SIZE_LIMITS_MAP: Record<string, number> = {
   // special handling for golang, source of many errors
   // will figure out how to properly size return value

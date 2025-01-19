@@ -184,41 +184,42 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
       );
       await Promise.all(
         issueIdsArray.map(async (issueIds) => {
-          const embeddingWorkflowId = await step.do(
+          await step.do(
             "call worker to create and insert embeddings",
             async () => {
-              return await this.env.SYNC_EMBEDDING_WORKFLOW.create({
-                id: generateSyncWorkflowId(
-                  `embedding-${repoOwner}-${repoName}`,
-                ),
-                params: {
-                  mode: "init",
-                  issueIds,
-                  repoName,
-                  repoId,
-                },
-              });
+              const embeddingWorkflowId =
+                await this.env.SYNC_EMBEDDING_WORKFLOW.create({
+                  id: generateSyncWorkflowId(
+                    `embedding-${repoOwner}-${repoName}`,
+                  ),
+                  params: {
+                    mode: "init",
+                    issueIds,
+                    repoName,
+                    repoId,
+                  },
+                });
+              while (true) {
+                await step.sleep(
+                  "wait for worker to finish",
+                  PARENT_WORKER_SLEEP_DURATION,
+                );
+                const { status } =
+                  await this.env.SYNC_EMBEDDING_WORKFLOW.getInstanceStatus(
+                    embeddingWorkflowId,
+                  );
+                if (status === "complete") {
+                  return;
+                }
+                // if the children workflow has errored out, it should be a terminal state and we should throw an error here
+                // that would force a retry
+                // however, I have observed that an errored out workflow can still continue to run (wtf)
+                if (status === "errored" || status === "terminated") {
+                  throw new Error("Embedding worker failed, retrying now");
+                }
+              }
             },
           );
-          while (true) {
-            await step.sleep(
-              "wait for worker to finish",
-              PARENT_WORKER_SLEEP_DURATION,
-            );
-            const { status } =
-              await this.env.SYNC_EMBEDDING_WORKFLOW.getInstanceStatus(
-                embeddingWorkflowId,
-              );
-            if (status === "complete") {
-              return;
-            }
-            // if the children workflow has errored out, it should be a terminal state and we should throw an error here
-            // that would force a retry
-            // however, I have observed that an errored out workflow can still continue to run (wtf)
-            if (status === "errored" || status === "terminated") {
-              throw new Error("Embedding worker failed, retrying now");
-            }
-          }
         }),
       );
       await step.do(
