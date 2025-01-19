@@ -157,7 +157,13 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
               hasMoreIssues = false;
             }
             if (!lastIssueUpdatedAt) {
-              throw new NonRetryableError("lastIssueUpdatedAt is undefined");
+              await db
+                .update(repos)
+                .set({ initStatus: "no_issues" })
+                .where(eq(repos.id, repoId));
+              throw new NonRetryableError(
+                `Repo ${repoOwner}/${repoName} has no issues, skipping embedding`,
+              );
             }
             const insertedIssueIds = await step.do(
               "upsert issues, comments, and labels",
@@ -206,8 +212,11 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             if (status === "complete") {
               return;
             }
+            // if the children workflow has errored out, it should be a terminal state and we should throw an error here
+            // that would force a retry
+            // however, I have observed that an errored out workflow can still continue to run (wtf)
             if (status === "errored" || status === "terminated") {
-              throw new NonRetryableError("Embedding worker failed");
+              throw new Error("Embedding worker failed, retrying now");
             }
           }
         }),
@@ -253,6 +262,23 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         });
       }
     } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
+      const isEmbeddingWorkerFailedError = errorMessage.includes(
+        "Embedding worker failed",
+      );
+      const isWorkflowTimeoutError = errorMessage.includes(
+        "WorkflowTimeoutError",
+      );
+      const isNoIssuesError = errorMessage.includes("has no issues");
+      if (
+        isWorkflowTimeoutError ||
+        isNoIssuesError ||
+        isEmbeddingWorkerFailedError
+      ) {
+        // for workflow timeout and embedding worker failed error, it will just retry
+        // for no issues error, it will just end the workflow
+        throw e;
+      }
       await step.do(
         "sync unsuccessful, mark repo init status to error",
         getStepDuration("short"),

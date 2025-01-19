@@ -1,4 +1,10 @@
-import { ExternalLinkIcon, HourglassIcon, XCircleIcon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import {
+  ExternalLinkIcon,
+  HourglassIcon,
+  InfoIcon,
+  XCircleIcon,
+} from "lucide-react";
 import React from "react";
 
 import type { Repo } from "@/lib/hooks/useRepo";
@@ -25,7 +31,22 @@ export function RepoCard({ repo }: { repo: Repo }) {
             className="size-6 rounded-full"
           />
           <h3 className="font-medium">
-            {repo.ownerName}/{repo.name}
+            {!repo.isPrivate ? (
+              <Link
+                to="/r/$owner/$repo"
+                params={{
+                  owner: repo.ownerName,
+                  repo: repo.name,
+                }}
+                className="hover:underline"
+              >
+                {repo.ownerName}/{repo.name}
+              </Link>
+            ) : (
+              <>
+                {repo.ownerName}/{repo.name}
+              </>
+            )}
           </h3>
           {abnormalSyncState && abnormalSyncState.render()}
         </div>
@@ -95,6 +116,15 @@ function getAbnormalSyncState(
         variant: "secondary",
         icon: XCircleIcon,
         tooltip: "Please contact us if this error persists",
+      });
+    case "no_issues":
+      return createState({
+        text: "Repo has no issues",
+        className:
+          "bg-orange-100 text-orange-800 hover:bg-orange-100 hover:text-orange-800",
+        variant: "secondary",
+        icon: InfoIcon,
+        tooltip: "SemHub currently only supports issues, not pull requests",
       });
     case "ready":
       return createState({

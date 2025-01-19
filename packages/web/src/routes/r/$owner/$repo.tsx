@@ -34,19 +34,30 @@ function RepoSearch() {
   const { owner, repo } = Route.useParams();
   const { data: repoStatus } = useRepoStatus(owner, repo);
 
+  const RepoLink = () => (
+    <a
+      href={`https://github.com/${owner}/${repo}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex hover:underline hover:opacity-80"
+    >
+      <code className="rounded bg-muted px-1.5 py-0.5">
+        {owner}/{repo}
+      </code>
+    </a>
+  );
+
   const NotFoundView = () => (
-    <div className="relative flex w-full flex-col items-center justify-center pt-28">
-      <h1 className="mb-4 text-3xl font-bold">Repository Not Found</h1>
-      <p className="text-muted-foreground">
-        The repository{" "}
-        <code className="rounded bg-muted px-1.5 py-0.5">
-          {owner}/{repo}
-        </code>{" "}
-        could not be found.
-      </p>
-      <p className="mt-2 text-muted-foreground">
-        Please ensure this repository has been added to SemHub.
-      </p>
+    <div className="flex size-full items-center justify-center p-2 text-2xl">
+      <div className="flex flex-col items-center gap-4">
+        <p className="text-4xl font-bold">Repository Not Found</p>
+        <p className="text-center text-lg text-muted-foreground">
+          The repo <RepoLink /> could not be found.
+        </p>
+        <p className="text-center text-lg text-muted-foreground">
+          Please ensure this repo has been added to SemHub.
+        </p>
+      </div>
     </div>
   );
 
@@ -62,19 +73,46 @@ function RepoSearch() {
     syncStatus,
   } = repoStatus;
 
+  const NoIssuesView = () => (
+    <div className="flex size-full items-center justify-center p-2 text-2xl">
+      <div className="flex flex-col items-center gap-4">
+        <p className="text-4xl font-bold">Repository has no issues</p>
+        <p className="text-center text-lg text-muted-foreground">
+          The repo <RepoLink /> does not have any issues.
+        </p>
+        <p className="text-center text-lg text-muted-foreground">
+          SemHub currently only supports issues, not pull requests.
+        </p>
+      </div>
+    </div>
+  );
+
   const InitializingView = () => (
-    <div className="relative flex w-full flex-col items-center justify-center pt-28">
-      <h1 className="mb-4 text-3xl font-bold">Repository Initializing</h1>
-      <p className="text-muted-foreground">
-        The repository{" "}
-        <code className="rounded bg-muted px-1.5 py-0.5">
-          {owner}/{repo}
-        </code>{" "}
-        is being initialized.
-      </p>
-      <p className="mt-2 text-muted-foreground">
-        Please come back again later when the repository has been initialized.
-      </p>
+    <div className="flex size-full items-center justify-center p-2 text-2xl">
+      <div className="flex flex-col items-center gap-4">
+        <p className="text-4xl font-bold">Initializing repository...</p>
+        <p className="text-center text-lg text-muted-foreground">
+          <RepoLink /> is being initialized.
+        </p>
+        <p className="text-center text-lg text-muted-foreground">
+          Please come back again later when the repo has been initialized.
+        </p>
+      </div>
+    </div>
+  );
+
+  const ErrorView = () => (
+    <div className="flex size-full items-center justify-center p-2 text-2xl">
+      <div className="flex flex-col items-center gap-4">
+        <p className="text-4xl font-bold">Error during initialization</p>
+        <p className="text-center text-lg text-muted-foreground">
+          We&apos;ve encountered an error while initializing <RepoLink />.
+        </p>
+        <p className="text-center text-lg text-muted-foreground">
+          This requires manual intervention to fix. If this error persists for
+          an extended period, please contact us for assistance.
+        </p>
+      </div>
     </div>
   );
 
@@ -85,7 +123,10 @@ function RepoSearch() {
     case "ready":
     case "in_progress":
       return <InitializingView />;
+    case "no_issues":
+      return <NoIssuesView />;
     case "error":
+      return <ErrorView />;
     case "completed":
       return (
         <div className="relative flex w-full justify-center pt-28">
@@ -98,16 +139,7 @@ function RepoSearch() {
                   className="size-6 translate-y-px rounded-full"
                 />
                 <h1 className="text-center font-serif text-3xl tracking-tight">
-                  <a
-                    href={`https://github.com/${owner}/${repo}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center"
-                  >
-                    <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-2xl hover:bg-muted/80">
-                      {owner}/{repo}
-                    </code>
-                  </a>
+                  <RepoLink />
                 </h1>
               </div>
               <h2 className="mb-8 text-center font-serif text-lg italic tracking-tight text-muted-foreground">

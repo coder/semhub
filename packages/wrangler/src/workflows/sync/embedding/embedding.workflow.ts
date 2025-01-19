@@ -119,6 +119,14 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         );
       }
     } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
+      const isWorkflowTimeoutError = errorMessage.includes(
+        "WorkflowTimeoutError",
+      );
+      if (isWorkflowTimeoutError) {
+        // just throw the error and initiate a retry
+        throw e;
+      }
       if (mode === "init") {
         const { repoId, repoName } = event.payload;
         await step.do(
@@ -133,8 +141,6 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
           },
         );
         await step.do("send email notification", async () => {
-          const errorMessage =
-            e instanceof Error ? e.message : JSON.stringify(e);
           await sendEmail(
             {
               to: "warren@coder.com",

@@ -281,6 +281,13 @@
       "when": 1737085468666,
       "tag": "0039_cooing_spiral",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1737255071316,
+      "tag": "0040_amusing_puff_adder",
+      "breakpoints": true
     }
   ]
 }

@@ -148,7 +148,13 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
           break;
         }
         if (!lastIssueUpdatedAt) {
-          throw new NonRetryableError("lastIssueUpdatedAt is undefined");
+          await db
+            .update(repos)
+            .set({ initStatus: "no_issues" })
+            .where(eq(repos.id, repoId));
+          throw new NonRetryableError(
+            `Repo ${repoOwner}/${repoName} has no issues, skipping embedding`,
+          );
         }
         currentSince = lastIssueUpdatedAt;
       }
@@ -171,6 +177,11 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
         },
       );
     } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
+      const isNoIssuesError = errorMessage.includes("has no issues");
+      if (isNoIssuesError) {
+        throw e;
+      }
       // mark repo as error
       await step.do(
         `mark ${caughtName} as error`,

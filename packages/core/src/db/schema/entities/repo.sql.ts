@@ -8,6 +8,7 @@ export const initStatusEnum = pgEnum("init_status", [
   "in_progress",
   "completed",
   "error",
+  "no_issues",
 ]);
 
 export const syncStatusEnum = pgEnum("sync_status", [

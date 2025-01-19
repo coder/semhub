@@ -117,6 +117,7 @@ Should probably set up a script to do this automatically as part of CI/CD.
 
 1. Deal with users who install our GitHub App without creating an account first.
 1. Current codebase assumes private/public property of repo is static and membership in org is static. Need to account for change. (Currently, we query membership for when subscription is made. But we should either receive webhook or regularly query to ensure that users that have left org should not have access to private repos.)
+1. Need to account for whether `no_issues` repo ever get issues. E.g. just run a daily cron to check?
 
 ## Known issues
 
