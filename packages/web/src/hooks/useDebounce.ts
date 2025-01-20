@@ -4,7 +4,7 @@ export function useDebounce<TArgs extends unknown[]>(
   callback: (...args: TArgs) => void,
   delay: number,
 ) {
-  const timeoutRef = useRef<number>();
+  const timeoutRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     return () => {

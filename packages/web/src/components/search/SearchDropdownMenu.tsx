@@ -24,8 +24,8 @@ import {
 
 interface SearchDropdownMenuProps {
   removedOperators?: SearchOperator[];
-  commandRef: React.RefObject<HTMLDivElement>;
-  commandInputRef: React.RefObject<HTMLInputElement>;
+  commandRef: React.RefObject<HTMLDivElement | null>;
+  commandInputRef: React.RefObject<HTMLInputElement | null>;
   commandInputValue: string;
   subMenu: SearchOperator | null;
   handleOperatorSelect: (operator: OperatorWithIcon) => void;
