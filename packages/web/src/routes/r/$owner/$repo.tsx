@@ -1,55 +1,47 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { ApiError } from "@/lib/api/client";
-import { getRepoStatus } from "@/lib/api/repo";
+import { getRepoStatusQueryOptions, useRepoStatus } from "@/lib/hooks/useRepo";
+import { Skeleton } from "@/components/ui/skeleton";
 import { EmbedBadgePopover } from "@/components/search/EmbedBadgePopover";
 import { RepoSearchBar } from "@/components/search/RepoSearchBar";
 import { RepoStatusTooltip } from "@/components/search/RepoStatusTooltip";
 
 export const Route = createFileRoute("/r/$owner/$repo")({
-  loader: async ({ params: { owner, repo } }) => {
-    try {
-      const data = await getRepoStatus(owner, repo);
-      return data;
-    } catch (error) {
-      if (error instanceof ApiError && error.code === 404) {
-        throw notFound();
-      }
-      throw error;
-    }
-  },
-  // pendingComponent: () => <RepoSearchSkeleton />,
+  loader: ({ context, params: { owner, repo } }) =>
+    context.queryClient.ensureQueryData(getRepoStatusQueryOptions(owner, repo)),
   component: () => <RepoSearch />,
-  notFoundComponent: () => <NotFoundView />,
-  errorComponent: () => <ErrorView />,
+  pendingComponent: () => <RepoSearchSkeleton />,
+  errorComponent: ({ error }) => {
+    if (error instanceof ApiError && error.code === 404) {
+      return <NotFoundView />;
+    }
+    return <ErrorView />;
+  },
 });
 
-// function RepoSearchSkeleton() {
-//   return (
-//     <div className="relative flex w-full justify-center pt-28">
-//       <div className="w-full max-w-screen-xl px-4">
-//         <div className="mb-8 flex flex-col items-center">
-//           <div className="mb-2 flex items-center gap-2">
-//             <Skeleton className="size-6 rounded-full" />
-//             <Skeleton className="h-8 w-64" />
-//           </div>
-//           <Skeleton className="mb-8 h-6 w-96" />
-//           <div className="mx-auto w-full max-w-2xl">
-//             <Skeleton className="h-10 w-full rounded-lg" />
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
+function RepoSearchSkeleton() {
+  return (
+    <div className="relative flex w-full justify-center pt-28">
+      <div className="w-full max-w-screen-xl px-4">
+        <div className="mb-8 flex flex-col items-center">
+          <div className="mb-2 flex items-center gap-2">
+            <Skeleton className="size-6 rounded-full" />
+            <Skeleton className="h-8 w-64" />
+          </div>
+          <Skeleton className="mb-8 h-6 w-96" />
+          <div className="mx-auto w-full max-w-2xl">
+            <Skeleton className="h-10 w-full rounded-lg" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function RepoSearch() {
   const { owner, repo } = Route.useParams();
-  const {
-    repoIssueCounts: { allIssuesCount },
-    repoStatus,
-    syncedIssuesCount,
-  } = Route.useLoaderData();
+  const { data: repoStatus } = useRepoStatus(owner, repo);
 
   const {
     avatarUrl,
@@ -93,7 +85,7 @@ function RepoSearch() {
 
         <div className="flex flex-col gap-2 text-muted-foreground">
           <p className="text-lg">
-            This repository is in queue for initialization.
+            This repository is queued for initialization.
           </p>
           <p className="text-lg">
             We&apos;ll start processing it shortly. Please check back in a few
@@ -104,7 +96,13 @@ function RepoSearch() {
     </div>
   );
 
-  const InitializingView = () => {
+  const InitializingView = ({
+    syncedIssuesCount,
+    allIssuesCount,
+  }: {
+    syncedIssuesCount: number;
+    allIssuesCount: number;
+  }) => {
     const progress = Math.round((syncedIssuesCount / allIssuesCount) * 100);
 
     return (
@@ -125,7 +123,7 @@ function RepoSearch() {
                 const segmentProgress = (i + 1) * 5; // Each block represents 5%
                 const isFilled = progress >= segmentProgress;
                 const isCurrentBlock =
-                  progress > segmentProgress - 5 && progress <= segmentProgress;
+                  progress >= segmentProgress - 5 && progress < segmentProgress;
 
                 return (
                   <div
@@ -165,8 +163,18 @@ function RepoSearch() {
       return <ErrorView />;
     case "ready":
       return <QueuedView />;
-    case "in_progress":
-      return <InitializingView />;
+    case "in_progress": {
+      const {
+        syncedIssuesCount,
+        repoIssueCounts: { allIssuesCount },
+      } = repoStatus;
+      return (
+        <InitializingView
+          syncedIssuesCount={syncedIssuesCount}
+          allIssuesCount={allIssuesCount}
+        />
+      );
+    }
     case "no_issues":
       return <NoIssuesView />;
     case "error":

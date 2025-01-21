@@ -52,22 +52,44 @@ export const repoRouter = new Hono<Context>().get(
         avatarUrl: createdRepo.avatarUrl,
       };
     }
-    // Run queries in parallel
-    const [repoIssueCounts, syncedIssuesCount] = await Promise.all([
-      getRepoIssueCounts(owner, repo, restOctokit),
-      getSyncedIssuesCount(owner, repo, repoStatus.id, db),
-    ]);
-
-    return c.json(
-      createSuccessResponse({
-        data: {
-          repoStatus,
+    switch (repoStatus.initStatus) {
+      case "in_progress": {
+        const [repoIssueCounts, syncedIssuesCount] = await Promise.all([
+          getRepoIssueCounts(owner, repo, restOctokit),
+          getSyncedIssuesCount(owner, repo, repoStatus.id, db),
+        ]);
+        const repoStatusWithCounts = {
+          ...repoStatus,
+          initStatus: "in_progress",
           repoIssueCounts,
           syncedIssuesCount,
-        } as const,
-        message: "Successfully retrieved repository status",
-      }),
-    );
+        } as const;
+        return c.json(
+          createSuccessResponse({
+            data: repoStatusWithCounts,
+            message: "Successfully retrieved repository status with counts",
+          }),
+        );
+      }
+      case "ready":
+      case "completed":
+      case "error":
+      case "no_issues":
+      case "pending": {
+        const repoStatusNew = {
+          ...repoStatus,
+          initStatus: repoStatus.initStatus,
+          repoIssueCounts: null,
+          syncedIssuesCount: null,
+        } as const;
+        return c.json(
+          createSuccessResponse({
+            data: repoStatusNew,
+            message: "Successfully retrieved repository status without counts",
+          }),
+        );
+      }
+    }
   },
 );
 

@@ -107,11 +107,19 @@ export const useUnsubscribeRepo = () => {
   });
 };
 
-// new pattern, not used
+const LOADING_INTERVAL = 1000 * 30; // 30 seconds
+
 export const getRepoStatusQueryOptions = (owner: string, repo: string) =>
   queryOptions({
     queryKey: queryKeys.repos.status(owner, repo),
     queryFn: () => getRepoStatus(owner, repo),
+    refetchInterval: (query) => {
+      const initStatus = query.state.data?.initStatus;
+      if (initStatus === "in_progress" || initStatus === "ready") {
+        return LOADING_INTERVAL;
+      }
+      return false;
+    },
     retry: (failureCount, error) => {
       if (error instanceof ApiError && error.code === 404) {
         return false;
@@ -124,6 +132,4 @@ export const useRepoStatus = (owner: string, repo: string) => {
   return useSuspenseQuery(getRepoStatusQueryOptions(owner, repo));
 };
 
-export type RepoStatusMetadata = NonNullable<
-  ReturnType<typeof useRepoStatus>["data"]
->;
+export type RepoStatusData = ReturnType<typeof useRepoStatus>["data"];

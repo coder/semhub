@@ -1,3 +1,5 @@
+import { type InferResponseType } from "hono/client";
+
 import { client, handleResponse } from "./client";
 
 export const listRepos = async () => {
@@ -27,13 +29,18 @@ export const unsubscribeRepo = async (repoId: string) => {
   return handleResponse(response, "Failed to unsubscribe from repository");
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const $get = client.public.repo[":owner"][":repo"].status.$get;
+type RepoStatusResponse = InferResponseType<typeof $get>;
+
 export async function getRepoStatus(owner: string, repo: string) {
-  const response = await client.public.repo[":owner"][":repo"].status.$get({
+  const res = await client.public.repo[":owner"][":repo"].status.$get({
     param: { owner, repo },
   });
-  const { data } = await handleResponse(
-    response,
+
+  const { data } = await handleResponse<RepoStatusResponse>(
+    res,
     "Failed to get repository status",
   );
-  return data;
+  return data as RepoStatusResponse["data"];
 }
