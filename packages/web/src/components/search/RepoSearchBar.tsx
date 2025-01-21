@@ -1,7 +1,7 @@
 import { SearchIcon, XIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 
-import { SearchOperator } from "@/core/constants/search.constant";
+import type { SearchOperator } from "@/core/constants/search.constant";
 import { usePublicSearch } from "@/hooks/usePublicSearch";
 import { useSearchBar } from "@/hooks/useSearchBar";
 import { Button } from "@/components/ui/button";

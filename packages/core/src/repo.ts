@@ -16,6 +16,7 @@ import { comments } from "@/db/schema/entities/comment.sql";
 import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
 import { labels as labelTable } from "@/db/schema/entities/label.sql";
+import type { SyncCursor } from "@/db/schema/entities/repo.sql";
 import { repos } from "@/db/schema/entities/repo.sql";
 import { usersToRepos } from "@/db/schema/entities/user-to-repo.sql";
 import { conflictUpdateOnly } from "@/db/utils/conflict";
@@ -113,6 +114,7 @@ export const Repo = {
           repoOwner: repos.ownerLogin,
           isPrivate: repos.isPrivate,
           repoIssuesLastUpdatedAt: repos.issuesLastUpdatedAt,
+          repoSyncCursor: repos.syncCursor,
         })
         .from(repos)
         .where(
@@ -376,7 +378,15 @@ export const Repo = {
       .where(eq(repos.id, repoId));
   },
 
-  setIssuesLastUpdatedAt: async (repoId: string, db: DbClient) => {
+  setIssuesLastUpdatedAt: async (
+    repoId: string,
+    db: DbClient,
+    syncCursor: SyncCursor | null,
+  ) => {
+    if (!syncCursor) {
+      // this is a repo with no issue
+      return;
+    }
     const [result] = await db
       .select({
         lastUpdated: issueTable.issueUpdatedAt,
@@ -388,11 +398,15 @@ export const Repo = {
       .orderBy(desc(issueTable.issueUpdatedAt))
       .limit(1);
     if (!result) {
-      return;
+      // should not happen with early return of null syncCursor
+      throw new Error("Failed to get issues last updated at");
     }
     await db
       .update(repos)
-      .set({ issuesLastUpdatedAt: result.lastUpdated })
+      .set({
+        issuesLastUpdatedAt: result.lastUpdated,
+        syncCursor,
+      })
       .where(eq(repos.id, repoId));
   },
 

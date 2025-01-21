@@ -4,7 +4,7 @@ import { NonRetryableError } from "cloudflare:workflows";
 
 import type { WranglerEnv } from "@/core/constants/wrangler.constant";
 import { eq } from "@/core/db";
-import { repos } from "@/core/db/schema/entities/repo.sql";
+import { repos, syncCursorSchema } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
 import { getLatestGithubRepoIssues } from "@/core/github";
 import { Installation } from "@/core/installation";
@@ -66,6 +66,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             repoOwner: repos.ownerLogin,
             isPrivate: repos.isPrivate,
             repoIssuesLastUpdatedAt: repos.issuesLastUpdatedAt,
+            repoSyncCursor: repos.syncCursor,
           })
           .from(repos)
           .where(eq(repos.id, repoId))
@@ -79,7 +80,16 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         return result;
       },
     );
-    const { repoName, repoOwner, repoIssuesLastUpdatedAt, isPrivate } = result;
+    const {
+      repoName,
+      repoOwner,
+      repoIssuesLastUpdatedAt,
+      isPrivate,
+      repoSyncCursor: repoSyncCursorRaw,
+    } = result;
+    const repoSyncCursor = repoSyncCursorRaw
+      ? syncCursorSchema.parse(repoSyncCursorRaw)
+      : null;
     const name = `${repoOwner}/${repoName}`;
     let responseSizeForDebugging = 0;
     try {
@@ -99,7 +109,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         }
         return graphqlOctokitAppFactory(installation.githubInstallationId);
       })();
-      const { issueIdsArray, hasMoreIssues } = await step.do(
+      const { issueIdsArray, hasMoreIssues, syncCursor } = await step.do(
         `get ${NUM_EMBEDDING_WORKERS} API calls worth of data for ${name}`,
         {
           timeout: "12 minutes",
@@ -111,48 +121,92 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         },
         async () => {
           const issueIdsArray = [];
-          let currentSince = repoIssuesLastUpdatedAt
-            ? new Date(repoIssuesLastUpdatedAt)
-            : null;
           let hasMoreIssues = true;
-
+          // since and after must be updated simultaneously, since they only make sense together
+          let syncCursor = (() => {
+            // syncing for the first time
+            if (!repoSyncCursor || !repoIssuesLastUpdatedAt) {
+              return null;
+            }
+            if (
+              repoIssuesLastUpdatedAt.getTime() ===
+              repoSyncCursor.since.getTime()
+            ) {
+              // only use after if since is the same
+              return {
+                since: repoIssuesLastUpdatedAt,
+                after: repoSyncCursor.after,
+              };
+            }
+            return {
+              since: repoIssuesLastUpdatedAt,
+              after: null,
+            };
+          })();
           for (let i = 0; i < NUM_EMBEDDING_WORKERS && hasMoreIssues; i++) {
-            const { hasNextPage, issuesAndCommentsLabels, lastIssueUpdatedAt } =
-              await step.do(
-                `get latest issues of ${name} from GitHub (batch ${i + 1})`,
-                async () => {
-                  for (
-                    let attempt = 0;
-                    attempt <= REDUCE_ISSUES_MAX_ATTEMPTS;
-                    attempt++
-                  ) {
-                    const numIssues = getNumIssues(attempt);
-                    const result = await getLatestGithubRepoIssues({
-                      repoId,
-                      repoName,
-                      repoOwner,
-                      octokit,
-                      since: currentSince,
-                      numIssues,
-                    });
+            const {
+              hasNextPage,
+              issuesAndCommentsLabels,
+              lastIssueUpdatedAt,
+              endCursor,
+            } = await step.do(
+              `get latest issues of ${name} from GitHub (batch ${i + 1})`,
+              async () => {
+                for (
+                  let attempt = 0;
+                  attempt <= REDUCE_ISSUES_MAX_ATTEMPTS;
+                  attempt++
+                ) {
+                  const numIssues = getNumIssues(attempt);
+                  // only use queryCursor's after if its since is the same as the previous
+                  // else, just use null and use the new since
+                  const result = await getLatestGithubRepoIssues({
+                    repoId,
+                    repoName,
+                    repoOwner,
+                    octokit,
+                    numIssues,
+                    since: syncCursor?.since ?? null,
+                    after: syncCursor?.after ?? null,
+                  });
 
-                    const responseSize = getApproximateSizeInBytes(result);
-                    if (responseSize <= getSizeLimit(name)) {
-                      responseSizeForDebugging = responseSize;
-                      return result;
-                    }
-                    if (attempt < REDUCE_ISSUES_MAX_ATTEMPTS) {
-                      continue;
-                    }
-                    throw new NonRetryableError(
-                      `Response size (${Math.round(responseSize / 1024)}KB) too large even with numIssues=${numIssues}. See: ${result.issuesAndCommentsLabels.issuesToInsert.map((issue) => issue.htmlUrl).join(", ")}`,
-                    );
+                  const responseSize = getApproximateSizeInBytes(result);
+                  if (responseSize <= getSizeLimit(name)) {
+                    responseSizeForDebugging = responseSize;
+                    return result;
+                  }
+                  if (attempt < REDUCE_ISSUES_MAX_ATTEMPTS) {
+                    continue;
                   }
                   throw new NonRetryableError(
-                    `Failed to get issues for ${name} after ${REDUCE_ISSUES_MAX_ATTEMPTS} attempts`,
+                    `Response size (${Math.round(responseSize / 1024)}KB) too large even with numIssues=${numIssues}. See: ${result.issuesAndCommentsLabels.issuesToInsert.map((issue) => issue.htmlUrl).join(", ")}`,
                   );
-                },
-              );
+                }
+                throw new NonRetryableError(
+                  `Failed to get issues for ${name} after ${REDUCE_ISSUES_MAX_ATTEMPTS} attempts`,
+                );
+              },
+            );
+            syncCursor = (() => {
+              // repo has no issue
+              if (!endCursor || !lastIssueUpdatedAt) {
+                return null;
+              }
+              if (
+                syncCursor &&
+                syncCursor.since &&
+                lastIssueUpdatedAt.getTime() === syncCursor.since.getTime()
+              ) {
+                return {
+                  since: lastIssueUpdatedAt,
+                  after: endCursor,
+                };
+              }
+              return {
+                since: lastIssueUpdatedAt,
+                after: null,
+              };
+            })();
             if (!hasNextPage) {
               hasMoreIssues = false;
             }
@@ -176,10 +230,12 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
               },
             );
             issueIdsArray.push(insertedIssueIds);
-            currentSince = lastIssueUpdatedAt;
           }
-
-          return { issueIdsArray, hasMoreIssues };
+          return {
+            issueIdsArray,
+            hasMoreIssues,
+            syncCursor,
+          };
         },
       );
       await Promise.all(
@@ -223,10 +279,10 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         }),
       );
       await step.do(
-        "set issuesLastUpdatedAt",
+        "set issuesLastUpdatedAt and update syncCursor",
         getStepDuration("short"),
         async () => {
-          await Repo.setIssuesLastUpdatedAt(repoId, db);
+          await Repo.setIssuesLastUpdatedAt(repoId, db, syncCursor);
         },
       );
       if (hasMoreIssues) {

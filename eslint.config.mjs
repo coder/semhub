@@ -23,7 +23,7 @@ export default [
       },
     },
     rules: {
-      "@typescript-eslint/consistent-type-imports": "error",
+      "@typescript-eslint/consistent-type-imports": "warn",
       "@typescript-eslint/no-explicit-any": "warn",
       "no-console": ["warn", { allow: ["warn", "error"] }],
       "@typescript-eslint/no-use-before-define": [

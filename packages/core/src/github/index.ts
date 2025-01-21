@@ -212,6 +212,7 @@ function getGithubIssuesWithMetadataForUpsert() {
   // use explorer to test GraphQL queries: https://docs.github.com/en/graphql/overview/explorer
   const query = graphql(`
     query paginate(
+      $cursor: String
       $organization: String!
       $repo: String!
       $since: DateTime
@@ -220,6 +221,7 @@ function getGithubIssuesWithMetadataForUpsert() {
       repository(owner: $organization, name: $repo) {
         issues(
           first: $first
+          after: $cursor
           orderBy: { field: UPDATED_AT, direction: ASC }
           filterBy: { since: $since }
         ) {
@@ -287,6 +289,7 @@ export async function getLatestGithubRepoIssues({
   repoOwner,
   octokit,
   since,
+  after,
   numIssues = 100,
 }: {
   repoId: string;
@@ -294,6 +297,7 @@ export async function getLatestGithubRepoIssues({
   repoOwner: string;
   octokit: GraphqlOctokit;
   since: Date | null;
+  after: string | null;
   numIssues?: number;
 }) {
   const response = await octokit.graphql(
@@ -303,14 +307,17 @@ export async function getLatestGithubRepoIssues({
       repo: repoName,
       since: since?.toISOString() ?? null,
       first: numIssues,
+      cursor: after,
     },
   );
   const data = loadIssuesWithCommentsResSchema.parse(response);
   const issues = data.repository.issues.nodes;
   const hasNextPage = data.repository.issues.pageInfo.hasNextPage;
+  const endCursor = data.repository.issues.pageInfo.endCursor;
   if (issues.length === 0) {
     return {
       hasNextPage,
+      endCursor,
       lastIssueUpdatedAt: null,
       issuesAndCommentsLabels: {
         issuesToInsert: [],
@@ -364,9 +371,13 @@ export async function getLatestGithubRepoIssues({
     ).values(),
   ];
 
+  if (!endCursor) {
+    throw new Error("endCursor is not supposed to be null");
+  }
   const lastIssueUpdatedAt = new Date(issues[issues.length - 1]!.updatedAt);
   return {
     hasNextPage,
+    endCursor,
     issuesAndCommentsLabels: {
       issuesToInsert: issuesNodeIdMap,
       commentsToInsert: commentsNodeIdMap,
@@ -387,11 +398,13 @@ export async function getGithubIssuesViaIterator(
     repoName,
     repoOwner,
     repoIssuesLastUpdatedAt,
+    after,
   }: {
     repoId: string;
     repoName: string;
     repoOwner: string;
     repoIssuesLastUpdatedAt: Date | null;
+    after: string | null;
   },
   octokit: GraphqlOctokit,
   numIssues = 100,
@@ -401,7 +414,7 @@ export async function getGithubIssuesViaIterator(
     {
       organization: repoOwner,
       repo: repoName,
-      cursor: null,
+      cursor: after,
       since: repoIssuesLastUpdatedAt?.toISOString() ?? null,
       first: numIssues,
     },

@@ -1,4 +1,12 @@
-import { boolean, index, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+} from "drizzle-orm/pg-core";
+import { z } from "zod";
 
 import { getBaseColumns, timestamptz } from "../base.sql";
 
@@ -18,6 +26,12 @@ export const syncStatusEnum = pgEnum("sync_status", [
   "error",
 ]);
 
+export const syncCursorSchema = z.object({
+  since: z.coerce.date(),
+  after: z.string().nullable(),
+});
+export type SyncCursor = z.infer<typeof syncCursorSchema>;
+
 export const repos = pgTable(
   "repos",
   {
@@ -33,6 +47,7 @@ export const repos = pgTable(
     lastSyncedAt: timestamptz("last_synced_at"),
     initStatus: initStatusEnum("init_status").notNull().default("ready"),
     initializedAt: timestamptz("initialized_at"),
+    syncCursor: jsonb("sync_cursor").$type<SyncCursor>(),
     // NB based on setIssuesLastUpdatedAt, we only consider issues with embeddings in this col
     // this is because we display this on the frontend and issues without embeddings are not searchable
     // this means we may be upserting extra issues during sync, but that's ok

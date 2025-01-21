@@ -1,6 +1,6 @@
 import { InfoIcon } from "lucide-react";
 
-import { RepoStatus } from "@/lib/hooks/useRepo";
+import type { RepoStatus } from "@/lib/hooks/useRepo";
 import { getTimeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { FastTooltip } from "@/components/ui/fast-tooltip";

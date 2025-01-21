@@ -4,7 +4,7 @@ import { NonRetryableError } from "cloudflare:workflows";
 
 import type { WranglerEnv } from "@/core/constants/wrangler.constant";
 import { eq } from "@/core/db";
-import { repos } from "@/core/db/schema/entities/repo.sql";
+import { repos, syncCursorSchema } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
 import { getLatestGithubRepoIssues } from "@/core/github";
 import { Installation } from "@/core/installation";
@@ -63,76 +63,120 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
         repoId,
         repoName,
         repoOwner,
-        repoIssuesLastUpdatedAt: repoIssuesLastUpdatedAtRaw,
+        repoIssuesLastUpdatedAt,
         isPrivate,
+        repoSyncCursor: repoSyncCursorRaw,
       } = res;
+      const repoSyncCursor = repoSyncCursorRaw
+        ? syncCursorSchema.parse(repoSyncCursorRaw)
+        : null;
       const name = `${repoOwner}/${repoName}`;
       caughtName = name;
       caughtRepoId = repoId;
       // don't have to worry about getting same issues twice because
       // we are using hasNextPage to determine if we should continue
-      let currentSince = repoIssuesLastUpdatedAtRaw
-        ? new Date(repoIssuesLastUpdatedAtRaw)
-        : null;
+      let syncCursor = (() => {
+        // syncing for the first time
+        if (!repoSyncCursor || !repoIssuesLastUpdatedAt) {
+          return null;
+        }
+        if (
+          repoIssuesLastUpdatedAt.getTime() === repoSyncCursor.since.getTime()
+        ) {
+          // only use after if since is the same
+          return {
+            since: repoIssuesLastUpdatedAt,
+            after: repoSyncCursor.after,
+          };
+        }
+        return {
+          since: repoIssuesLastUpdatedAt,
+          after: null,
+        };
+      })();
 
       while (true) {
-        const { hasNextPage, issuesAndCommentsLabels, lastIssueUpdatedAt } =
-          await step.do(
-            `get latest issues of ${name} from GitHub`,
-            async () => {
-              // NB octokit cannot be serialized
-              const octokit = await (async () => {
-                if (!isPrivate) {
-                  return graphqlOctokit;
-                }
-                const installation =
-                  await Installation.getActiveGithubInstallationId({
-                    userId: null,
-                    repoName,
-                    repoOwner,
-                    db,
-                    restOctokitAppFactory,
-                  });
-                if (!installation) {
-                  throw new NonRetryableError("Installation not found");
-                }
-                return graphqlOctokitAppFactory(
-                  installation.githubInstallationId,
-                );
-              })();
-              for (
-                let attempt = 0;
-                attempt <= REDUCE_ISSUES_MAX_ATTEMPTS;
-                attempt++
-              ) {
-                const numIssues = getNumIssues(attempt, name);
-                const result = await getLatestGithubRepoIssues({
-                  repoId,
+        const {
+          hasNextPage,
+          issuesAndCommentsLabels,
+          lastIssueUpdatedAt,
+          endCursor,
+        } = await step.do(
+          `get latest issues of ${name} from GitHub`,
+          async () => {
+            // NB octokit cannot be serialized
+            const octokit = await (async () => {
+              if (!isPrivate) {
+                return graphqlOctokit;
+              }
+              const installation =
+                await Installation.getActiveGithubInstallationId({
+                  userId: null,
                   repoName,
                   repoOwner,
-                  octokit,
-                  since: currentSince,
-                  numIssues,
+                  db,
+                  restOctokitAppFactory,
                 });
+              if (!installation) {
+                throw new NonRetryableError("Installation not found");
+              }
+              return graphqlOctokitAppFactory(
+                installation.githubInstallationId,
+              );
+            })();
+            for (
+              let attempt = 0;
+              attempt <= REDUCE_ISSUES_MAX_ATTEMPTS;
+              attempt++
+            ) {
+              const numIssues = getNumIssues(attempt, name);
+              const result = await getLatestGithubRepoIssues({
+                repoId,
+                repoName,
+                repoOwner,
+                octokit,
+                numIssues,
+                since: syncCursor?.since ?? null,
+                after: syncCursor?.after ?? null,
+              });
 
-                const responseSize = getApproximateSizeInBytes(result);
-                if (responseSize <= getSizeLimit(name)) {
-                  responseSizeForDebugging = responseSize;
-                  return result;
-                }
-                if (attempt < REDUCE_ISSUES_MAX_ATTEMPTS) {
-                  continue;
-                }
-                throw new NonRetryableError(
-                  `Response size (${Math.round(responseSize / 1024)}KB) too large even with numIssues=${numIssues}. See: ${result.issuesAndCommentsLabels.issuesToInsert.map((issue) => issue.htmlUrl).join(", ")}`,
-                );
+              const responseSize = getApproximateSizeInBytes(result);
+              if (responseSize <= getSizeLimit(name)) {
+                responseSizeForDebugging = responseSize;
+                return result;
+              }
+              if (attempt < REDUCE_ISSUES_MAX_ATTEMPTS) {
+                continue;
               }
               throw new NonRetryableError(
-                `Failed to get issues for ${name} after ${REDUCE_ISSUES_MAX_ATTEMPTS} attempts`,
+                `Response size (${Math.round(responseSize / 1024)}KB) too large even with numIssues=${numIssues}. See: ${result.issuesAndCommentsLabels.issuesToInsert.map((issue) => issue.htmlUrl).join(", ")}`,
               );
-            },
-          );
-
+            }
+            throw new NonRetryableError(
+              `Failed to get issues for ${name} after ${REDUCE_ISSUES_MAX_ATTEMPTS} attempts`,
+            );
+          },
+        );
+        syncCursor = (() => {
+          // repo has no issue
+          if (!endCursor || !lastIssueUpdatedAt) {
+            return null;
+          }
+          if (
+            syncCursor &&
+            syncCursor.since &&
+            lastIssueUpdatedAt.getTime() === syncCursor.since.getTime()
+          ) {
+            return {
+              since: lastIssueUpdatedAt,
+              after: endCursor,
+            };
+          }
+          return {
+            since: lastIssueUpdatedAt,
+            after: null,
+          };
+        })();
         await step.do(
           `upsert issues and comments/labels of ${name}`,
           getStepDuration("long"),
@@ -156,13 +200,12 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
             `Repo ${repoOwner}/${repoName} has no issues, skipping embedding`,
           );
         }
-        currentSince = lastIssueUpdatedAt;
       }
       await step.do(
-        "set issuesLastUpdatedAt",
+        "set issuesLastUpdatedAt and syncCursor",
         getStepDuration("short"),
         async () => {
-          await Repo.setIssuesLastUpdatedAt(repoId, db);
+          await Repo.setIssuesLastUpdatedAt(repoId, db, syncCursor);
         },
       );
       // mark repo as synced
