@@ -46,7 +46,7 @@ export const searchRouter = new Hono<Context>().get(
     // Use cache
     const cacheKey = `public:search:q=${query}:page=${pageNumber}:size=${pageSize}`;
     const cachedData = await getJson<SearchResult>(
-      Resource.SearchCacheKv,
+      Resource.CacheKv,
       cacheKey,
       searchResultSchema,
     );
@@ -77,7 +77,7 @@ export const searchRouter = new Hono<Context>().get(
     );
 
     await putJson<SearchResult>(
-      Resource.SearchCacheKv,
+      Resource.CacheKv,
       cacheKey,
       results,
       // 10 minutes because issues are synced every 20 minutes (SYNC_ISSUE: "*/20 * * * *")

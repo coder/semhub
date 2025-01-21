@@ -17,6 +17,9 @@ declare module "sst" {
     "AuthKv": {
       "type": "sst.cloudflare.Kv"
     }
+    "CacheKv": {
+      "type": "sst.cloudflare.Kv"
+    }
     "DATABASE_URL": {
       "type": "sst.sst.Secret"
       "value": string
@@ -64,9 +67,6 @@ declare module "sst" {
     "SEMHUB_GITHUB_PUBLIC_LINK": {
       "type": "sst.sst.Secret"
       "value": string
-    }
-    "SearchCacheKv": {
-      "type": "sst.cloudflare.Kv"
     }
     "SyncEmbeddingHandler": {
       "type": "sst.cloudflare.Worker"

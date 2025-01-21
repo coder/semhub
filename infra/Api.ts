@@ -3,12 +3,12 @@ import { domain } from "./Dns";
 import { mapStageToEnv } from "./helper";
 import { allSecrets } from "./Secret";
 
-export const searchCacheKv = new sst.cloudflare.Kv("SearchCacheKv", {});
+export const cacheKv = new sst.cloudflare.Kv("CacheKv", {});
 
 const hono = new sst.cloudflare.Worker("Hono", {
   url: true,
   handler: "./packages/workers/src/api.ts",
-  link: [auth, authKv, searchCacheKv, ...allSecrets],
+  link: [auth, authKv, cacheKv, ...allSecrets],
   domain: "api." + domain,
   transform: {
     worker: {

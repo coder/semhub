@@ -64,9 +64,9 @@ declare module "sst" {
   export interface Resource {
     "AuthAuthenticator": cloudflare.Service
     "AuthKv": cloudflare.KVNamespace
+    "CacheKv": cloudflare.KVNamespace
     "Hono": cloudflare.Service
     "InitCronHandler": cloudflare.Service
-    "SearchCacheKv": cloudflare.KVNamespace
     "SyncEmbeddingHandler": cloudflare.Service
     "SyncIssueHandler": cloudflare.Service
   }
