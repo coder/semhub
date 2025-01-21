@@ -1,12 +1,11 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { Resource } from "sst";
 
 import { routeSearch } from "@/core/semsearch/index";
 import { searchResultSchema, type SearchResult } from "@/core/semsearch/schema";
 import { getDeps } from "@/deps";
 import type { Context } from "@/server/app";
-import { getJson, putJson } from "@/server/kv";
+import { CacheKey, withCache } from "@/server/kv";
 import { createPaginatedResponse } from "@/server/response";
 import { publicSearchSchema } from "@/server/router/schema/search.schema";
 
@@ -43,53 +42,29 @@ export const searchRouter = new Hono<Context>().get(
       );
     }
 
-    // Use cache
-    const cacheKey = `public:search:q=${query}:page=${pageNumber}:size=${pageSize}`;
-    const cachedData = await getJson<SearchResult>(
-      Resource.CacheKv,
-      cacheKey,
-      searchResultSchema,
-    );
-
-    if (cachedData) {
-      const { data, totalCount } = cachedData;
-      return c.json(
-        createPaginatedResponse({
-          data,
-          page: pageNumber,
-          totalPages: Math.ceil(totalCount / pageSize),
-          message: "Search successful",
-        }),
-        200,
-      );
-    }
-
-    const results = await routeSearch(
-      {
-        query,
-        mode: "public",
-        lucky: false,
-        page: pageNumber,
-        pageSize,
-      },
-      db,
-      openai,
-    );
-
-    await putJson<SearchResult>(
-      Resource.CacheKv,
-      cacheKey,
-      results,
-      // 10 minutes because issues are synced every 20 minutes (SYNC_ISSUE: "*/20 * * * *")
-      // so on average, a cached result will be at most 10 minutes stale
-      { expirationTtl: 600 },
-    );
+    const result = await withCache<SearchResult>({
+      key: CacheKey.publicSearch(query, pageNumber, pageSize),
+      schema: searchResultSchema,
+      options: { expirationTtl: 600 }, // 10 minutes because issues are synced every 20 minutes
+      fetch: () =>
+        routeSearch(
+          {
+            query,
+            mode: "public",
+            lucky: false,
+            page: pageNumber,
+            pageSize,
+          },
+          db,
+          openai,
+        ),
+    });
 
     return c.json(
       createPaginatedResponse({
-        data: results.data,
+        data: result.data,
         page: pageNumber,
-        totalPages: Math.ceil(results.totalCount / pageSize),
+        totalPages: Math.ceil(result.totalCount / pageSize),
         message: "Search successful",
       }),
       200,

@@ -5,14 +5,38 @@ import type { AggregateReactions } from "@/db/schema/shared";
 
 import {
   getIssueNumbersResSchema,
+  getIssueStatsResSchema,
   getQueryGithubIssuesWithMetadata,
   getQueryIssueNumbers,
+  getQueryIssueStats,
   loadIssuesWithCommentsResSchema,
   type CommentGraphql,
   type IssueGraphql,
 } from "./graphql/query";
 import { repoSchema } from "./schema.rest";
 import type { GraphqlOctokit, RestOctokit } from "./shared";
+
+export async function getGitHubRepoIssueStats({
+  org,
+  repo,
+  octokit,
+}: {
+  org: string;
+  repo: string;
+  octokit: GraphqlOctokit;
+}) {
+  const { query, variables } = getQueryIssueStats({ organization: org, repo });
+  const response = await octokit.graphql(query, variables);
+  const data = getIssueStatsResSchema.parse(response);
+  const allIssuesCount = data.repository.all.totalCount;
+  const closedIssuesCount = data.repository.closed.totalCount;
+  const openIssuesCount = data.repository.open.totalCount;
+  return {
+    allIssuesCount,
+    closedIssuesCount,
+    openIssuesCount,
+  };
+}
 
 export async function getGithubRepoById({
   githubRepoId,
