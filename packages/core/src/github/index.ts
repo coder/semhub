@@ -409,6 +409,7 @@ export async function getGithubIssuesViaIterator(
   octokit: GraphqlOctokit,
   numIssues = 100,
 ) {
+<<<<<<< Updated upstream
   const iterator = octokit.graphql.paginate.iterator(
     getGithubIssuesWithMetadataForUpsert(),
     {
@@ -419,6 +420,16 @@ export async function getGithubIssuesViaIterator(
       first: numIssues,
     },
   );
+=======
+  const { query, variables } = getQueryGithubIssuesWithMetadata({
+    organization: repoOwner,
+    repo: repoName,
+    since: repoIssuesLastUpdatedAt,
+    first: numIssues,
+    after,
+  });
+  const iterator = octokit.graphql.paginate.iterator(query, variables);
+>>>>>>> Stashed changes
   let lastIssueUpdatedAt: Date | null = null;
   const rawIssues = [];
   const rawComments = [];
