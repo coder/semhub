@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 
-import { repos, syncCursorSchema } from "@/core/db/schema/entities/repo.sql";
+import { repos } from "@/core/db/schema/entities/repo.sql";
 
 import { getDeps } from "./deps";
 
@@ -13,7 +13,6 @@ try {
       repoName: repos.name,
       repoOwner: repos.ownerLogin,
       isPrivate: repos.isPrivate,
-      repoIssuesLastUpdatedAt: repos.issuesLastUpdatedAt,
       repoSyncCursor: repos.syncCursor,
     })
     .from(repos)
@@ -22,12 +21,7 @@ try {
   if (!result) {
     throw new Error("Repo not found");
   }
-  const { repoSyncCursor: repoSyncCursorRaw } = result;
-  console.log(repoSyncCursorRaw);
-  const repoSyncCursor = repoSyncCursorRaw
-    ? syncCursorSchema.parse(repoSyncCursorRaw)
-    : null;
-  console.log(repoSyncCursor);
+  console.log(result);
 } catch (e) {
   console.error(e);
 } finally {

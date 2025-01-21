@@ -4,7 +4,7 @@ import { NonRetryableError } from "cloudflare:workflows";
 
 import type { WranglerEnv } from "@/core/constants/wrangler.constant";
 import { eq } from "@/core/db";
-import { repos, syncCursorSchema } from "@/core/db/schema/entities/repo.sql";
+import { convertSyncCursor, repos } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
 import { getLatestGithubRepoIssues } from "@/core/github";
 import { Installation } from "@/core/installation";
@@ -63,37 +63,16 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
         repoId,
         repoName,
         repoOwner,
-        repoIssuesLastUpdatedAt,
         isPrivate,
         repoSyncCursor: repoSyncCursorRaw,
       } = res;
-      const repoSyncCursor = repoSyncCursorRaw
-        ? syncCursorSchema.parse(repoSyncCursorRaw)
-        : null;
+      const repoSyncCursor = convertSyncCursor(repoSyncCursorRaw);
       const name = `${repoOwner}/${repoName}`;
       caughtName = name;
       caughtRepoId = repoId;
       // don't have to worry about getting same issues twice because
       // we are using hasNextPage to determine if we should continue
-      let syncCursor = (() => {
-        // syncing for the first time
-        if (!repoSyncCursor || !repoIssuesLastUpdatedAt) {
-          return null;
-        }
-        if (
-          repoIssuesLastUpdatedAt.getTime() === repoSyncCursor.since.getTime()
-        ) {
-          // only use after if since is the same
-          return {
-            since: repoIssuesLastUpdatedAt,
-            after: repoSyncCursor.after,
-          };
-        }
-        return {
-          since: repoIssuesLastUpdatedAt,
-          after: null,
-        };
-      })();
+      let syncCursor = repoSyncCursor;
 
       while (true) {
         const {
@@ -205,7 +184,13 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
         "set issuesLastUpdatedAt and syncCursor",
         getStepDuration("short"),
         async () => {
-          await Repo.setIssuesLastUpdatedAt(repoId, db, syncCursor);
+          const syncCursorArg = syncCursor
+            ? {
+                since: syncCursor.since.toISOString(),
+                after: syncCursor.after,
+              }
+            : null;
+          await Repo.setSyncCursor(repoId, db, syncCursorArg);
         },
       );
       // mark repo as synced
