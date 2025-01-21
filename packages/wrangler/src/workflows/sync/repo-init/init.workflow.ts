@@ -4,7 +4,7 @@ import { NonRetryableError } from "cloudflare:workflows";
 
 import type { WranglerEnv } from "@/core/constants/wrangler.constant";
 import { eq } from "@/core/db";
-import { repos, syncCursorSchema } from "@/core/db/schema/entities/repo.sql";
+import { convertSyncCursor, repos } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
 import { getLatestGithubRepoIssues } from "@/core/github";
 import { Installation } from "@/core/installation";
@@ -65,7 +65,6 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
             repoName: repos.name,
             repoOwner: repos.ownerLogin,
             isPrivate: repos.isPrivate,
-            repoIssuesLastUpdatedAt: repos.issuesLastUpdatedAt,
             repoSyncCursor: repos.syncCursor,
           })
           .from(repos)
@@ -83,13 +82,10 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
     const {
       repoName,
       repoOwner,
-      repoIssuesLastUpdatedAt,
       isPrivate,
       repoSyncCursor: repoSyncCursorRaw,
     } = result;
-    const repoSyncCursor = repoSyncCursorRaw
-      ? syncCursorSchema.parse(repoSyncCursorRaw)
-      : null;
+    const repoSyncCursor = convertSyncCursor(repoSyncCursorRaw);
     const name = `${repoOwner}/${repoName}`;
     let responseSizeForDebugging = 0;
     try {
@@ -123,26 +119,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
           const issueIdsArray = [];
           let hasMoreIssues = true;
           // since and after must be updated simultaneously, since they only make sense together
-          let syncCursor = (() => {
-            // syncing for the first time
-            if (!repoSyncCursor || !repoIssuesLastUpdatedAt) {
-              return null;
-            }
-            if (
-              repoIssuesLastUpdatedAt.getTime() ===
-              repoSyncCursor.since.getTime()
-            ) {
-              // only use after if since is the same
-              return {
-                since: repoIssuesLastUpdatedAt,
-                after: repoSyncCursor.after,
-              };
-            }
-            return {
-              since: repoIssuesLastUpdatedAt,
-              after: null,
-            };
-          })();
+          let syncCursor = repoSyncCursor;
           for (let i = 0; i < NUM_EMBEDDING_WORKERS && hasMoreIssues; i++) {
             const {
               hasNextPage,
@@ -282,7 +259,13 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
         "set issuesLastUpdatedAt and update syncCursor",
         getStepDuration("short"),
         async () => {
-          await Repo.setIssuesLastUpdatedAt(repoId, db, syncCursor);
+          const syncCursorArg = syncCursor
+            ? {
+                since: syncCursor.since.toISOString(),
+                after: syncCursor.after,
+              }
+            : null;
+          await Repo.setSyncCursor(repoId, db, syncCursorArg);
         },
       );
       if (hasMoreIssues) {

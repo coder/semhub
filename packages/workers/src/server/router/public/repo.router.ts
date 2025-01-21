@@ -4,6 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 
 import type { DbClient } from "@/core/db";
+import { convertSyncCursor } from "@/core/db/schema/entities/repo.sql";
 import { getGithubRepo, getGitHubRepoIssueStats } from "@/core/github";
 import { repoUserInputSchema } from "@/core/github/schema.validation";
 import type { RestOctokit } from "@/core/github/shared";
@@ -45,11 +46,12 @@ export const repoRouter = new Hono<Context>().get(
       });
       owner = createdRepo.repoOwner;
       repo = createdRepo.repoName;
+      const repoSyncCursor = convertSyncCursor(createdRepo.repoSyncCursor);
       repoStatus = {
         id: createdRepo.id,
         initStatus: createdRepo.initStatus,
         syncStatus: createdRepo.syncStatus,
-        issuesLastUpdatedAt: createdRepo.issuesLastUpdatedAt,
+        issuesLastUpdatedAt: repoSyncCursor?.since ?? null,
         lastSyncedAt: createdRepo.lastSyncedAt,
         avatarUrl: createdRepo.avatarUrl,
         repoName: repo,

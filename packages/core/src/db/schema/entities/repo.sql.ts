@@ -26,11 +26,20 @@ export const syncStatusEnum = pgEnum("sync_status", [
   "error",
 ]);
 
-export const syncCursorSchema = z.object({
-  since: z.coerce.date(),
+const _syncCursorSchema = z.object({
+  since: z.string().datetime(), // cannot store date in db, so we store string
   after: z.string().nullable(),
 });
-export type SyncCursor = z.infer<typeof syncCursorSchema>;
+export type SyncCursor = z.infer<typeof _syncCursorSchema>;
+export const convertSyncCursor = (cursor: SyncCursor | null) => {
+  if (!cursor) {
+    return null;
+  }
+  return {
+    since: new Date(cursor.since),
+    after: cursor.after,
+  };
+};
 
 export const repos = pgTable(
   "repos",
@@ -51,7 +60,6 @@ export const repos = pgTable(
     // NB based on setIssuesLastUpdatedAt, we only consider issues with embeddings in this col
     // this is because we display this on the frontend and issues without embeddings are not searchable
     // this means we may be upserting extra issues during sync, but that's ok
-    issuesLastUpdatedAt: timestamptz("issues_last_updated_at"),
   },
   (table) => ({
     // probably could be unique index, but small chance that org / repo names can change

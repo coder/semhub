@@ -18,7 +18,7 @@ import { issuesToLabels } from "@/db/schema/entities/issue-to-label.sql";
 import { issueTable } from "@/db/schema/entities/issue.sql";
 import { labels as labelTable } from "@/db/schema/entities/label.sql";
 import type { SyncCursor } from "@/db/schema/entities/repo.sql";
-import { repos } from "@/db/schema/entities/repo.sql";
+import { convertSyncCursor, repos } from "@/db/schema/entities/repo.sql";
 import { usersToRepos } from "@/db/schema/entities/user-to-repo.sql";
 import { conflictUpdateOnly } from "@/db/utils/conflict";
 import { sanitizeForPg } from "@/db/utils/string";
@@ -101,7 +101,7 @@ export const Repo = {
         syncStatus: repos.syncStatus,
         avatarUrl: repos.ownerAvatarUrl,
         lastSyncedAt: repos.lastSyncedAt,
-        issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
+        repoSyncCursor: repos.syncCursor,
       });
     if (!result) {
       throw new Error("Failed to create repo");
@@ -118,7 +118,6 @@ export const Repo = {
           repoName: repos.name,
           repoOwner: repos.ownerLogin,
           isPrivate: repos.isPrivate,
-          repoIssuesLastUpdatedAt: repos.issuesLastUpdatedAt,
           repoSyncCursor: repos.syncCursor,
         })
         .from(repos)
@@ -350,7 +349,7 @@ export const Repo = {
   },
 
   getSubscribedRepos: async (userId: string, db: DbClient) => {
-    return db
+    const result = await db
       .select({
         id: repos.id,
         ownerName: repos.ownerLogin,
@@ -361,7 +360,7 @@ export const Repo = {
         initStatus: repos.initStatus,
         syncStatus: repos.syncStatus,
         lastSyncedAt: repos.lastSyncedAt,
-        issueLastUpdatedAt: repos.issuesLastUpdatedAt,
+        syncCursor: repos.syncCursor,
         repoSubscribedAt: usersToRepos.subscribedAt,
       })
       .from(repos)
@@ -374,6 +373,13 @@ export const Repo = {
         ),
       )
       .orderBy(desc(usersToRepos.subscribedAt));
+    return result.map((repo) => {
+      const syncCursor = convertSyncCursor(repo.syncCursor);
+      return {
+        ...repo,
+        issuesLastUpdatedAt: syncCursor?.since ?? null,
+      };
+    });
   },
 
   setPrivateRepoToReady: async (repoId: string, db: DbClient) => {
@@ -383,7 +389,7 @@ export const Repo = {
       .where(eq(repos.id, repoId));
   },
 
-  setIssuesLastUpdatedAt: async (
+  setSyncCursor: async (
     repoId: string,
     db: DbClient,
     syncCursor: SyncCursor | null,
@@ -409,7 +415,6 @@ export const Repo = {
     await db
       .update(repos)
       .set({
-        issuesLastUpdatedAt: result.lastUpdated,
         syncCursor,
       })
       .where(eq(repos.id, repoId));
@@ -442,7 +447,7 @@ export const Repo = {
         initStatus: repos.initStatus,
         syncStatus: repos.syncStatus,
         lastSyncedAt: repos.lastSyncedAt,
-        issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
+        syncCursor: repos.syncCursor,
         avatarUrl: repos.ownerAvatarUrl,
         ownerLogin: repos.ownerLogin,
         name: repos.name,
@@ -460,11 +465,12 @@ export const Repo = {
       return null;
     }
 
+    const syncCursor = convertSyncCursor(result.syncCursor);
     return {
       id: result.id,
       initStatus: result.initStatus,
       lastSyncedAt: result.lastSyncedAt,
-      issuesLastUpdatedAt: result.issuesLastUpdatedAt,
+      issuesLastUpdatedAt: syncCursor?.since ?? null,
       syncStatus: result.syncStatus,
       avatarUrl: result.avatarUrl,
       repoOwner: result.ownerLogin,

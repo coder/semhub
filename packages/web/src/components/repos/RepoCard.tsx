@@ -192,7 +192,7 @@ function TimestampInfo({ repo }: { repo: Repo }) {
 
   const timestamps = [
     { label: "Last synced", date: repo.lastSyncedAt },
-    { label: "Issues updated", date: repo.issueLastUpdatedAt },
+    { label: "Issues updated", date: repo.issuesLastUpdatedAt },
     { label: "Subscribed", date: repo.repoSubscribedAt },
   ].filter(
     (item): item is { label: string; date: string } => item.date !== null,
