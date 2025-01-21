@@ -60,39 +60,111 @@ function RepoSearch() {
   } = repoStatus;
 
   const NoIssuesView = () => (
-    <div className="flex size-full items-center justify-center p-2 text-2xl">
-      <div className="flex flex-col items-center gap-4">
-        <p className="text-4xl font-bold">Repository has no issues</p>
-        <p className="text-center text-lg text-muted-foreground">
-          The repo <RepoLink owner={owner} repo={repo} /> does not have any
-          issues.
-        </p>
-        <p className="text-center text-lg text-muted-foreground">
-          SemHub currently only supports issues, not pull requests.
-        </p>
+    <div className="flex size-full items-center justify-center p-2">
+      <div className="flex flex-col items-center gap-8 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <p className="font-mono text-4xl font-bold">
+            Repository has no issues
+          </p>
+          <p className="font-mono text-lg text-muted-foreground">
+            <RepoLink owner={owner} repo={repo} />
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2 text-muted-foreground">
+          <p className="text-lg">This repository does not have any issues.</p>
+          <p className="text-lg">
+            SemHub currently only supports issues, not pull requests.
+          </p>
+        </div>
       </div>
     </div>
   );
 
-  const InitializingView = () => (
-    <div className="flex size-full items-center justify-center p-2 text-2xl">
-      <div className="flex flex-col items-center gap-4">
-        <p className="text-4xl font-bold">Initializing repository...</p>
-        <p className="text-center text-lg text-muted-foreground">
-          <RepoLink owner={owner} repo={repo} /> is being initialized.
-        </p>
-        <p className="text-center text-lg text-muted-foreground">
-          Please come back again later when the repo has been initialized.
-        </p>
+  const QueuedView = () => (
+    <div className="flex size-full items-center justify-center p-2">
+      <div className="flex flex-col items-center gap-8 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <p className="font-mono text-4xl font-bold">Repository Queued</p>
+          <p className="font-mono text-lg text-muted-foreground">
+            <RepoLink owner={owner} repo={repo} />
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2 text-muted-foreground">
+          <p className="text-lg">
+            This repository is in queue for initialization.
+          </p>
+          <p className="text-lg">
+            We&apos;ll start processing it shortly. Please check back in a few
+            moments.
+          </p>
+        </div>
       </div>
     </div>
   );
+
+  const InitializingView = () => {
+    const progress = Math.round((syncedIssuesCount / allIssuesCount) * 100);
+
+    return (
+      <div className="flex size-full items-center justify-center p-2">
+        <div className="flex flex-col items-center gap-8 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <p className="font-mono text-4xl font-bold">
+              Initializing Repository...
+            </p>
+            <p className="font-mono text-lg text-muted-foreground">
+              <RepoLink owner={owner} repo={repo} />
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex h-8 w-96 gap-1 overflow-hidden rounded-lg border-2 border-primary p-1">
+              {[...Array(20)].map((_, i) => {
+                const segmentProgress = (i + 1) * 5; // Each block represents 5%
+                const isFilled = progress >= segmentProgress;
+                const isCurrentBlock =
+                  progress > segmentProgress - 5 && progress <= segmentProgress;
+
+                return (
+                  <div
+                    key={i}
+                    className={`h-full flex-1 rounded-sm transition-colors ${
+                      isFilled
+                        ? "bg-primary"
+                        : isCurrentBlock
+                          ? "animate-cursor-slow bg-primary"
+                          : "bg-muted"
+                    }`}
+                  />
+                );
+              })}
+            </div>
+            <p className="font-mono text-sm text-muted-foreground">
+              Processed {syncedIssuesCount} of {allIssuesCount} issues (
+              {progress}%)*
+            </p>
+            <p className="text-xs italic text-muted-foreground/80">
+              * Stats are cached and may be slightly out-of-date
+            </p>
+          </div>
+
+          <p className="text-sm italic text-muted-foreground">
+            Search functionality will be available once initialization is
+            complete
+          </p>
+        </div>
+      </div>
+    );
+  };
 
   switch (initStatus) {
     // should never be hit, this is for private repos only?
     case "pending":
       return <ErrorView />;
     case "ready":
+      return <QueuedView />;
     case "in_progress":
       return <InitializingView />;
     case "no_issues":
@@ -162,15 +234,18 @@ function RepoLink({ owner, repo }: { owner: string; repo: string }) {
 function NotFoundView() {
   const { owner, repo } = Route.useParams();
   return (
-    <div className="flex size-full items-center justify-center p-2 text-2xl">
-      <div className="flex flex-col items-center gap-4">
-        <p className="text-4xl font-bold">Repository Not Found</p>
-        <p className="text-center text-lg text-muted-foreground">
-          The repo <RepoLink owner={owner} repo={repo} /> could not be found.
-        </p>
-        <p className="text-center text-lg text-muted-foreground">
-          Please ensure this repo exists on GitHub.
-        </p>
+    <div className="flex size-full items-center justify-center p-2">
+      <div className="flex flex-col items-center gap-8 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <p className="font-mono text-4xl font-bold">Repository Not Found</p>
+          <p className="font-mono text-lg text-muted-foreground">
+            <RepoLink owner={owner} repo={repo} />
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 text-muted-foreground">
+          <p className="text-lg">This repository could not be found.</p>
+          <p className="text-lg">Please ensure this repo exists on GitHub.</p>
+        </div>
       </div>
     </div>
   );
@@ -178,13 +253,21 @@ function NotFoundView() {
 
 function ErrorView() {
   return (
-    <div className="flex size-full items-center justify-center p-2 text-2xl">
-      <div className="flex flex-col items-center gap-4">
-        <p className="text-4xl font-bold">Unexpected error</p>
-        <p className="text-center text-lg text-muted-foreground">
-          We&apos;ve encountered an unexpected error. If this error persists for
-          an extended period, please contact us for assistance.
-        </p>
+    <div className="flex size-full items-center justify-center p-2">
+      <div className="flex flex-col items-center gap-8 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <p className="font-mono text-4xl font-bold">Unexpected Error</p>
+          <p className="font-mono text-lg text-muted-foreground">
+            System Error
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 text-muted-foreground">
+          <p className="text-lg">We&apos;ve encountered an unexpected error.</p>
+          <p className="text-lg">
+            If this error persists for an extended period, please contact us for
+            assistance.
+          </p>
+        </div>
       </div>
     </div>
   );
