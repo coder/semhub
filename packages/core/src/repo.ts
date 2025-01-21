@@ -61,7 +61,7 @@ export const Repo = {
   }: {
     data: NonNullable<Awaited<ReturnType<typeof getGithubRepo>>["data"]>;
     db: DbClient;
-    defaultInitStatus?: "ready" | "pending";
+    defaultInitStatus: "ready" | "pending";
   }) => {
     const {
       owner: { login: ownerLogin, avatar_url: ownerAvatarUrl },
@@ -97,6 +97,10 @@ export const Repo = {
         initStatus: repos.initStatus,
         repoName: repos.name,
         repoOwner: repos.ownerLogin,
+        syncStatus: repos.syncStatus,
+        avatarUrl: repos.ownerAvatarUrl,
+        lastSyncedAt: repos.lastSyncedAt,
+        issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
       });
     if (!result) {
       throw new Error("Failed to create repo");
