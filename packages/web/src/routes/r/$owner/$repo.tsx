@@ -40,7 +40,7 @@ function RepoSearchSkeleton() {
 }
 
 function RepoSearch() {
-  const { owner, repo } = Route.useParams();
+  let { owner, repo } = Route.useParams();
   const { data: repoStatus } = useRepoStatus(owner, repo);
 
   const {
@@ -50,7 +50,9 @@ function RepoSearch() {
     initStatus,
     syncStatus,
   } = repoStatus;
-
+  // overwrite with returned values, which are properly cased
+  owner = repoStatus.repoOwner;
+  repo = repoStatus.repoName;
   const NoIssuesView = () => (
     <div className="flex size-full items-center justify-center p-2">
       <div className="flex flex-col items-center gap-8 text-center">

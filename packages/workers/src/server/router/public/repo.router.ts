@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import type { DbClient } from "@/core/db";
 import { getGithubRepo, getGitHubRepoIssueStats } from "@/core/github";
-import { repoValidationSchema } from "@/core/github/schema.validation";
+import { repoUserInputSchema } from "@/core/github/schema.validation";
 import type { RestOctokit } from "@/core/github/shared";
 import { Repo } from "@/core/repo";
 import { getDeps } from "@/deps";
@@ -16,9 +16,9 @@ import { repoIssueCountsSchema } from "@/server/router/schema/repo.schema";
 
 export const repoRouter = new Hono<Context>().get(
   "/:owner/:repo/status",
-  zValidator("param", repoValidationSchema),
+  zValidator("param", repoUserInputSchema),
   async (c) => {
-    const { owner, repo } = c.req.valid("param");
+    let { owner, repo } = c.req.valid("param");
     const { db, restOctokit } = getDeps();
     let repoStatus = await Repo.readyForPublicSearch({
       owner,
@@ -43,6 +43,8 @@ export const repoRouter = new Hono<Context>().get(
         db,
         defaultInitStatus: "ready", // public repo can initialise directly upon creation
       });
+      owner = createdRepo.repoOwner;
+      repo = createdRepo.repoName;
       repoStatus = {
         id: createdRepo.id,
         initStatus: createdRepo.initStatus,
@@ -50,6 +52,8 @@ export const repoRouter = new Hono<Context>().get(
         issuesLastUpdatedAt: createdRepo.issuesLastUpdatedAt,
         lastSyncedAt: createdRepo.lastSyncedAt,
         avatarUrl: createdRepo.avatarUrl,
+        repoName: repo,
+        repoOwner: owner,
       };
     }
     switch (repoStatus.initStatus) {

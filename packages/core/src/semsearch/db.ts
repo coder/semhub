@@ -146,8 +146,8 @@ export function applyFilters<T extends PgSelect>(
         subQuery.toLowerCase(),
       ),
     ),
-    ...repoQueries.map((subQuery) => ilike(repos.name, `${subQuery}`)),
-    ...ownerQueries.map((subQuery) => ilike(repos.ownerLogin, `${subQuery}`)),
+    ...repoQueries.map((subQuery) => ilike(repos.name, subQuery)),
+    ...ownerQueries.map((subQuery) => ilike(repos.ownerLogin, subQuery)),
     ...stateQueries.map((state) => convertToIssueStateSql(state)),
   );
 

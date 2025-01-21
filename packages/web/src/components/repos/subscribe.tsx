@@ -2,13 +2,16 @@ import { type FieldApi } from "@tanstack/react-form";
 import { AlertCircleIcon } from "lucide-react";
 import { z } from "zod";
 
-import { repoValidationSchema } from "@/core/github/schema.validation";
+import { repoUserInputSchema } from "@/core/github/schema.validation";
 
 // Shared error message
 const INVALID_REPO_MESSAGE = "Please enter a valid GitHub repository";
 
 // Utility function to extract owner and repo, with validation
-const validateAndExtractGithubOwnerAndRepo = (input: string, ctx?: z.RefinementCtx) => {
+const validateAndExtractGithubOwnerAndRepo = (
+  input: string,
+  ctx?: z.RefinementCtx,
+) => {
   // Normalize the input to handle both URL and owner/repo format
   const normalizedInput = input.includes("github.com")
     ? new URL(
@@ -29,7 +32,7 @@ const validateAndExtractGithubOwnerAndRepo = (input: string, ctx?: z.RefinementC
   }
   const [owner, repo] = parts;
   // Validate against schema
-  const result = repoValidationSchema.safeParse({ owner, repo });
+  const result = repoUserInputSchema.safeParse({ owner, repo });
   if (!result.success) {
     if (ctx) {
       result.error.errors.forEach((err) => ctx.addIssue(err));

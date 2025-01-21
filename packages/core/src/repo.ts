@@ -5,6 +5,7 @@ import {
   count,
   desc,
   eq,
+  ilike,
   inArray,
   isNull,
   lt,
@@ -443,12 +444,14 @@ export const Repo = {
         lastSyncedAt: repos.lastSyncedAt,
         issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
         avatarUrl: repos.ownerAvatarUrl,
+        ownerLogin: repos.ownerLogin,
+        name: repos.name,
       })
       .from(repos)
       .where(
         and(
-          eq(repos.ownerLogin, owner),
-          eq(repos.name, name),
+          ilike(repos.ownerLogin, owner),
+          ilike(repos.name, name),
           eq(repos.isPrivate, false),
         ),
       );
@@ -464,6 +467,8 @@ export const Repo = {
       issuesLastUpdatedAt: result.issuesLastUpdatedAt,
       syncStatus: result.syncStatus,
       avatarUrl: result.avatarUrl,
+      repoOwner: result.ownerLogin,
+      repoName: result.name,
     };
   },
 };

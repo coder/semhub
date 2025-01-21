@@ -5,7 +5,7 @@ import { HTTPException } from "hono/http-exception";
 import { and, eq } from "@/core/db";
 import { usersToRepos } from "@/core/db/schema/entities/user-to-repo.sql";
 import { getGithubRepo } from "@/core/github";
-import { repoValidationSchema } from "@/core/github/schema.validation";
+import { repoUserInputSchema } from "@/core/github/schema.validation";
 import { Installation } from "@/core/installation";
 import { Repo } from "@/core/repo";
 import { User } from "@/core/user";
@@ -27,7 +27,7 @@ export const repoRouter = new Hono<AuthedContext>()
       }),
     );
   })
-  .get("/preview", zValidator("query", repoValidationSchema), async (c) => {
+  .get("/preview", zValidator("query", repoUserInputSchema), async (c) => {
     const { owner, repo } = c.req.valid("query");
     const { db, restOctokitAppFactory } = getDeps();
     const user = c.get("user");
@@ -71,7 +71,7 @@ export const repoRouter = new Hono<AuthedContext>()
   // Subscribe to a public repository
   .post(
     "/subscribe/public",
-    zValidator("json", repoValidationSchema),
+    zValidator("json", repoUserInputSchema),
     async (c) => {
       const user = c.get("user");
       const { db, restOctokit } = getDeps();
@@ -126,7 +126,7 @@ export const repoRouter = new Hono<AuthedContext>()
   // Subscribe to a private repository
   .post(
     "/subscribe/private",
-    zValidator("json", repoValidationSchema),
+    zValidator("json", repoUserInputSchema),
     async (c) => {
       const user = c.get("user");
       const { db, restOctokitAppFactory } = getDeps();
