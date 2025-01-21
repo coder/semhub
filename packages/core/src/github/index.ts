@@ -1,11 +1,12 @@
-import { print } from "graphql";
-
 import type { CreateComment } from "@/db/schema/entities/comment.sql";
 import type { CreateIssue } from "@/db/schema/entities/issue.schema";
 import type { CreateLabel } from "@/db/schema/entities/label.schema";
 import type { AggregateReactions } from "@/db/schema/shared";
 
-import { graphql } from "./graphql";
+import {
+  getQueryGithubIssuesWithMetadata,
+  getQueryIssueNumbers,
+} from "./graphql/query";
 import {
   getIssueNumbersResSchema,
   loadIssuesWithCommentsResSchema,
@@ -208,81 +209,6 @@ function mapCreateComment(
   };
 }
 
-function getGithubIssuesWithMetadataForUpsert() {
-  // use explorer to test GraphQL queries: https://docs.github.com/en/graphql/overview/explorer
-  const query = graphql(`
-    query paginate(
-      $cursor: String
-      $organization: String!
-      $repo: String!
-      $since: DateTime
-      $first: Int!
-    ) {
-      repository(owner: $organization, name: $repo) {
-        issues(
-          first: $first
-          after: $cursor
-          orderBy: { field: UPDATED_AT, direction: ASC }
-          filterBy: { since: $since }
-        ) {
-          nodes {
-            id
-            number
-            title
-            body
-            url
-            state
-            stateReason
-            createdAt
-            updatedAt
-            closedAt
-            author {
-              login
-              avatarUrl
-              url
-            }
-            labels(first: 10) {
-              nodes {
-                id
-                name
-                color
-                description
-              }
-            }
-            reactionGroups {
-              content
-              reactors {
-                totalCount
-              }
-            }
-            comments(
-              first: 100
-              orderBy: { field: UPDATED_AT, direction: ASC }
-            ) {
-              nodes {
-                id
-                author {
-                  login
-                  avatarUrl
-                  url
-                }
-                body
-                createdAt
-                updatedAt
-              }
-            }
-          }
-          pageInfo {
-            hasNextPage
-            endCursor
-          }
-        }
-      }
-    }
-  `);
-  return print(query);
-}
-
 export async function getLatestGithubRepoIssues({
   repoId,
   repoName,
@@ -411,7 +337,7 @@ export async function getGithubIssuesViaIterator(
 ) {
 <<<<<<< Updated upstream
   const iterator = octokit.graphql.paginate.iterator(
-    getGithubIssuesWithMetadataForUpsert(),
+    getQueryGithubIssuesWithMetadata(),
     {
       organization: repoOwner,
       repo: repoName,
@@ -517,36 +443,8 @@ export async function getGithubIssuesArrayToChunk({
   since: Date | null;
   numIssuesPerQuery: number;
 }) {
-  const query = graphql(`
-    query getIssueNumbers(
-      $cursor: String
-      $organization: String!
-      $repo: String!
-      $since: DateTime
-      $first: Int!
-    ) {
-      repository(owner: $organization, name: $repo) {
-        issues(
-          first: $first
-          after: $cursor
-          orderBy: { field: UPDATED_AT, direction: ASC }
-          filterBy: { since: $since }
-        ) {
-          nodes {
-            number
-            updatedAt
-          }
-          pageInfo {
-            hasNextPage
-            endCursor
-          }
-        }
-      }
-    }
-  `);
-  // actually, collecting the issue numbers is unnecessary
   const allIssueNumbers: Array<{ number: number; updatedAt: Date }> = [];
-  const iterator = octokit.graphql.paginate.iterator(print(query), {
+  const iterator = octokit.graphql.paginate.iterator(getQueryIssueNumbers(), {
     organization: repoOwner,
     repo: repoName,
     since: since?.toISOString() ?? null,

@@ -9,8 +9,8 @@
     "plugins": [
       {
         "name": "gql.tada/ts-plugin",
-        "schema": "src/github/schema.docs.graphql",
-        "tadaOutputLocation": "src/github/schema.docs.graphql.d.ts"
+        "schema": "src/github/graphql/schema.docs.graphql",
+        "tadaOutputLocation": "src/github/graphql/schema.docs.graphql.d.ts"
       }
     ],
     "noUncheckedIndexedAccess": true,
