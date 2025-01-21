@@ -132,4 +132,4 @@ export const useRepoStatus = (owner: string, repo: string) => {
   return useSuspenseQuery(getRepoStatusQueryOptions(owner, repo));
 };
 
-export type RepoStatusData = ReturnType<typeof useRepoStatus>["data"];
+export type RepoStatus = ReturnType<typeof useRepoStatus>["data"];

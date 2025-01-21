@@ -141,10 +141,10 @@ function RepoSearch() {
             </div>
             <p className="font-mono text-sm text-muted-foreground">
               Processed {syncedIssuesCount} of {allIssuesCount} issues (
-              {progress}%)*
+              {progress}%)<sup>*</sup>
             </p>
             <p className="text-xs italic text-muted-foreground/80">
-              * Stats are cached and may be slightly out-of-date
+              *Stats are cached and may be slightly out-of-date
             </p>
           </div>
 
@@ -251,8 +251,12 @@ function NotFoundView() {
           </p>
         </div>
         <div className="flex flex-col gap-2 text-muted-foreground">
-          <p className="text-lg">This repository could not be found.</p>
-          <p className="text-lg">Please ensure this repo exists on GitHub.</p>
+          <p className="text-lg">
+            Is there a typo? This repository could not be found.
+          </p>
+          <p className="text-lg">
+            If this is a private repo, you must log in to search it.
+          </p>
         </div>
       </div>
     </div>

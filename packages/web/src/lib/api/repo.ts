@@ -42,5 +42,5 @@ export async function getRepoStatus(owner: string, repo: string) {
     res,
     "Failed to get repository status",
   );
-  return data as RepoStatusResponse["data"];
+  return data;
 }

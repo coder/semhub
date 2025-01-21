@@ -1,6 +1,6 @@
 import { InfoIcon } from "lucide-react";
 
-import type { RepoStatusData } from "@/lib/hooks/useRepo";
+import type { RepoStatus } from "@/lib/hooks/useRepo";
 import { getTimeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { FastTooltip } from "@/components/ui/fast-tooltip";
@@ -20,8 +20,8 @@ function StatusDisplay({
   initStatus,
   syncStatus,
 }: {
-  initStatus: RepoStatusData["repoStatus"]["initStatus"];
-  syncStatus: RepoStatusData["repoStatus"]["syncStatus"];
+  initStatus: RepoStatus["initStatus"];
+  syncStatus: RepoStatus["syncStatus"];
 }) {
   let displayText = "";
 
@@ -40,10 +40,10 @@ export function RepoStatusTooltip({
   syncStatus,
   initStatus,
 }: {
-  lastSyncedAt: RepoStatusData["repoStatus"]["lastSyncedAt"];
-  issuesLastUpdatedAt: RepoStatusData["repoStatus"]["issuesLastUpdatedAt"];
-  syncStatus: RepoStatusData["repoStatus"]["syncStatus"];
-  initStatus: RepoStatusData["repoStatus"]["initStatus"];
+  lastSyncedAt: RepoStatus["lastSyncedAt"];
+  issuesLastUpdatedAt: RepoStatus["issuesLastUpdatedAt"];
+  syncStatus: RepoStatus["syncStatus"];
+  initStatus: RepoStatus["initStatus"];
 }) {
   return (
     <TooltipProvider>
