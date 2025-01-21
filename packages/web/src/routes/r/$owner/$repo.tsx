@@ -1,14 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { useRepoStatus } from "@/lib/hooks/useRepo";
+import { ApiError } from "@/lib/api/client";
+import { getRepoStatusQueryOptions, useRepoStatus } from "@/lib/hooks/useRepo";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmbedBadgePopover } from "@/components/search/EmbedBadgePopover";
 import { RepoSearchBar } from "@/components/search/RepoSearchBar";
 import { RepoStatusTooltip } from "@/components/search/RepoStatusTooltip";
 
 export const Route = createFileRoute("/r/$owner/$repo")({
-  component: RepoSearch,
+  loader: ({ context, params: { owner, repo } }) =>
+    context.queryClient.ensureQueryData(getRepoStatusQueryOptions(owner, repo)),
+  component: () => <RepoSearch />,
   pendingComponent: () => <RepoSearchSkeleton />,
+  errorComponent: ({ error }) => {
+    if (error instanceof ApiError && error.code === 404) {
+      return <NotFoundView />;
+    }
+    return <ErrorView />;
+  },
 });
 
 function RepoSearchSkeleton() {
@@ -34,37 +43,6 @@ function RepoSearch() {
   const { owner, repo } = Route.useParams();
   const { data: repoStatus } = useRepoStatus(owner, repo);
 
-  const RepoLink = () => (
-    <a
-      href={`https://github.com/${owner}/${repo}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex hover:underline hover:opacity-80"
-    >
-      <code className="rounded bg-muted px-1.5 py-0.5">
-        {owner}/{repo}
-      </code>
-    </a>
-  );
-
-  const NotFoundView = () => (
-    <div className="flex size-full items-center justify-center p-2 text-2xl">
-      <div className="flex flex-col items-center gap-4">
-        <p className="text-4xl font-bold">Repository Not Found</p>
-        <p className="text-center text-lg text-muted-foreground">
-          The repo <RepoLink /> could not be found.
-        </p>
-        <p className="text-center text-lg text-muted-foreground">
-          Please ensure this repo has been added to SemHub.
-        </p>
-      </div>
-    </div>
-  );
-
-  if (!repoStatus) {
-    return <NotFoundView />;
-  }
-
   const {
     avatarUrl,
     issuesLastUpdatedAt,
@@ -74,55 +52,129 @@ function RepoSearch() {
   } = repoStatus;
 
   const NoIssuesView = () => (
-    <div className="flex size-full items-center justify-center p-2 text-2xl">
-      <div className="flex flex-col items-center gap-4">
-        <p className="text-4xl font-bold">Repository has no issues</p>
-        <p className="text-center text-lg text-muted-foreground">
-          The repo <RepoLink /> does not have any issues.
-        </p>
-        <p className="text-center text-lg text-muted-foreground">
-          SemHub currently only supports issues, not pull requests.
-        </p>
+    <div className="flex size-full items-center justify-center p-2">
+      <div className="flex flex-col items-center gap-8 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <p className="font-mono text-4xl font-bold">
+            Repository has no issues
+          </p>
+          <p className="font-mono text-lg text-muted-foreground">
+            <RepoLink owner={owner} repo={repo} />
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2 text-muted-foreground">
+          <p className="text-lg">This repository does not have any issues.</p>
+          <p className="text-lg">
+            SemHub currently only supports issues, not pull requests.
+          </p>
+        </div>
       </div>
     </div>
   );
 
-  const InitializingView = () => (
-    <div className="flex size-full items-center justify-center p-2 text-2xl">
-      <div className="flex flex-col items-center gap-4">
-        <p className="text-4xl font-bold">Initializing repository...</p>
-        <p className="text-center text-lg text-muted-foreground">
-          <RepoLink /> is being initialized.
-        </p>
-        <p className="text-center text-lg text-muted-foreground">
-          Please come back again later when the repo has been initialized.
-        </p>
+  const QueuedView = () => (
+    <div className="flex size-full items-center justify-center p-2">
+      <div className="flex flex-col items-center gap-8 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <p className="font-mono text-4xl font-bold">Repository Queued</p>
+          <p className="font-mono text-lg text-muted-foreground">
+            <RepoLink owner={owner} repo={repo} />
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2 text-muted-foreground">
+          <p className="text-lg">
+            This repository is queued for initialization.
+          </p>
+          <p className="text-lg">
+            We&apos;ll start processing it shortly. Please check back in a few
+            moments.
+          </p>
+        </div>
       </div>
     </div>
   );
 
-  const ErrorView = () => (
-    <div className="flex size-full items-center justify-center p-2 text-2xl">
-      <div className="flex flex-col items-center gap-4">
-        <p className="text-4xl font-bold">Error during initialization</p>
-        <p className="text-center text-lg text-muted-foreground">
-          We&apos;ve encountered an error while initializing <RepoLink />.
-        </p>
-        <p className="text-center text-lg text-muted-foreground">
-          This requires manual intervention to fix. If this error persists for
-          an extended period, please contact us for assistance.
-        </p>
+  const InitializingView = ({
+    syncedIssuesCount,
+    allIssuesCount,
+  }: {
+    syncedIssuesCount: number;
+    allIssuesCount: number;
+  }) => {
+    const progress = Math.round((syncedIssuesCount / allIssuesCount) * 100);
+
+    return (
+      <div className="flex size-full items-center justify-center p-2">
+        <div className="flex flex-col items-center gap-8 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <p className="font-mono text-4xl font-bold">
+              Initializing Repository...
+            </p>
+            <p className="font-mono text-lg text-muted-foreground">
+              <RepoLink owner={owner} repo={repo} />
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex h-8 w-96 gap-1 overflow-hidden rounded-lg border-2 border-primary p-1">
+              {[...Array(20)].map((_, i) => {
+                const segmentProgress = (i + 1) * 5; // Each block represents 5%
+                const isFilled = progress >= segmentProgress;
+                const isCurrentBlock =
+                  progress >= segmentProgress - 5 && progress < segmentProgress;
+
+                return (
+                  <div
+                    key={i}
+                    className={`h-full flex-1 rounded-sm transition-colors ${
+                      isFilled
+                        ? "bg-primary"
+                        : isCurrentBlock
+                          ? "animate-cursor-slow bg-primary"
+                          : "bg-muted"
+                    }`}
+                  />
+                );
+              })}
+            </div>
+            <p className="font-mono text-sm text-muted-foreground">
+              Processed {syncedIssuesCount} of {allIssuesCount} issues (
+              {progress}%)<sup>*</sup>
+            </p>
+            <p className="text-xs italic text-muted-foreground/80">
+              *Stats are cached and may be slightly out-of-date
+            </p>
+          </div>
+
+          <p className="text-sm italic text-muted-foreground">
+            Search functionality will be available once initialization is
+            complete
+          </p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   switch (initStatus) {
     // should never be hit, this is for private repos only?
     case "pending":
-      return <NotFoundView />;
+      return <ErrorView />;
     case "ready":
-    case "in_progress":
-      return <InitializingView />;
+      return <QueuedView />;
+    case "in_progress": {
+      const {
+        syncedIssuesCount,
+        repoIssueCounts: { allIssuesCount },
+      } = repoStatus;
+      return (
+        <InitializingView
+          syncedIssuesCount={syncedIssuesCount}
+          allIssuesCount={allIssuesCount}
+        />
+      );
+    }
     case "no_issues":
       return <NoIssuesView />;
     case "error":
@@ -139,7 +191,7 @@ function RepoSearch() {
                   className="size-6 translate-y-px rounded-full"
                 />
                 <h1 className="text-center font-serif text-3xl tracking-tight">
-                  <RepoLink />
+                  <RepoLink owner={owner} repo={repo} />
                 </h1>
               </div>
               <h2 className="mb-8 text-center font-serif text-lg italic tracking-tight text-muted-foreground">
@@ -168,4 +220,67 @@ function RepoSearch() {
       initStatus satisfies never;
       return <NotFoundView />;
   }
+}
+
+// Shared component for repo links
+function RepoLink({ owner, repo }: { owner: string; repo: string }) {
+  return (
+    <a
+      href={`https://github.com/${owner}/${repo}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex hover:underline hover:opacity-80"
+    >
+      <code className="rounded bg-muted px-1.5 py-0.5">
+        {owner}/{repo}
+      </code>
+    </a>
+  );
+}
+
+// Error views
+function NotFoundView() {
+  const { owner, repo } = Route.useParams();
+  return (
+    <div className="flex size-full items-center justify-center p-2">
+      <div className="flex flex-col items-center gap-8 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <p className="font-mono text-4xl font-bold">Repository Not Found</p>
+          <p className="font-mono text-lg text-muted-foreground">
+            <RepoLink owner={owner} repo={repo} />
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 text-muted-foreground">
+          <p className="text-lg">
+            Is there a typo? This repository could not be found.
+          </p>
+          <p className="text-lg">
+            If this is a private repo, you must log in to search it.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ErrorView() {
+  return (
+    <div className="flex size-full items-center justify-center p-2">
+      <div className="flex flex-col items-center gap-8 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <p className="font-mono text-4xl font-bold">Unexpected Error</p>
+          <p className="font-mono text-lg text-muted-foreground">
+            System Error
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 text-muted-foreground">
+          <p className="text-lg">We&apos;ve encountered an unexpected error.</p>
+          <p className="text-lg">
+            If this error persists for an extended period, please contact us for
+            assistance.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }

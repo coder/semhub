@@ -7,7 +7,7 @@ import { z } from "zod";
 import { issueTable } from "@/core/db/schema/entities/issue.sql";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import type { AggregateReactions } from "@/core/db/schema/shared";
-import { graphql } from "@/core/github/graphql";
+import { graphql } from "@/core/github/graphql/graphql";
 import type { GraphqlOctokit } from "@/core/github/shared";
 import { getDeps } from "@/deps";
 

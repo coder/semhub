@@ -61,7 +61,7 @@ export const Repo = {
   }: {
     data: NonNullable<Awaited<ReturnType<typeof getGithubRepo>>["data"]>;
     db: DbClient;
-    defaultInitStatus?: "ready" | "pending";
+    defaultInitStatus: "ready" | "pending";
   }) => {
     const {
       owner: { login: ownerLogin, avatar_url: ownerAvatarUrl },
@@ -97,6 +97,10 @@ export const Repo = {
         initStatus: repos.initStatus,
         repoName: repos.name,
         repoOwner: repos.ownerLogin,
+        syncStatus: repos.syncStatus,
+        avatarUrl: repos.ownerAvatarUrl,
+        lastSyncedAt: repos.lastSyncedAt,
+        issuesLastUpdatedAt: repos.issuesLastUpdatedAt,
       });
     if (!result) {
       throw new Error("Failed to create repo");
@@ -410,6 +414,18 @@ export const Repo = {
       .where(eq(repos.id, repoId));
   },
 
+  getSyncedIssuesCount: async (repoId: string, db: DbClient) => {
+    const [result] = await db
+      .select({
+        count: count(),
+      })
+      .from(issueTable)
+      // only count issues that have embeddings
+      .innerJoin(issueEmbeddings, eq(issueEmbeddings.issueId, issueTable.id))
+      .where(eq(issueTable.repoId, repoId));
+    return result?.count ?? 0;
+  },
+
   readyForPublicSearch: async ({
     owner,
     name,
@@ -421,6 +437,7 @@ export const Repo = {
   }) => {
     const [result] = await db
       .select({
+        id: repos.id,
         initStatus: repos.initStatus,
         syncStatus: repos.syncStatus,
         lastSyncedAt: repos.lastSyncedAt,
@@ -441,6 +458,7 @@ export const Repo = {
     }
 
     return {
+      id: result.id,
       initStatus: result.initStatus,
       lastSyncedAt: result.lastSyncedAt,
       issuesLastUpdatedAt: result.issuesLastUpdatedAt,
