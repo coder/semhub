@@ -1,5 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 
 import type { DbClient } from "@/core/db";
@@ -19,35 +20,30 @@ export const repoRouter = new Hono<Context>().get(
   async (c) => {
     const { owner, repo } = c.req.valid("param");
     const { db, restOctokit } = getDeps();
-    let res = await Repo.readyForPublicSearch({
+    let repoStatus = await Repo.readyForPublicSearch({
       owner,
       name: repo,
       db,
     });
     // if res is null, we trigger the sync
     // doing state change on GET, but we are gangsta that way
-    if (!res) {
+    if (!repoStatus) {
       const { exists, data } = await getGithubRepo({
         repoName: repo,
         repoOwner: owner,
         octokit: restOctokit,
       });
       if (!exists) {
-        return c.json(
-          createSuccessResponse({
-            data: {
-              exists: false,
-            },
-            message: "Repository does not exist on GitHub",
-          }),
-        );
+        throw new HTTPException(404, {
+          message: "Repository does not exist on GitHub",
+        });
       }
       const createdRepo = await Repo.createRepo({
         data,
         db,
         defaultInitStatus: "ready", // public repo can initialise directly upon creation
       });
-      res = {
+      repoStatus = {
         id: createdRepo.id,
         initStatus: createdRepo.initStatus,
         syncStatus: createdRepo.syncStatus,
@@ -59,17 +55,16 @@ export const repoRouter = new Hono<Context>().get(
     // Run queries in parallel
     const [repoIssueCounts, syncedIssuesCount] = await Promise.all([
       getRepoIssueCounts(owner, repo, restOctokit),
-      getSyncedIssuesCount(owner, repo, res.id, db),
+      getSyncedIssuesCount(owner, repo, repoStatus.id, db),
     ]);
 
     return c.json(
       createSuccessResponse({
         data: {
-          exists: true,
-          data: res,
+          repoStatus,
           repoIssueCounts,
           syncedIssuesCount,
-        },
+        } as const,
         message: "Successfully retrieved repository status",
       }),
     );

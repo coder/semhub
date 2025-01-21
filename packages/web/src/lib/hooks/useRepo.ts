@@ -1,10 +1,12 @@
 import {
+  queryOptions,
   useMutation,
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
 import { produce } from "immer";
 
+import { ApiError } from "@/lib/api/client";
 import {
   getRepoStatus,
   listRepos,
@@ -105,11 +107,21 @@ export const useUnsubscribeRepo = () => {
   });
 };
 
-export const useRepoStatus = (owner: string, repo: string) => {
-  return useSuspenseQuery({
+// new pattern, not used
+export const getRepoStatusQueryOptions = (owner: string, repo: string) =>
+  queryOptions({
     queryKey: queryKeys.repos.status(owner, repo),
     queryFn: () => getRepoStatus(owner, repo),
+    retry: (failureCount, error) => {
+      if (error instanceof ApiError && error.code === 404) {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
+
+export const useRepoStatus = (owner: string, repo: string) => {
+  return useSuspenseQuery(getRepoStatusQueryOptions(owner, repo));
 };
 
 export type RepoStatus = NonNullable<ReturnType<typeof useRepoStatus>["data"]>;
