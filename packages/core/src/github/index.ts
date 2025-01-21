@@ -4,15 +4,13 @@ import type { CreateLabel } from "@/db/schema/entities/label.schema";
 import type { AggregateReactions } from "@/db/schema/shared";
 
 import {
+  getIssueNumbersResSchema,
   getQueryGithubIssuesWithMetadata,
   getQueryIssueNumbers,
-} from "./graphql/query";
-import {
-  getIssueNumbersResSchema,
   loadIssuesWithCommentsResSchema,
   type CommentGraphql,
   type IssueGraphql,
-} from "./schema.graphql";
+} from "./graphql/query";
 import { repoSchema } from "./schema.rest";
 import type { GraphqlOctokit, RestOctokit } from "./shared";
 
@@ -226,16 +224,14 @@ export async function getLatestGithubRepoIssues({
   after: string | null;
   numIssues?: number;
 }) {
-  const response = await octokit.graphql(
-    getGithubIssuesWithMetadataForUpsert(),
-    {
-      organization: repoOwner,
-      repo: repoName,
-      since: since?.toISOString() ?? null,
-      first: numIssues,
-      cursor: after,
-    },
-  );
+  const { query, variables } = getQueryGithubIssuesWithMetadata({
+    organization: repoOwner,
+    repo: repoName,
+    since,
+    first: numIssues,
+    after,
+  });
+  const response = await octokit.graphql(query, variables);
   const data = loadIssuesWithCommentsResSchema.parse(response);
   const issues = data.repository.issues.nodes;
   const hasNextPage = data.repository.issues.pageInfo.hasNextPage;
@@ -335,18 +331,6 @@ export async function getGithubIssuesViaIterator(
   octokit: GraphqlOctokit,
   numIssues = 100,
 ) {
-<<<<<<< Updated upstream
-  const iterator = octokit.graphql.paginate.iterator(
-    getQueryGithubIssuesWithMetadata(),
-    {
-      organization: repoOwner,
-      repo: repoName,
-      cursor: after,
-      since: repoIssuesLastUpdatedAt?.toISOString() ?? null,
-      first: numIssues,
-    },
-  );
-=======
   const { query, variables } = getQueryGithubIssuesWithMetadata({
     organization: repoOwner,
     repo: repoName,
@@ -355,7 +339,6 @@ export async function getGithubIssuesViaIterator(
     after,
   });
   const iterator = octokit.graphql.paginate.iterator(query, variables);
->>>>>>> Stashed changes
   let lastIssueUpdatedAt: Date | null = null;
   const rawIssues = [];
   const rawComments = [];
@@ -444,12 +427,13 @@ export async function getGithubIssuesArrayToChunk({
   numIssuesPerQuery: number;
 }) {
   const allIssueNumbers: Array<{ number: number; updatedAt: Date }> = [];
-  const iterator = octokit.graphql.paginate.iterator(getQueryIssueNumbers(), {
+  const { query, variables } = getQueryIssueNumbers({
     organization: repoOwner,
     repo: repoName,
-    since: since?.toISOString() ?? null,
     first: numIssuesPerQuery,
+    since,
   });
+  const iterator = octokit.graphql.paginate.iterator(query, variables);
   for await (const response of iterator) {
     const data = getIssueNumbersResSchema.parse(response);
     allIssueNumbers.push(
