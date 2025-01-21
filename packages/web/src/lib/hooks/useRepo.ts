@@ -124,4 +124,6 @@ export const useRepoStatus = (owner: string, repo: string) => {
   return useSuspenseQuery(getRepoStatusQueryOptions(owner, repo));
 };
 
-export type RepoStatus = NonNullable<ReturnType<typeof useRepoStatus>["data"]>;
+export type RepoStatusMetadata = NonNullable<
+  ReturnType<typeof useRepoStatus>["data"]
+>;
