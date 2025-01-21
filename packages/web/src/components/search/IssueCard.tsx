@@ -311,7 +311,10 @@ function IssueInteractions({ issue }: { issue: Issue }) {
               href={commenter.htmlUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className={` z-[${issue.topCommenters!.length - index}] relative block rounded-full ring-2 ring-background transition-all duration-200 hover:z-50 hover:scale-125`}
+              className="relative block rounded-full ring-2 ring-background transition-all duration-200 hover:scale-125 [&:hover]:!z-50"
+              style={{
+                zIndex: issue.topCommenters!.length - index,
+              }}
             >
               <img
                 src={commenter.avatarUrl}
