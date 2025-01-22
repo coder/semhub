@@ -83,6 +83,10 @@ export default {
           "0%, 100%": { opacity: 1 },
           "50%": { opacity: 0 },
         },
+        "shine-infinite": {
+          "0%": { transform: "skew(-12deg) translateX(-100%)" },
+          "100%": { transform: "skew(-12deg) translateX(100%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -91,6 +95,7 @@ export default {
         "cursor-slow": "cursor-blink 2s step-end infinite",
         "gradient-flow": "gradient-flow 2s linear infinite",
         "border-shimmer": "border-shimmer 2s linear infinite",
+        "shine-infinite": "shine-infinite 2s ease-in-out infinite",
       },
       fontSize: {
         "mobile-base": "0.875rem", // 14px
