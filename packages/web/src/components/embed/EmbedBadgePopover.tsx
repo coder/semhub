@@ -1,5 +1,4 @@
-import { CheckIcon, CopyIcon, PlusIcon } from "lucide-react";
-import { useState } from "react";
+import { PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +7,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+import {
+  CopyButton,
+  getEmbedCode,
+  SEMHUB_BADGE_IMG_SRC,
+  useCopyToClipboard,
+} from "./embed";
+
 export function EmbedBadgePopover({
   owner,
   repo,
@@ -15,19 +21,8 @@ export function EmbedBadgePopover({
   owner: string;
   repo: string;
 }) {
-  const [copied, setCopied] = useState(false);
-
-  const imgSrc =
-    "https://img.shields.io/badge/search-semhub-blue?style=flat&logo=https://semhub.dev/search-icon.svg";
-
-  const embedCode = `<a href="https://semhub.dev/r/${owner}/${repo}"><img src="${imgSrc}" alt="Search with SemHub"></a>`;
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(embedCode).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
+  const embedCode = getEmbedCode(owner, repo);
+  const { copied, copyToClipboard } = useCopyToClipboard(embedCode);
 
   return (
     <Popover>
@@ -47,7 +42,7 @@ export function EmbedBadgePopover({
             </p>
             <div className="flex items-center justify-center rounded border bg-muted/30 p-3">
               <a href={`/r/${owner}/${repo}`}>
-                <img src={imgSrc} alt="Search with SemHub" />
+                <img src={SEMHUB_BADGE_IMG_SRC} alt="Search with SemHub" />
               </a>
             </div>
             <div className="relative">
@@ -55,24 +50,7 @@ export function EmbedBadgePopover({
                 <pre className="flex-1 overflow-x-auto text-xs">
                   <code>{embedCode}</code>
                 </pre>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="shrink-0 gap-1.5"
-                  onClick={copyToClipboard}
-                >
-                  {copied ? (
-                    <>
-                      <CheckIcon className="size-3 text-green-500" />
-                      <span className="text-xs">Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <CopyIcon className="size-3" />
-                      <span className="text-xs">Copy</span>
-                    </>
-                  )}
-                </Button>
+                <CopyButton copied={copied} onClick={copyToClipboard} />
               </div>
             </div>
           </div>

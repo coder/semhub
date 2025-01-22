@@ -1,4 +1,4 @@
-import { AlertCircleIcon, CheckIcon, CopyIcon, PlusIcon } from "lucide-react";
+import { AlertCircleIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 
 import { repoSchema } from "@/core/github/schema.rest";
@@ -22,28 +22,24 @@ import {
   validateAndExtractGithubOwnerAndRepo,
 } from "@/components/repos/subscribe";
 
+import {
+  CopyButton,
+  getEmbedCode,
+  SEMHUB_BADGE_IMG_SRC,
+  useCopyToClipboard,
+} from "./embed";
+
 export function EmbedBadgeInput() {
   const [open, setOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [repoInput, setRepoInput] = useState("");
   const [preview, setPreview] = useState<RepoPreviewProps | null>(null);
 
-  const imgSrc =
-    "https://img.shields.io/badge/search-semhub-blue?style=flat&logo=https://semhub.dev/search-icon.svg";
-
   const embedCode = preview
-    ? `<a href="https://semhub.dev/r/${preview.owner.login}/${preview.name}"><img src="${imgSrc}" alt="Search with SemHub"></a>`
+    ? getEmbedCode(preview.owner.login, preview.name)
     : "";
-
-  const copyToClipboard = () => {
-    if (!embedCode) return;
-    navigator.clipboard.writeText(embedCode).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
+  const { copied, copyToClipboard } = useCopyToClipboard(embedCode);
 
   const fetchPreview = async (owner: string, repo: string) => {
     try {
@@ -149,7 +145,7 @@ export function EmbedBadgeInput() {
               />
               <div className="flex h-12 items-center justify-center rounded-xl bg-background">
                 <a href={`/r/${preview.owner.login}/${preview.name}`}>
-                  <img src={imgSrc} alt="Search with SemHub" />
+                  <img src={SEMHUB_BADGE_IMG_SRC} alt="Search with SemHub" />
                 </a>
               </div>
               <div className="flex h-12 items-center gap-3 rounded-xl border-2 bg-background px-4">
@@ -158,24 +154,7 @@ export function EmbedBadgeInput() {
                     <code className="text-sm">{embedCode}</code>
                   </pre>
                 </div>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="shrink-0 gap-1.5"
-                  onClick={copyToClipboard}
-                >
-                  {copied ? (
-                    <>
-                      <CheckIcon className="size-3 text-green-500" />
-                      <span className="text-xs">Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <CopyIcon className="size-3" />
-                      <span className="text-xs">Copy</span>
-                    </>
-                  )}
-                </Button>
+                <CopyButton copied={copied} onClick={copyToClipboard} />
               </div>
             </div>
           )}
