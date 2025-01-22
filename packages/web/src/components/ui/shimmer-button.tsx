@@ -48,7 +48,7 @@ const ShimmerButton = React.forwardRef<HTMLButtonElement, ShimmerButtonProps>(
           {children}
         </div>
         <div className="absolute inset-0 -top-[20px] flex h-[calc(100%+40px)] w-full animate-shine-infinite justify-center blur-md">
-          <div className="relative h-full w-8 bg-white/30" />
+          <div className="relative h-full w-8 bg-white/80" />
         </div>
       </Comp>
     );

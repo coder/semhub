@@ -2,9 +2,12 @@ import { InfoIcon } from "lucide-react";
 
 import type { RepoStatus } from "@/lib/hooks/useRepo";
 import { getTimeAgo } from "@/lib/time";
-import { cn } from "@/lib/utils";
-import { FastTooltip } from "@/components/ui/fast-tooltip";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 function TimeDisplay({ label, date }: { label: string; date: string | null }) {
   if (!date) return null;
@@ -34,7 +37,7 @@ function StatusDisplay({
   return displayText ? <span>{displayText}</span> : null;
 }
 
-export function RepoStatusTooltip({
+export function RepoStatusPopover({
   lastSyncedAt,
   issuesLastUpdatedAt,
   syncStatus,
@@ -46,24 +49,24 @@ export function RepoStatusTooltip({
   initStatus: RepoStatus["initStatus"];
 }) {
   return (
-    <TooltipProvider>
-      <FastTooltip
-        content={
-          <div className="flex flex-col gap-1 text-sm">
-            <StatusDisplay initStatus={initStatus} syncStatus={syncStatus} />
-            <TimeDisplay label="Last synced" date={lastSyncedAt} />
-            <TimeDisplay label="Issues updated" date={issuesLastUpdatedAt} />
-          </div>
-        }
-      >
-        <span
-          className={cn(
-            "inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-          )}
-        >
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2">
           <InfoIcon className="size-4" />
-        </span>
-      </FastTooltip>
-    </TooltipProvider>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64" align="end">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="text-sm font-medium">Repository Status</div>
+            <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+              <StatusDisplay initStatus={initStatus} syncStatus={syncStatus} />
+              <TimeDisplay label="Last synced" date={lastSyncedAt} />
+              <TimeDisplay label="Issues updated" date={issuesLastUpdatedAt} />
+            </div>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

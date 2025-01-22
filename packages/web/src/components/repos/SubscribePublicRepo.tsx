@@ -155,7 +155,7 @@ export function SubscribePublicRepo() {
                   placeholder="org/repo or GitHub URL"
                   value={field.state.value}
                   onBlur={field.handleBlur}
-                  variant="url"
+                  type="url"
                   onChange={(e) => {
                     const newValue = e.target.value;
                     field.handleChange(newValue);

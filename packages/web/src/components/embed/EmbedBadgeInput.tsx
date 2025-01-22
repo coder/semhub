@@ -120,7 +120,7 @@ export function EmbedBadgeInput() {
             <Input
               placeholder="org/repo or GitHub URL"
               value={repoInput}
-              variant="url"
+              type="url"
               className="border-0 bg-transparent px-3 text-base shadow-none"
               onChange={(e) => {
                 const newValue = e.target.value;
