@@ -3,7 +3,7 @@ import { ArrowUpRightIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { EmbedBadgePopover } from "@/components/embed/EmbedBadgePopover";
+import { EmbedBadgeInput } from "@/components/embed/EmbedBadgeInput";
 
 export const Route = createFileRoute("/r/your/repo")({
   component: YourRepoPage,
@@ -69,7 +69,7 @@ function YourRepoPage() {
             </div>
 
             <div className="flex items-center gap-4">
-              <EmbedBadgePopover owner="your" repo="repo" />
+              <EmbedBadgeInput />
               <span className="text-sm text-muted-foreground">
                 ← Click to get your badge code
               </span>

@@ -140,7 +140,7 @@ export function SubscribePrivateRepo() {
             children={(field) => (
               <div className="grid gap-2">
                 <Input
-                  placeholder="org/repo or github.com/org/repo"
+                  placeholder="org/repo or GitHub URL"
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => {
