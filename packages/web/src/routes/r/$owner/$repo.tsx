@@ -3,9 +3,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ApiError } from "@/lib/api/client";
 import { getRepoStatusQueryOptions, useRepoStatus } from "@/lib/hooks/useRepo";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmbedBadgePopover } from "@/components/search/EmbedBadgePopover";
+import { EmbedBadgePopover } from "@/components/embed/EmbedBadgePopover";
 import { RepoSearchBar } from "@/components/search/RepoSearchBar";
-import { RepoStatusTooltip } from "@/components/search/RepoStatusTooltip";
+import { RepoStatusPopover } from "@/components/search/RepoStatusPopover";
 
 export const Route = createFileRoute("/r/$owner/$repo")({
   loader: ({ context, params: { owner, repo } }) =>
@@ -208,7 +208,7 @@ function RepoSearch() {
             </div>
           </div>
           <div className="fixed bottom-8 right-8 flex items-center gap-2">
-            <RepoStatusTooltip
+            <RepoStatusPopover
               lastSyncedAt={lastSyncedAt}
               issuesLastUpdatedAt={issuesLastUpdatedAt}
               syncStatus={syncStatus}

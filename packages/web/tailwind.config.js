@@ -83,12 +83,17 @@ export default {
           "0%, 100%": { opacity: 1 },
           "50%": { opacity: 0 },
         },
+        "shine-infinite": {
+          "0%": { transform: "skew(-12deg) translateX(-100%)" },
+          "100%": { transform: "skew(-12deg) translateX(100%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         cursor: "cursor-blink 1s step-end infinite",
         "cursor-slow": "cursor-blink 2s step-end infinite",
+        "shine-infinite": "shine-infinite 3s ease-in-out infinite",
       },
       fontSize: {
         "mobile-base": "0.875rem", // 14px

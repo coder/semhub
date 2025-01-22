@@ -8,7 +8,7 @@ import { repoUserInputSchema } from "@/core/github/schema.validation";
 const INVALID_REPO_MESSAGE = "Please enter a valid GitHub repository";
 
 // Utility function to extract owner and repo, with validation
-const validateAndExtractGithubOwnerAndRepo = (
+export const validateAndExtractGithubOwnerAndRepo = (
   input: string,
   ctx?: z.RefinementCtx,
 ) => {
