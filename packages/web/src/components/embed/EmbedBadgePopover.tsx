@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,10 @@ export function EmbedBadgePopover({
             <div className="text-sm font-medium">Add SemHub to your repo</div>
             <p className="text-sm text-muted-foreground">
               Add semantic search to your repository by embedding this badge in
-              your README and loading your repo into SemHub.
+              your README and loading your repo into SemHub.{" "}
+              <Link to="/r/your/repo" className="text-blue-500 underline">
+                Learn more
+              </Link>
             </p>
             <div className="flex items-center justify-center rounded border bg-muted/30 p-3">
               <a href={`/r/${owner}/${repo}`}>

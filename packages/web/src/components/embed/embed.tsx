@@ -3,8 +3,10 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
+// using coder logo; cannot use self-hosted svg
+// base64 URL too long and ugly?
 export const SEMHUB_BADGE_IMG_SRC =
-  "https://img.shields.io/badge/search-semhub-blue?style=flat&logo=https://semhub.dev/search-icon.svg";
+  "https://img.shields.io/badge/search-semhub-orange?style=flat&logo=coder&logoColor=blue";
 
 export const getEmbedCode = (owner: string, repo: string) => {
   return `<a href="https://semhub.dev/r/${owner}/${repo}"><img src="${SEMHUB_BADGE_IMG_SRC}" alt="Search with SemHub"></a>`;
