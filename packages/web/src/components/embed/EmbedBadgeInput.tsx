@@ -107,7 +107,9 @@ export function EmbedBadgeInput() {
           className="relative gap-2 border-2 border-blue-500/30 bg-gradient-to-r from-blue-500/30 to-orange-500/30 transition-all hover:border-blue-500/50 hover:from-blue-500/40 hover:to-orange-500/40 hover:shadow-[0_0_15px_rgba(59,130,246,0.5)] dark:from-blue-400/30 dark:to-orange-400/30 dark:hover:from-blue-400/40 dark:hover:to-orange-400/40"
         >
           <PlusIcon className="size-4 text-blue-400" />
-          <span className="font-medium">Get a badge for your repo now 🔍</span>
+          <span className="font-medium">
+            Get a badge for your repo now&nbsp;&nbsp; 🔎
+          </span>
         </ShimmerButton>
       </DialogTrigger>
       <DialogContent className="max-w-[480px]">
