@@ -31,7 +31,7 @@ export function IssueCard({ issue }: { issue: Issue }) {
               />
               <IssueTitleWithLabels issue={issue} />
             </div>
-            <div className="ml-6 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <div className="ml-6 mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <RepoTag issue={issue} />
               <IssueBasicInfo issue={issue} />
               <IssueInteractions issue={issue} />
@@ -137,11 +137,12 @@ function ScoreBadge({ score }: { score: number }) {
   const normalizedScore = normalizeScore(score);
   const colorClass = getScoreColor(score);
   return (
+    // TODO: add more scores showing breakdown?
     <FastTooltip content={`Raw score: ${(score * 100).toFixed(1)}%`}>
       <span
         className={`mr-1.5 inline-flex rounded-md px-1.5 py-0.5 text-sm font-medium ${colorClass}`}
       >
-        {normalizedScore.toFixed(1)}%
+        {normalizedScore.toFixed(0)}%
       </span>
     </FastTooltip>
   );
