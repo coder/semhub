@@ -34,13 +34,13 @@ export function EmbedBadgePopover({
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
           <PlusIcon className="size-4" />
-          <span>Add</span>
+          <span>Embed</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-96" align="end">
         <div className="space-y-4">
           <div className="space-y-2">
-            <div className="text-sm font-medium">Add to your repo</div>
+            <div className="text-sm font-medium">Add SemHub to your repo</div>
             <p className="text-sm text-muted-foreground">
               Add semantic search to your repository by embedding this badge in
               your README and loading your repo into SemHub.

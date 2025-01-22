@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { EmbedBadgePopover } from "@/components/search/EmbedBadgePopover";
 import { SearchDropdownMenu } from "@/components/search/SearchDropdownMenu";
 import {
   SEARCH_OPERATORS,
@@ -258,13 +259,14 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
   return (
     <form onSubmit={(e) => handleSearch(e, query)}>
       <div className="relative mx-auto w-full">
-        <div className="mb-2 flex items-center gap-1">
+        <div className="mb-2 flex items-center justify-between">
           <SearchFilters
             selectedOrg={selectedOrg}
             selectedRepo={selectedRepo}
             onOrgChange={handleOrgChange}
             onRepoChange={handleRepoChange}
           />
+          <EmbedBadgePopover owner="your" repo="repo" />
         </div>
         <div className="relative">
           <Input
