@@ -23,7 +23,7 @@ export default {
     const { db } = getDeps();
     switch (controller.cron) {
       case CRON_PATTERNS.INIT: {
-        await Repo.unstuckReposForInit(db);
+        await Repo.unstuckForInit(db);
         await initNextRepos(db, env.REPO_INIT_WORKFLOW);
         break;
       }
@@ -31,10 +31,10 @@ export default {
         // strictly speaking, this should not be necessary
         // BUT we are observing a bug where a repo is stuck in "in_progress"
         // and this workflow doesn't show up in Cloudflare Workflow's dashboard
-        await Repo.unstuckReposForIssueSync(db);
+        await Repo.unstuckForIssueSync(db);
         await db.transaction(
           async (tx) => {
-            await Repo.enqueueReposForIssueSync(tx);
+            await Repo.enqueueForIssueSync(tx);
             for (let i = 0; i < NUM_CONCURRENT_ISSUE_CRONS; i++) {
               await env.SYNC_ISSUE_WORKFLOW.create({
                 id: generateSyncWorkflowId("issue"),

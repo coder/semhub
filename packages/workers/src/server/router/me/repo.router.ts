@@ -107,7 +107,7 @@ export const repoRouter = new Hono<AuthedContext>()
         });
       }
       await db.transaction(async (tx) => {
-        const createdRepo = await Repo.createRepo({
+        const createdRepo = await Repo.create({
           data: repoData.data,
           db: tx,
           defaultInitStatus: "ready", // public repo can initialise directly upon creation

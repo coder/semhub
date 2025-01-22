@@ -39,7 +39,7 @@ export const repoRouter = new Hono<Context>().get(
           message: "Repository does not exist on GitHub",
         });
       }
-      const createdRepo = await Repo.createRepo({
+      const createdRepo = await Repo.create({
         data,
         db,
         defaultInitStatus: "ready", // public repo can initialise directly upon creation
@@ -66,6 +66,7 @@ export const repoRouter = new Hono<Context>().get(
         ]);
         const repoStatusWithCounts = {
           ...repoStatus,
+          id: undefined,
           initStatus: "in_progress",
           repoIssueCounts,
           syncedIssuesCount,
@@ -84,6 +85,7 @@ export const repoRouter = new Hono<Context>().get(
       case "pending": {
         const repoStatusNew = {
           ...repoStatus,
+          id: undefined,
           initStatus: repoStatus.initStatus,
           repoIssueCounts: null,
           syncedIssuesCount: null,

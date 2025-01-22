@@ -55,7 +55,7 @@ export const Repo = {
     } as const;
   },
 
-  createRepo: async ({
+  create: async ({
     data,
     db,
     defaultInitStatus = "ready",
@@ -109,7 +109,7 @@ export const Repo = {
     return result;
   },
 
-  markNextEnqueuedRepoInProgress: async (db: DbClient) => {
+  getNextEnqueuedAndMarkInProgress: async (db: DbClient) => {
     // wrapped in a single transaction to prevent race condition
     return await db.transaction(async (tx) => {
       const [repo] = await tx
@@ -142,7 +142,7 @@ export const Repo = {
     });
   },
 
-  enqueueReposForIssueSync: async (db: DbClient) => {
+  enqueueForIssueSync: async (db: DbClient) => {
     return await db
       .update(repos)
       .set({
@@ -164,7 +164,7 @@ export const Repo = {
       });
   },
 
-  unstuckReposForInit: async (db: DbClient) => {
+  unstuckForInit: async (db: DbClient) => {
     await db
       .update(repos)
       .set({ initStatus: "ready" })
@@ -176,7 +176,7 @@ export const Repo = {
       );
   },
 
-  unstuckReposForIssueSync: async (db: DbClient) => {
+  unstuckForIssueSync: async (db: DbClient) => {
     await db
       .update(repos)
       .set({ syncStatus: "ready" })

@@ -106,7 +106,7 @@ export class InstallationWorkflow extends WorkflowEntrypoint<
         "create repo record",
         getStepDuration("short"),
         async () => {
-          return await Repo.createRepo({
+          return await Repo.create({
             data: res.data,
             db,
             defaultInitStatus: "pending",

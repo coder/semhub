@@ -46,7 +46,7 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
         "get repo data and mark as in progress",
         getStepDuration("short"),
         async () => {
-          return await Repo.markNextEnqueuedRepoInProgress(db);
+          return await Repo.getNextEnqueuedAndMarkInProgress(db);
         },
       );
       const syncComplete = !res;
