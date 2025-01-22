@@ -70,9 +70,6 @@ function YourRepoPage() {
 
             <div className="flex items-center gap-4">
               <EmbedBadgeInput />
-              <span className="text-sm text-muted-foreground">
-                ← Click to get your badge code
-              </span>
             </div>
 
             <div className="flex flex-col items-center gap-3">

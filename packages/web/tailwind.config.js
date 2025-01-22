@@ -89,6 +89,8 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
         cursor: "cursor-blink 1s step-end infinite",
         "cursor-slow": "cursor-blink 2s step-end infinite",
+        "gradient-flow": "gradient-flow 2s linear infinite",
+        "border-shimmer": "border-shimmer 2s linear infinite",
       },
       fontSize: {
         "mobile-base": "0.875rem", // 14px
