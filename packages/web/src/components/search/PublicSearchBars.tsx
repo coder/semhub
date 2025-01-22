@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { EmbedBadgePopover } from "@/components/search/EmbedBadgePopover";
+import { EmbedBadgePopover } from "@/components/embed/EmbedBadgePopover";
 import { SearchDropdownMenu } from "@/components/search/SearchDropdownMenu";
 import {
   SEARCH_OPERATORS,

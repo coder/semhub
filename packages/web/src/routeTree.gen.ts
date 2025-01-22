@@ -15,6 +15,7 @@ import { Route as SearchImport } from './routes/search'
 import { Route as IndexImport } from './routes/index'
 import { Route as ReposIndexImport } from './routes/repos/index'
 import { Route as ReposSearchImport } from './routes/repos/search'
+import { Route as RYourRepoImport } from './routes/r/your/repo'
 import { Route as ROwnerRepoImport } from './routes/r/$owner/$repo'
 
 // Create/Update Routes
@@ -36,6 +37,11 @@ const ReposIndexRoute = ReposIndexImport.update({
 
 const ReposSearchRoute = ReposSearchImport.update({
   path: '/repos/search',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const RYourRepoRoute = RYourRepoImport.update({
+  path: '/r/your/repo',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -83,6 +89,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ROwnerRepoImport
       parentRoute: typeof rootRoute
     }
+    '/r/your/repo': {
+      id: '/r/your/repo'
+      path: '/r/your/repo'
+      fullPath: '/r/your/repo'
+      preLoaderRoute: typeof RYourRepoImport
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
@@ -94,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/repos/search': typeof ReposSearchRoute
   '/repos': typeof ReposIndexRoute
   '/r/$owner/$repo': typeof ROwnerRepoRoute
+  '/r/your/repo': typeof RYourRepoRoute
 }
 
 export interface FileRoutesByTo {
@@ -102,6 +116,7 @@ export interface FileRoutesByTo {
   '/repos/search': typeof ReposSearchRoute
   '/repos': typeof ReposIndexRoute
   '/r/$owner/$repo': typeof ROwnerRepoRoute
+  '/r/your/repo': typeof RYourRepoRoute
 }
 
 export interface FileRoutesById {
@@ -111,13 +126,26 @@ export interface FileRoutesById {
   '/repos/search': typeof ReposSearchRoute
   '/repos/': typeof ReposIndexRoute
   '/r/$owner/$repo': typeof ROwnerRepoRoute
+  '/r/your/repo': typeof RYourRepoRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/search' | '/repos/search' | '/repos' | '/r/$owner/$repo'
+  fullPaths:
+    | '/'
+    | '/search'
+    | '/repos/search'
+    | '/repos'
+    | '/r/$owner/$repo'
+    | '/r/your/repo'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/search' | '/repos/search' | '/repos' | '/r/$owner/$repo'
+  to:
+    | '/'
+    | '/search'
+    | '/repos/search'
+    | '/repos'
+    | '/r/$owner/$repo'
+    | '/r/your/repo'
   id:
     | '__root__'
     | '/'
@@ -125,6 +153,7 @@ export interface FileRouteTypes {
     | '/repos/search'
     | '/repos/'
     | '/r/$owner/$repo'
+    | '/r/your/repo'
   fileRoutesById: FileRoutesById
 }
 
@@ -134,6 +163,7 @@ export interface RootRouteChildren {
   ReposSearchRoute: typeof ReposSearchRoute
   ReposIndexRoute: typeof ReposIndexRoute
   ROwnerRepoRoute: typeof ROwnerRepoRoute
+  RYourRepoRoute: typeof RYourRepoRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
@@ -142,6 +172,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReposSearchRoute: ReposSearchRoute,
   ReposIndexRoute: ReposIndexRoute,
   ROwnerRepoRoute: ROwnerRepoRoute,
+  RYourRepoRoute: RYourRepoRoute,
 }
 
 export const routeTree = rootRoute
@@ -160,7 +191,8 @@ export const routeTree = rootRoute
         "/search",
         "/repos/search",
         "/repos/",
-        "/r/$owner/$repo"
+        "/r/$owner/$repo",
+        "/r/your/repo"
       ]
     },
     "/": {
@@ -177,6 +209,9 @@ export const routeTree = rootRoute
     },
     "/r/$owner/$repo": {
       "filePath": "r/$owner/$repo.tsx"
+    },
+    "/r/your/repo": {
+      "filePath": "r/your/repo.tsx"
     }
   }
 }

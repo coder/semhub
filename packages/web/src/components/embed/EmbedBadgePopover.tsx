@@ -18,7 +18,7 @@ export function EmbedBadgePopover({
   const [copied, setCopied] = useState(false);
 
   const imgSrc =
-    "https://img.shields.io/badge/search-semhub-blue?style=flat&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI%2BCiAgPHBhdGggZmlsbD0iY3VycmVudENvbG9yIiBkPSJNNDE0IDM1NHEtMTgtMTgtNDEtMTFsLTMyLTMycTQzLTUzIDQzLTExOXEwLTgwLTU2LTEzNlQxOTIgMFQ1NiA1NlQwIDE5MnQ1NiAxMzZ0MTM2IDU2cTcwIDAgMTE5LTQzbDMyIDMycS02IDI0IDExIDQxbDg1IDg1cTEzIDEzIDMwIDEzcTE4IDAgMzAtMTNxMTMtMTMgMTMtMzB0LTEzLTMwem0tMjIyLTEzcS02MiAwLTEwNS41LTQzLjVUNDMgMTkyVDg2LjUgODYuNVQxOTIgNDN0MTA1LjUgNDMuNVQzNDEgMTkydC00My41IDEwNS41VDE5MiAzNDF6Ii8%2BCjwvc3ZnPg%3D%3D";
+    "https://img.shields.io/badge/search-semhub-blue?style=flat&logo=https://semhub.dev/search-icon.svg";
 
   const embedCode = `<a href="https://semhub.dev/r/${owner}/${repo}"><img src="${imgSrc}" alt="Search with SemHub"></a>`;
 
@@ -46,19 +46,19 @@ export function EmbedBadgePopover({
               your README and loading your repo into SemHub.
             </p>
             <div className="flex items-center justify-center rounded border bg-muted/30 p-3">
-              <a href={`https://semhub.dev/r/${owner}/${repo}`}>
+              <a href={`/r/${owner}/${repo}`}>
                 <img src={imgSrc} alt="Search with SemHub" />
               </a>
             </div>
             <div className="relative">
-              <div className="group rounded border bg-muted/50 p-3">
-                <pre className="overflow-x-auto text-xs">
+              <div className="flex items-center gap-2 rounded border bg-muted/50 p-3">
+                <pre className="flex-1 overflow-x-auto text-xs">
                   <code>{embedCode}</code>
                 </pre>
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="absolute right-2 top-2 gap-1.5"
+                  className="shrink-0 gap-1.5"
                   onClick={copyToClipboard}
                 >
                   {copied ? (
