@@ -72,20 +72,55 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: { height: 0 },
-          to: { height: "var(--radix-accordion-content-height)" },
+          from: {
+            height: 0,
+          },
+          to: {
+            height: "var(--radix-accordion-content-height)",
+          },
         },
         "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: 0 },
+          from: {
+            height: "var(--radix-accordion-content-height)",
+          },
+          to: {
+            height: 0,
+          },
         },
         "cursor-blink": {
-          "0%, 100%": { opacity: 1 },
-          "50%": { opacity: 0 },
+          "0%, 100%": {
+            opacity: 1,
+          },
+          "50%": {
+            opacity: 0,
+          },
         },
         "shine-infinite": {
-          "0%": { transform: "skew(-12deg) translateX(-100%)" },
-          "100%": { transform: "skew(-12deg) translateX(100%)" },
+          "0%": {
+            transform: "skew(-12deg) translateX(-100%)",
+          },
+          "100%": {
+            transform: "skew(-12deg) translateX(100%)",
+          },
+        },
+        "shimmer-slide": {
+          to: {
+            transform: "translate(calc(100cqw - 100%), 0)",
+          },
+        },
+        "spin-around": {
+          "0%": {
+            transform: "translateZ(0) rotate(0)",
+          },
+          "15%, 35%": {
+            transform: "translateZ(0) rotate(90deg)",
+          },
+          "65%, 85%": {
+            transform: "translateZ(0) rotate(270deg)",
+          },
+          "100%": {
+            transform: "translateZ(0) rotate(360deg)",
+          },
         },
       },
       animation: {
@@ -94,16 +129,19 @@ export default {
         cursor: "cursor-blink 1s step-end infinite",
         "cursor-slow": "cursor-blink 2s step-end infinite",
         "shine-infinite": "shine-infinite 3s ease-in-out infinite",
+        "shimmer-slide":
+          "shimmer-slide var(--speed) ease-in-out infinite alternate",
+        "spin-around": "spin-around calc(var(--speed) * 2) infinite linear",
       },
       fontSize: {
-        "mobile-base": "0.875rem", // 14px
-        "mobile-sm": "0.75rem", // 12px
-        "mobile-xs": "0.6875rem", // 11px
+        "mobile-base": "0.875rem",
+        "mobile-sm": "0.75rem",
+        "mobile-xs": "0.6875rem",
       },
       spacing: {
         mobile: {
-          tight: "0.5rem", // 8px
-          compact: "0.25rem", // 4px
+          tight: "0.5rem",
+          compact: "0.25rem",
         },
       },
     },

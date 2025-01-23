@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { ShineButton } from "@/components/ui/shine-button";
 import {
   RepoPreview,
   RepoPreviewProps,
@@ -101,7 +101,7 @@ export function EmbedBadgeInput() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <ShimmerButton
+        <ShineButton
           variant="outline"
           size="sm"
           className="relative gap-2 border-2 border-blue-500/30 bg-gradient-to-r from-blue-500/30 to-orange-500/30 transition-all hover:border-blue-500/50 hover:from-blue-500/40 hover:to-orange-500/40 hover:shadow-[0_0_15px_rgba(59,130,246,0.5)] dark:from-blue-400/30 dark:to-orange-400/30 dark:hover:from-blue-400/40 dark:hover:to-orange-400/40"
@@ -110,7 +110,7 @@ export function EmbedBadgeInput() {
           <span className="font-medium">
             Get a badge for your repo now&nbsp;&nbsp; 🔎
           </span>
-        </ShimmerButton>
+        </ShineButton>
       </DialogTrigger>
       <DialogContent className="max-w-[480px]">
         <DialogHeader>
