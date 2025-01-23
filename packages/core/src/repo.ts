@@ -40,6 +40,7 @@ export const Repo = {
       .select({
         id: repos.id,
         isPrivate: repos.isPrivate,
+        initStatus: repos.initStatus,
       })
       .from(repos)
       .where(and(eq(repos.ownerLogin, owner), eq(repos.name, name)));
@@ -52,6 +53,7 @@ export const Repo = {
       exists: true,
       id: result.id,
       isPrivate: result.isPrivate,
+      initStatus: result.initStatus,
     } as const;
   },
 

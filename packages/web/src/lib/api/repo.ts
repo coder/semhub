@@ -30,8 +30,8 @@ export const unsubscribeRepo = async (repoId: string) => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const $get = client.public.repo[":owner"][":repo"].status.$get;
-type RepoStatusResponse = InferResponseType<typeof $get>;
+const $get_status = client.public.repo[":owner"][":repo"].status.$get;
+type RepoStatusResponse = InferResponseType<typeof $get_status>;
 
 export async function getRepoStatus(owner: string, repo: string) {
   const res = await client.public.repo[":owner"][":repo"].status.$get({
@@ -45,9 +45,13 @@ export async function getRepoStatus(owner: string, repo: string) {
   return data;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const $get = client.public.repo[":owner"][":repo"].$get;
+type RepoResponse = InferResponseType<typeof $get>;
+
 export async function getRepo(owner: string, repo: string) {
   const response = await client.public.repo[":owner"][":repo"].$get({
     param: { owner, repo },
   });
-  return handleResponse(response, "Failed to get repository");
+  return handleResponse<RepoResponse>(response, "Failed to get repository");
 }

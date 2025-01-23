@@ -109,15 +109,22 @@ export const repoRouter = new Hono<Context>()
     if (repoExists.exists) {
       const { isPrivate } = repoExists;
       if (isPrivate) {
-        throw new HTTPException(404, {
-          message: "Repository does not exist",
-        });
+        return c.json(
+          createSuccessResponse({
+            data: {
+              exists: false,
+            } as const,
+            message: "Repository does not exist",
+          }),
+        );
       }
       return c.json(
         createSuccessResponse({
           data: {
+            exists: true,
             hasLoaded: true,
-          },
+            initStatus: repoExists.initStatus,
+          } as const,
           message: "Repository exists in our database",
         }),
       );
@@ -129,15 +136,21 @@ export const repoRouter = new Hono<Context>()
       octokit: restOctokit,
     });
     if (!repoData.exists) {
-      throw new HTTPException(404, {
-        message: "Repository does not exist",
-      });
+      return c.json(
+        createSuccessResponse({
+          data: {
+            exists: false,
+          } as const,
+          message: "Repository does not exist",
+        }),
+      );
     }
     return c.json(
       createSuccessResponse({
         data: {
+          exists: true,
           hasLoaded: false,
-        },
+        } as const,
         message: "Repository is on GitHub but not in our database",
       }),
     );

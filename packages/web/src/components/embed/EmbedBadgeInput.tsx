@@ -2,6 +2,7 @@ import { AlertCircleIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 
 import { repoSchema } from "@/core/github/schema.rest";
+import { validateAndExtractGithubOwnerAndRepo } from "@/core/github/schema.validation";
 import { useDebounce } from "@/hooks/useDebounce";
 import {
   Dialog,
@@ -12,15 +13,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ShineButton } from "@/components/ui/shine-button";
+import { githubRepoFormSchema } from "@/components/repos/form-schema";
 import {
   RepoPreview,
   RepoPreviewProps,
   RepoPreviewSkeleton,
 } from "@/components/repos/RepoPreview";
-import {
-  githubRepoFormSchema,
-  validateAndExtractGithubOwnerAndRepo,
-} from "@/components/repos/subscribe";
 
 import {
   CopyButton,
