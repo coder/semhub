@@ -1,29 +1,13 @@
+import {
+  COMMENT_COUNT_CAP,
+  RANKING_WEIGHTS,
+  SCORE_MULTIPLIERS,
+  TIME_CONSTANTS,
+} from "@/constants/ranking.constant";
 import type { AnyColumn, SQL } from "@/db";
 import { sql } from "@/db";
 import { comments } from "@/db/schema/entities/comment.sql";
 
-// would need to recalibrate normalization + score colors in IssueCard.tsx
-// if we change weights/algorithm here
-
-// Ranking weights (should sum to 1)
-const RANKING_WEIGHTS = {
-  SEMANTIC_SIMILARITY: 0.8, // Start with higher weight for semantic search
-  COMMENT_COUNT: 0.12, // Activity level
-  RECENCY: 0.05, // Recent updates
-  ISSUE_STATE: 0.03, // Small bonus for open issues
-} as const;
-
-// Time-based constants
-const TIME_CONSTANTS = {
-  // Base time unit in days for recency calculation
-  RECENCY_BASE_DAYS: 30,
-} as const;
-
-// Score multipliers
-const SCORE_MULTIPLIERS = {
-  OPEN_ISSUE: 1.0,
-  CLOSED_ISSUE: 0.8,
-} as const;
 /**
  * Calculates recency score using exponential decay
  * exp(-t/τ) where:
@@ -57,7 +41,7 @@ export function calculateRecencyScore(issueUpdatedAtColumn: SQL | AnyColumn) {
 export function calculateCommentScore(issueId: SQL | AnyColumn) {
   return sql<number>`
     LN(GREATEST((SELECT count(*) FROM ${comments} WHERE ${comments.issueId} = ${issueId})::float + 1, 1)) /
-    LN(51)  -- ln(50 + 1) ≈ 3.93 as normalizing factor
+    LN(${COMMENT_COUNT_CAP} + 1)
   `;
 }
 
