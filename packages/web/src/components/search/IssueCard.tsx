@@ -390,6 +390,7 @@ function AvatarElement({
 }) {
   return (
     <div
+      // hard-coding bg-white because some profile pictures have a transparent background
       className="relative block rounded-full bg-white ring-2 ring-background transition-all duration-200 hover:scale-125 [&:hover]:!z-50"
       style={{ zIndex }}
     >

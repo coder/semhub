@@ -34,11 +34,6 @@ const owners = [
     avatarUrl: "https://avatars.githubusercontent.com/u/69631?v=4",
   },
   {
-    value: "openai",
-    label: "OpenAI",
-    avatarUrl: "https://avatars.githubusercontent.com/u/14957082?v=4",
-  },
-  {
     value: "hashicorp",
     label: "HashiCorp",
     avatarUrl: "https://avatars.githubusercontent.com/u/761456?v=4",
