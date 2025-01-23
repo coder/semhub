@@ -2,7 +2,10 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 
 import { routeSearch } from "@/core/semsearch/index";
-import { searchResultSchema, type SearchResult } from "@/core/semsearch/schema";
+import {
+  searchResultSchema,
+  type SearchResult,
+} from "@/core/semsearch/schema.output";
 import { getDeps } from "@/deps";
 import type { Context } from "@/server/app";
 import { CacheKey, withCache } from "@/server/kv";

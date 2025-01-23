@@ -22,8 +22,8 @@ import {
   calculateRecencyScore,
   calculateSimilarityScore,
 } from "./ranking";
-import type { SearchParams, SearchResult } from "./schema";
-import { parseSearchQuery } from "./util";
+import { getInputForEmbedding } from "./schema.input";
+import type { SearchParams, SearchResult } from "./schema.output";
 
 export async function routeSearch(
   params: SearchParams,
@@ -58,12 +58,12 @@ async function getCountsAndEmbedding(
   db: DbClient,
   openai: OpenAIClient,
 ) {
-  const parsedSearchQuery = parseSearchQuery(params.query);
+  const input = getInputForEmbedding(params.query);
   const [filteredIssueCount, embedding] = await Promise.all([
     getFilteredIssuesExactCount(params, db),
     createEmbedding(
       {
-        input: parsedSearchQuery.remainingQuery ?? params.query,
+        input: input ?? params.query,
       },
       openai,
     ),
