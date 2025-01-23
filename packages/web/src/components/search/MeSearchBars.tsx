@@ -3,7 +3,7 @@ import { SearchIcon, XIcon } from "lucide-react";
 import { useMeSearch } from "@/hooks/useMeSearch";
 import { useSearchBar } from "@/hooks/useSearchBar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { HighlightedInput } from "@/components/search/HighlightedInput";
 import { SearchDropdownMenu } from "@/components/search/SearchDropdownMenu";
 
 export function MyReposResultsSearchBar({
@@ -38,7 +38,7 @@ export function MyReposResultsSearchBar({
     <div className="relative mx-auto w-full">
       <form onSubmit={(e) => handleSearch(e, query)}>
         <div className="relative">
-          <Input
+          <HighlightedInput
             type="text"
             value={query}
             onChange={handleInputChange}
@@ -112,7 +112,7 @@ export function MyReposSearchBar() {
   return (
     <div className="relative mx-auto w-full">
       <form onSubmit={(e) => handleSearch(e, query)}>
-        <Input
+        <HighlightedInput
           ref={inputRef}
           type="text"
           value={query}

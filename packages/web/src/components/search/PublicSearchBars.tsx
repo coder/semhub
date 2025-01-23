@@ -12,7 +12,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { EmbedBadgePopover } from "@/components/embed/EmbedBadgePopover";
 import { HighlightedInput } from "@/components/search/HighlightedInput";
 import { SearchDropdownMenu } from "@/components/search/SearchDropdownMenu";
@@ -375,7 +374,7 @@ export function HomepageSearchBar() {
               className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
               size={18}
             />
-            <Input
+            <HighlightedInput
               ref={inputRef}
               type="text"
               value={query}
@@ -383,6 +382,7 @@ export function HomepageSearchBar() {
               onKeyDown={handleKeyDown}
               onFocus={handleFocus}
               onBlur={handleBlur}
+              removedOperators={removedOperators}
               className="rounded-full border-gray-300 pl-11 pr-10 focus:border-transparent focus:ring-2 focus:ring-blue-500"
               placeholder={placeholderText}
             />

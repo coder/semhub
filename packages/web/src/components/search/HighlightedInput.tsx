@@ -7,6 +7,7 @@ import {
 } from "@/core/constants/search.constant";
 import { cn } from "@/lib/utils";
 
+// component inspired by https://akashhamirwasia.com/blog/building-highlighted-input-field-in-react/
 const HighlightedInput = React.forwardRef<
   HTMLInputElement,
   Omit<React.InputHTMLAttributes<HTMLInputElement>, "value"> & {
@@ -37,6 +38,8 @@ const HighlightedInput = React.forwardRef<
     }
   };
 
+  // Extract padding classes from className
+  const paddingClasses = className?.match(/(p[ltrbxy]-\d+)/g) || [];
   // Common text styling classes to ensure exact matching
   const textStyles =
     "font-sans text-[16px] leading-normal tracking-normal font-normal";
@@ -61,6 +64,7 @@ const HighlightedInput = React.forwardRef<
         className={cn(
           textStyles,
           "scrollbar-none pointer-events-none absolute inset-0 flex items-center overflow-x-auto whitespace-pre px-3 py-2",
+          ...paddingClasses,
         )}
       >
         {value.split(operatorRegex).map((part, i) => {
