@@ -15,6 +15,7 @@ import {
 import { EmbedBadgePopover } from "@/components/embed/EmbedBadgePopover";
 import { HighlightedInput } from "@/components/search/HighlightedInput";
 import { SearchDropdownMenu } from "@/components/search/SearchDropdownMenu";
+import { ValidationErrorAlert } from "@/components/search/ValidationErrorAlert";
 import {
   SEARCH_OPERATORS,
   type SearchOperator,
@@ -239,7 +240,8 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
     initialQuery,
     removedOperators,
   });
-  const { handleSearch } = usePublicSearch({ mode: "search", setQuery });
+  const { handleSearch, validationErrors, clearValidationErrors } =
+    usePublicSearch({ mode: "search", setQuery });
 
   const handleOrgChange = (org: string) => {
     setSelectedOrg(org);
@@ -267,7 +269,10 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
           <HighlightedInput
             type="text"
             value={query}
-            onChange={handleInputChange}
+            onChange={(e) => {
+              handleInputChange(e);
+              clearValidationErrors();
+            }}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             onBlur={handleBlur}
@@ -287,7 +292,6 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
               <XIcon className="size-4 text-muted-foreground" />
             </Button>
           )}
-
           <Button
             type="submit"
             variant="ghost"
@@ -297,6 +301,7 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
             <SearchIcon className="size-4 text-muted-foreground" />
           </Button>
         </div>
+        <ValidationErrorAlert errors={validationErrors} />
         {shouldShowDropdown && (
           <div className="absolute z-10 w-full">
             <SearchDropdownMenu
@@ -341,7 +346,12 @@ export function HomepageSearchBar() {
     setCommandValue,
     setQuery,
   } = useSearchBar({ removedOperators });
-  const { handleSearch, handleLuckySearch } = usePublicSearch({
+  const {
+    handleSearch,
+    handleLuckySearch,
+    validationErrors,
+    clearValidationErrors,
+  } = usePublicSearch({
     mode: "search",
     setQuery,
   });
@@ -378,7 +388,10 @@ export function HomepageSearchBar() {
               ref={inputRef}
               type="text"
               value={query}
-              onChange={handleInputChange}
+              onChange={(e) => {
+                handleInputChange(e);
+                clearValidationErrors();
+              }}
               onKeyDown={handleKeyDown}
               onFocus={handleFocus}
               onBlur={handleBlur}
@@ -398,6 +411,7 @@ export function HomepageSearchBar() {
               </Button>
             )}
           </div>
+          <ValidationErrorAlert errors={validationErrors} />
           {shouldShowDropdown && (
             <div className="absolute z-10 w-full">
               <SearchDropdownMenu
@@ -415,11 +429,7 @@ export function HomepageSearchBar() {
           )}
         </div>
         <div className="mt-8 space-x-4">
-          <Button
-            type="submit"
-            onClick={(e) => handleSearch(e, query)}
-            variant="secondary"
-          >
+          <Button type="submit" variant="secondary">
             SemHub Search
           </Button>
           <Button

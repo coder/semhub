@@ -11,7 +11,7 @@ export const operatorQuoteSchema = z.string().superRefine((query, ctx) => {
       if (unquotedPattern.test(query)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `${operator} operator requires quotes around its value`,
+          message: `The ${operator} operator requires quotes (") around its value`,
         });
       }
     }
@@ -23,7 +23,7 @@ export const searchQuerySchema = z.string().superRefine((query, ctx) => {
   if (!input) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "no substantive query provided",
+      message: "Please provide a substantive query",
     });
   }
 
@@ -39,25 +39,25 @@ export const searchQuerySchema = z.string().superRefine((query, ctx) => {
   if (stateQueries.length > 1) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "more than one state will return no results",
+      message: "Please filter by at most one state",
     });
   }
   if (repoQueries.length > 1) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "more than one repo will return no results",
+      message: "Please filter by at most one repo",
     });
   }
   if (authorQueries.length > 1) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "more than one author will return no results",
+      message: "Please filter by at most one author",
     });
   }
   if (ownerQueries.length > 1) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "more than one owner will return no results",
+      message: "Please filter by at most one org",
     });
   }
 });
