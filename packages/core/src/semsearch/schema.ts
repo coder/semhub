@@ -67,10 +67,8 @@ const searchIssueSchema = createSelectSchema(issueTable, {
     // Search-specific fields
     commentCount: z.number(),
     rankingScore: z.number(),
-  })
-  .transform((issue) => ({
-    ...issue,
-  }));
+    similarityScore: z.number(),
+  });
 
 export const searchResultSchema = z.object({
   data: z.array(searchIssueSchema),

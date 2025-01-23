@@ -12,6 +12,7 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as SearchImport } from './routes/search'
+import { Route as RankingImport } from './routes/ranking'
 import { Route as IndexImport } from './routes/index'
 import { Route as ReposIndexImport } from './routes/repos/index'
 import { Route as ReposSearchImport } from './routes/repos/search'
@@ -22,6 +23,11 @@ import { Route as ROwnerRepoImport } from './routes/r/$owner/$repo'
 
 const SearchRoute = SearchImport.update({
   path: '/search',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const RankingRoute = RankingImport.update({
+  path: '/ranking',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -59,6 +65,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/ranking': {
+      id: '/ranking'
+      path: '/ranking'
+      fullPath: '/ranking'
+      preLoaderRoute: typeof RankingImport
       parentRoute: typeof rootRoute
     }
     '/search': {
@@ -103,6 +116,7 @@ declare module '@tanstack/react-router' {
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ranking': typeof RankingRoute
   '/search': typeof SearchRoute
   '/repos/search': typeof ReposSearchRoute
   '/repos': typeof ReposIndexRoute
@@ -112,6 +126,7 @@ export interface FileRoutesByFullPath {
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ranking': typeof RankingRoute
   '/search': typeof SearchRoute
   '/repos/search': typeof ReposSearchRoute
   '/repos': typeof ReposIndexRoute
@@ -122,6 +137,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
+  '/ranking': typeof RankingRoute
   '/search': typeof SearchRoute
   '/repos/search': typeof ReposSearchRoute
   '/repos/': typeof ReposIndexRoute
@@ -133,6 +149,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/ranking'
     | '/search'
     | '/repos/search'
     | '/repos'
@@ -141,6 +158,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/ranking'
     | '/search'
     | '/repos/search'
     | '/repos'
@@ -149,6 +167,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/ranking'
     | '/search'
     | '/repos/search'
     | '/repos/'
@@ -159,6 +178,7 @@ export interface FileRouteTypes {
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  RankingRoute: typeof RankingRoute
   SearchRoute: typeof SearchRoute
   ReposSearchRoute: typeof ReposSearchRoute
   ReposIndexRoute: typeof ReposIndexRoute
@@ -168,6 +188,7 @@ export interface RootRouteChildren {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  RankingRoute: RankingRoute,
   SearchRoute: SearchRoute,
   ReposSearchRoute: ReposSearchRoute,
   ReposIndexRoute: ReposIndexRoute,
@@ -188,6 +209,7 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/ranking",
         "/search",
         "/repos/search",
         "/repos/",
@@ -197,6 +219,9 @@ export const routeTree = rootRoute
     },
     "/": {
       "filePath": "index.tsx"
+    },
+    "/ranking": {
+      "filePath": "ranking.tsx"
     },
     "/search": {
       "filePath": "search.tsx"

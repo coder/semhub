@@ -29,25 +29,21 @@ function YourRepoPage() {
                 <span className="text-blue-600 dark:text-blue-500">Sem</span>
                 <span className="text-orange-500">Hub</span> a try
               </h2>
-              <ul className="flex flex-col gap-3 text-left text-muted-foreground">
-                <li className="flex items-center gap-3">
-                  <div className="size-1.5 rounded-full bg-blue-600/40" />
+              <ul className="flex list-disc flex-col gap-3 pl-5 text-left text-muted-foreground marker:text-blue-600/40">
+                <li>
                   <span>
                     Help users find answers faster with semantic search
                   </span>
                 </li>
-                <li className="flex items-center gap-3">
-                  <div className="size-1.5 rounded-full bg-blue-600/40" />
+                <li>
                   <span>
                     Reduce duplicate issues by making existing ones discoverable
                   </span>
                 </li>
-                <li className="flex items-center gap-3">
-                  <div className="size-1.5 rounded-full bg-blue-600/40" />
+                <li>
                   <span>Simple setup - just add a badge to your README</span>
                 </li>
-                <li className="flex items-center gap-3">
-                  <div className="size-1.5 rounded-full bg-blue-600/20" />
+                <li className="marker:!text-blue-600/20">
                   <span className="[word-break:break-word]">
                     Search across pull requests and discussions
                     <Badge variant="coming-soon" className="ml-2">
@@ -55,8 +51,7 @@ function YourRepoPage() {
                     </Badge>
                   </span>
                 </li>
-                <li className="flex items-center gap-3">
-                  <div className="size-1.5 rounded-full bg-blue-600/20" />
+                <li className="marker:!text-blue-600/20">
                   <span className="[word-break:break-word]">
                     Search across a collection of multiple repos, including
                     private repos

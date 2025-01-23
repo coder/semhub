@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import DOMPurify from "dompurify";
 import {
   CircleCheckIcon,
@@ -6,6 +7,7 @@ import {
   MessageSquareIcon,
 } from "lucide-react";
 
+import { NORMALIZATION_ANCHOR } from "@/core/constants/ranking.constant";
 import type { AggregateReactions } from "@/core/db/schema/shared";
 import type { PublicSearchIssuesResponse } from "@/lib/api/search";
 import { formatLocalDateTime, getTimeAgo } from "@/lib/time";
@@ -118,11 +120,8 @@ function RepoTag({ issue }: { issue: Issue }) {
   );
 }
 
-// would need to recalibrate normalization + score colors based on weights
-// and algorithm used in semsearch/ranking.ts
 function normalizeScore(rawScore: number): number {
-  const ANCHOR = 0.65;
-  const normalizedScore = (rawScore / ANCHOR) * 100;
+  const normalizedScore = (rawScore / NORMALIZATION_ANCHOR) * 100;
   return Math.min(normalizedScore, 100);
 }
 
@@ -133,12 +132,26 @@ function getScoreColor(rawScore: number): string {
   return "bg-gray-100 text-gray-800";
 }
 
-function ScoreBadge({ score }: { score: number }) {
-  const normalizedScore = normalizeScore(score);
-  const colorClass = getScoreColor(score);
+function ScoreBadge({
+  rankingScore,
+  similarityScore,
+}: {
+  rankingScore: number;
+  similarityScore: number;
+}) {
+  const normalizedScore = normalizeScore(rankingScore);
+  const colorClass = getScoreColor(rankingScore);
+  const toolTipContent = (
+    <>
+      Raw score: {(rankingScore * 100).toFixed(1)}%
+      <br />
+      Similarity: {(similarityScore * 100).toFixed(1)}%
+      <br />
+      <Link to="/ranking">Learn more</Link>
+    </>
+  );
   return (
-    // TODO: add more scores showing breakdown?
-    <FastTooltip content={`Raw score: ${(score * 100).toFixed(1)}%`}>
+    <FastTooltip content={toolTipContent}>
       <span
         className={`mr-1.5 inline-flex rounded-md px-1.5 py-0.5 text-sm font-medium ${colorClass}`}
       >
@@ -150,17 +163,28 @@ function ScoreBadge({ score }: { score: number }) {
 
 function IssueTitleWithLabels({ issue }: { issue: Issue }) {
   const renderLabel = (label: Issue["labels"][number]) => {
+    // Get the base repo URL by removing '/issues/number' from the issue URL
+    const repoBaseUrl = issue.issueUrl.split("/issues/")[0];
+    const labelFilterUrl = `${repoBaseUrl}/issues?q=is:issue+label:"${encodeURIComponent(label.name)}"`;
+
     const badgeElement = (
-      <Badge
-        variant="secondary"
-        className="mx-1 inline-flex rounded-full px-2 py-0.5"
-        style={{
-          backgroundColor: `#${label.color}`,
-          color: `${parseInt(label.color, 16) > 0x7fffff ? "#000" : "#fff"}`,
-        }}
+      <a
+        href={labelFilterUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
       >
-        {label.name}
-      </Badge>
+        <Badge
+          variant="secondary"
+          className="mx-1 inline-flex rounded-full px-2 py-0.5 hover:opacity-80"
+          style={{
+            backgroundColor: `#${label.color}`,
+            color: `${parseInt(label.color, 16) > 0x7fffff ? "#000" : "#fff"}`,
+          }}
+        >
+          {label.name}
+        </Badge>
+      </a>
     );
 
     // description can be null or empty string
@@ -178,7 +202,10 @@ function IssueTitleWithLabels({ issue }: { issue: Issue }) {
 
   return (
     <div className="min-w-0 grow text-lg font-semibold">
-      <ScoreBadge score={issue.rankingScore} />
+      <ScoreBadge
+        rankingScore={issue.rankingScore}
+        similarityScore={issue.similarityScore}
+      />
       <a
         href={issue.issueUrl}
         target="_blank"
