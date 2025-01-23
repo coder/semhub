@@ -267,7 +267,7 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
         </div>
         <div className="relative">
           <HighlightedInput
-            type="text"
+            type="search"
             value={query}
             onChange={(e) => {
               handleInputChange(e);
@@ -385,8 +385,7 @@ export function HomepageSearchBar() {
               size={18}
             />
             <HighlightedInput
-              ref={inputRef}
-              type="text"
+              type="search"
               value={query}
               onChange={(e) => {
                 handleInputChange(e);
@@ -395,6 +394,7 @@ export function HomepageSearchBar() {
               onKeyDown={handleKeyDown}
               onFocus={handleFocus}
               onBlur={handleBlur}
+              ref={inputRef}
               removedOperators={removedOperators}
               className="rounded-full border-gray-300 pl-11 pr-10 focus:border-transparent focus:ring-2 focus:ring-blue-500"
               placeholder={placeholderText}

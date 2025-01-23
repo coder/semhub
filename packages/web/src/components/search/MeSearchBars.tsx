@@ -42,7 +42,7 @@ export function MyReposResultsSearchBar({
         <div className="space-y-2">
           <div className="relative">
             <HighlightedInput
-              type="text"
+              type="search"
               value={query}
               onChange={(e) => {
                 handleInputChange(e);
@@ -126,7 +126,7 @@ export function MyReposSearchBar() {
           <div className="relative">
             <HighlightedInput
               ref={inputRef}
-              type="text"
+              type="search"
               value={query}
               onChange={(e) => {
                 handleInputChange(e);
