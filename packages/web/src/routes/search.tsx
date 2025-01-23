@@ -57,14 +57,6 @@ export const Route = createFileRoute("/search")({
   },
 });
 
-function NothingMatchedStatic() {
-  return (
-    <div className="rounded-lg border bg-background p-4 text-mobile-base sm:p-6 sm:text-base">
-      No issues matched your search
-    </div>
-  );
-}
-
 function NothingMatched({ query }: { query: string }) {
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<RepoPreviewProps | null>(null);
@@ -120,10 +112,10 @@ function NothingMatched({ query }: { query: string }) {
       if (!githubResponse.ok) {
         setError(
           githubResponse.status === 404
-            ? "Error while fetching repo preview: repo not found"
+            ? "This repo does not exist on GitHub"
             : githubResponse.status === 403
-              ? "Error while fetching repo preview: rate limit exceeded"
-              : "Error while fetching repo preview: failed to fetch repository",
+              ? "This repo is on GitHub but rate limit is reached"
+              : "Unknown error: failed to fetch repository",
         );
         return null;
       }
@@ -154,8 +146,17 @@ function NothingMatched({ query }: { query: string }) {
     case null:
       return <RepoPreviewSkeleton />;
     case "not_found":
+      return (
+        <div className="rounded-lg border bg-background p-4 text-mobile-base sm:p-6 sm:text-base">
+          This repo does not exist. Is it spelled correctly?
+        </div>
+      );
     case "loaded":
-      return <NothingMatchedStatic />;
+      return (
+        <div className="rounded-lg border bg-background p-4 text-mobile-base sm:p-6 sm:text-base">
+          No issues matched your search
+        </div>
+      );
     case "initializing": {
       return (
         <div className="rounded-lg border bg-background p-4 text-mobile-base sm:p-6 sm:text-base">
@@ -191,10 +192,27 @@ function NothingMatched({ query }: { query: string }) {
             <p>No issues matched your search</p>
             {isLoading && <RepoPreviewSkeleton />}
             {error && (
-              <div className="flex items-center gap-2 text-sm text-destructive">
-                <AlertCircleIcon className="size-4" />
-                <span>{error}</span>
-              </div>
+              <>
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <AlertCircleIcon className="size-4" />
+                  <span>{error}</span>
+                </div>
+                {error.includes("rate limit") && (
+                  <div className="flex justify-center">
+                    <Button asChild variant="default">
+                      <Link
+                        to="/r/$owner/$repo"
+                        params={{
+                          owner: extracted!.owner,
+                          repo: extracted!.repo,
+                        }}
+                      >
+                        Load repo in SemHub
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
             {!isLoading && preview && (
               <div className="space-y-4">
@@ -228,7 +246,7 @@ function NothingMatched({ query }: { query: string }) {
       );
     default: {
       repoStatus satisfies never;
-      return <NothingMatchedStatic />;
+      return null;
     }
   }
 }
