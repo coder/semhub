@@ -11,6 +11,8 @@ export const queryKeys = {
     list: ["repos", "list"] as const,
     status: (owner: string, repo: string) =>
       ["repos", "status", owner, repo] as const,
+    get: (owner: string, repo: string) =>
+      ["repos", "get", owner, repo] as const,
   },
   issues: {
     search: {

@@ -44,3 +44,10 @@ export async function getRepoStatus(owner: string, repo: string) {
   );
   return data;
 }
+
+export async function getRepo(owner: string, repo: string) {
+  const response = await client.public.repo[":owner"][":repo"].$get({
+    param: { owner, repo },
+  });
+  return handleResponse(response, "Failed to get repository");
+}

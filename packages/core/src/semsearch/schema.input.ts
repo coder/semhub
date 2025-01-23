@@ -48,6 +48,12 @@ export const searchQuerySchema = z.string().superRefine((query, ctx) => {
       message: "Please filter by at most one repo",
     });
   }
+  if (repoQueries.length === 1 && ownerQueries.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Please specify an org for the repo",
+    });
+  }
   if (authorQueries.length > 1) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
