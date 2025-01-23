@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { EmbedBadgePopover } from "@/components/embed/EmbedBadgePopover";
+import { HighlightedInput } from "@/components/search/HighlightedInput";
 import { SearchDropdownMenu } from "@/components/search/SearchDropdownMenu";
 import {
   SEARCH_OPERATORS,
@@ -264,7 +265,7 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
           <EmbedBadgePopover owner="your" repo="repo" />
         </div>
         <div className="relative">
-          <Input
+          <HighlightedInput
             type="text"
             value={query}
             onChange={handleInputChange}
@@ -272,6 +273,7 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
             onFocus={handleFocus}
             onBlur={handleBlur}
             ref={inputRef}
+            removedOperators={removedOperators}
             className="pr-20"
             placeholder="Search issues..."
           />

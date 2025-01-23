@@ -1,0 +1,7 @@
+.text-fill-transparent {
+  -webkit-text-fill-color: transparent;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
