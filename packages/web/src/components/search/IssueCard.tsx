@@ -333,25 +333,42 @@ function IssueInteractions({ issue }: { issue: Issue }) {
   const topCommenterElements =
     issue.topCommenters && issue.topCommenters.length > 0 ? (
       <span className="inline-flex -space-x-2">
-        {issue.topCommenters.map((commenter, index) => (
-          <FastTooltip key={commenter.name} content={commenter.name}>
-            <a
-              href={commenter.htmlUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="relative block rounded-full ring-2 ring-background transition-all duration-200 hover:scale-125 [&:hover]:!z-50"
-              style={{
-                zIndex: issue.topCommenters!.length - index,
-              }}
+        {[
+          ...issue.topCommenters,
+          ...(issue.commentCount > 5 ? [null] : []),
+        ].map((commenter, index) => {
+          const zIndex = issue.topCommenters!.length + 1 - index;
+          return commenter ? (
+            <FastTooltip key={commenter.name} content={commenter.name}>
+              <a
+                href={commenter.htmlUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <AvatarElement zIndex={zIndex}>
+                  <img
+                    src={commenter.avatarUrl}
+                    alt={commenter.name}
+                    className="size-6 rounded-full"
+                  />
+                </AvatarElement>
+              </a>
+            </FastTooltip>
+          ) : (
+            <FastTooltip
+              key="more-commenters"
+              content={`${formatRemainingCommenterCount(issue.commentCount)} more commenters`}
             >
-              <img
-                src={commenter.avatarUrl}
-                alt={commenter.name}
-                className="size-6 rounded-full"
-              />
-            </a>
-          </FastTooltip>
-        ))}
+              <AvatarElement zIndex={zIndex}>
+                <div className="flex size-6 items-center justify-center rounded-full bg-muted">
+                  <span className="text-xs font-medium">
+                    {formatRemainingCommenterCount(issue.commentCount)}
+                  </span>
+                </div>
+              </AvatarElement>
+            </FastTooltip>
+          );
+        })}
       </span>
     ) : null;
 
@@ -361,6 +378,23 @@ function IssueInteractions({ issue }: { issue: Issue }) {
       {reactionElements}
       {topCommenterElements}
     </>
+  );
+}
+
+function AvatarElement({
+  zIndex,
+  children,
+}: {
+  zIndex: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="relative block rounded-full bg-white ring-2 ring-background transition-all duration-200 hover:scale-125 [&:hover]:!z-50"
+      style={{ zIndex }}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -384,4 +418,10 @@ function getReactionEmoji(reaction: keyof AggregateReactions): string {
       return "👀";
   }
   reaction satisfies never;
+}
+
+function formatRemainingCommenterCount(totalComments: number): string {
+  const remainingComments = totalComments - 5;
+  if (remainingComments > 90) return "90+";
+  return remainingComments.toString();
 }
