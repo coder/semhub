@@ -163,17 +163,28 @@ function ScoreBadge({
 
 function IssueTitleWithLabels({ issue }: { issue: Issue }) {
   const renderLabel = (label: Issue["labels"][number]) => {
+    // Get the base repo URL by removing '/issues/number' from the issue URL
+    const repoBaseUrl = issue.issueUrl.split("/issues/")[0];
+    const labelFilterUrl = `${repoBaseUrl}/issues?q=is:issue+label:"${encodeURIComponent(label.name)}"`;
+
     const badgeElement = (
-      <Badge
-        variant="secondary"
-        className="mx-1 inline-flex rounded-full px-2 py-0.5"
-        style={{
-          backgroundColor: `#${label.color}`,
-          color: `${parseInt(label.color, 16) > 0x7fffff ? "#000" : "#fff"}`,
-        }}
+      <a
+        href={labelFilterUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
       >
-        {label.name}
-      </Badge>
+        <Badge
+          variant="secondary"
+          className="mx-1 inline-flex rounded-full px-2 py-0.5 hover:opacity-80"
+          style={{
+            backgroundColor: `#${label.color}`,
+            color: `${parseInt(label.color, 16) > 0x7fffff ? "#000" : "#fff"}`,
+          }}
+        >
+          {label.name}
+        </Badge>
+      </a>
     );
 
     // description can be null or empty string
