@@ -1,24 +1,25 @@
 import {
   infiniteQueryOptions,
-  useQuery,
   useSuspenseInfiniteQuery,
 } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { AlertCircleIcon, Loader2Icon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { Loader2Icon } from "lucide-react";
+import { useMemo } from "react";
 
-import { repoSchema } from "@/core/github/schema.rest";
 import { extractOwnerAndRepo } from "@/core/semsearch/util";
-import { getRepo } from "@/lib/api/repo";
 import { publicSearchIssues } from "@/lib/api/search";
+import { useRepoStatus } from "@/lib/hooks/useRepoStatus";
 import { queryKeys } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RepoPreviewSkeleton } from "@/components/repos/RepoPreview";
 import {
-  RepoPreview,
-  RepoPreviewSkeleton,
-  type RepoPreviewProps,
-} from "@/components/repos/RepoPreview";
+  ErrorMessage,
+  InitializingMessage,
+  NoMatchesMessage,
+  NotFoundMessage,
+  OnGithubMessage,
+} from "@/components/repos/RepoStatusMessages";
 import { IssueCard } from "@/components/search/IssueCard";
 import { ResultsSearchBar } from "@/components/search/PublicSearchBars";
 import {
@@ -58,192 +59,36 @@ export const Route = createFileRoute("/search")({
 });
 
 function NothingMatched({ query }: { query: string }) {
-  const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<RepoPreviewProps | null>(null);
-  const [repoStatus, setRepoStatus] = useState<
-    "not_found" | "initializing" | "error" | "loaded" | "on_github" | null
-  >(null);
-  // important to prevent infinite re-renders
   const extracted = useMemo(() => extractOwnerAndRepo(query), [query]);
 
-  const { data: repoPreviewData, isLoading } = useQuery({
-    queryKey: queryKeys.repos.get(extracted!.owner, extracted!.repo),
-    queryFn: async () => {
-      if (!extracted) {
-        return null;
-      }
-      const { data: repoResponse } = await getRepo(
-        extracted.owner,
-        extracted.repo,
-      );
-      if (!repoResponse.exists) {
-        setRepoStatus("not_found");
-        return null;
-      }
-      if (repoResponse.hasLoaded) {
-        const { initStatus } = repoResponse;
-        switch (initStatus) {
-          case "pending": {
-            // should never happen
-            setRepoStatus("not_found");
-            return null;
-          }
-          case "completed":
-            setRepoStatus("loaded");
-            return null;
-          case "in_progress":
-          case "ready":
-            setRepoStatus("initializing");
-            return null;
-          case "error":
-          case "no_issues":
-            setRepoStatus("error");
-            return null;
-          default:
-            initStatus satisfies never;
-        }
-      } else {
-        setRepoStatus("on_github");
-      }
-      const { owner, repo } = extracted;
-      const githubResponse = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}`,
-      );
-      if (!githubResponse.ok) {
-        setError(
-          githubResponse.status === 404
-            ? "This repo does not exist on GitHub"
-            : githubResponse.status === 403
-              ? "This repo is on GitHub but rate limit is reached"
-              : "Unknown error: failed to fetch repository",
-        );
-        return null;
-      }
-      const data = repoSchema.parse(await githubResponse.json());
-      return data;
-    },
-    enabled: !!extracted,
-    retry: false,
-    staleTime: 5 * 60 * 1000,
-  });
+  const { repoStatus, error, preview, isLoading } = useRepoStatus(
+    extracted?.owner ?? null,
+    extracted?.repo ?? null,
+  );
 
-  useEffect(() => {
-    if (extracted && !isLoading && repoPreviewData) {
-      setPreview({
-        name: repoPreviewData.name,
-        description: repoPreviewData.description,
-        owner: {
-          login: repoPreviewData.owner.login,
-          avatarUrl: repoPreviewData.owner.avatar_url,
-        },
-        private: repoPreviewData.private,
-        stargazersCount: repoPreviewData.stargazers_count,
-      });
-    }
-  }, [extracted, isLoading, repoPreviewData]);
+  if (!extracted) {
+    return <NoMatchesMessage />;
+  }
+  if (isLoading) {
+    return <RepoPreviewSkeleton />;
+  }
+
   switch (repoStatus) {
     // still loading
     case null:
       return <RepoPreviewSkeleton />;
     case "not_found":
-      return (
-        <div className="rounded-lg border bg-background p-4 text-mobile-base sm:p-6 sm:text-base">
-          This repo does not exist. Is it spelled correctly?
-        </div>
-      );
+      return <NotFoundMessage />;
     case "loaded":
+      return <NoMatchesMessage />;
+    case "initializing":
       return (
-        <div className="rounded-lg border bg-background p-4 text-mobile-base sm:p-6 sm:text-base">
-          No issues matched your search
-        </div>
+        <InitializingMessage owner={extracted.owner} repo={extracted.repo} />
       );
-    case "initializing": {
-      return (
-        <div className="rounded-lg border bg-background p-4 text-mobile-base sm:p-6 sm:text-base">
-          This repository is being initialized. For more information,{" "}
-          <Link
-            to="/r/$owner/$repo"
-            params={{ owner: extracted!.owner, repo: extracted!.repo }}
-          >
-            click here
-          </Link>
-          .
-        </div>
-      );
-    }
     case "error":
-      return (
-        <div className="rounded-lg border bg-background p-4 text-mobile-base sm:p-6 sm:text-base">
-          This repository is in an error state. For more information,{" "}
-          <Link
-            to="/r/$owner/$repo"
-            params={{ owner: extracted!.owner, repo: extracted!.repo }}
-            className="text-primary underline"
-          >
-            click here
-          </Link>
-          .
-        </div>
-      );
+      return <ErrorMessage owner={extracted.owner} repo={extracted.repo} />;
     case "on_github":
-      return (
-        <div className="rounded-lg border bg-background p-4 text-mobile-base sm:p-6 sm:text-base">
-          <div className="space-y-4">
-            <p>No issues matched your search</p>
-            {isLoading && <RepoPreviewSkeleton />}
-            {error && (
-              <>
-                <div className="flex items-center gap-2 text-sm text-destructive">
-                  <AlertCircleIcon className="size-4" />
-                  <span>{error}</span>
-                </div>
-                {error.includes("rate limit") && (
-                  <div className="flex justify-center">
-                    <Button asChild variant="default">
-                      <Link
-                        to="/r/$owner/$repo"
-                        params={{
-                          owner: extracted!.owner,
-                          repo: extracted!.repo,
-                        }}
-                      >
-                        Load repo in SemHub
-                      </Link>
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
-            {!isLoading && preview && (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  It looks like you&apos;re searching for this repository.
-                </p>
-                <RepoPreview
-                  name={preview.name}
-                  description={preview.description}
-                  owner={preview.owner}
-                  private={preview.private}
-                  stargazersCount={preview.stargazersCount}
-                />
-                <div className="flex justify-center">
-                  <Button asChild variant="default">
-                    <Link
-                      to="/r/$owner/$repo"
-                      params={{
-                        owner: preview.owner.login,
-                        repo: preview.name,
-                      }}
-                    >
-                      Load repo in SemHub
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      );
+      return <OnGithubMessage error={error} preview={preview} />;
     default: {
       repoStatus satisfies never;
       return null;
