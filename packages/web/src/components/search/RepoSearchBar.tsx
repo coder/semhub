@@ -5,7 +5,7 @@ import type { SearchOperator } from "@/core/constants/search.constant";
 import { usePublicSearch } from "@/hooks/usePublicSearch";
 import { useSearchBar } from "@/hooks/useSearchBar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { HighlightedInput } from "@/components/search/HighlightedInput";
 import { SearchDropdownMenu } from "@/components/search/SearchDropdownMenu";
 
 interface RepoSearchBarProps {
@@ -52,9 +52,10 @@ export function RepoSearchBar({ owner, repo }: RepoSearchBarProps) {
             className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
             size={18}
           />
-          <Input
+          <HighlightedInput
             type="text"
             value={query}
+            removedOperators={removedOperators}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}

@@ -12,9 +12,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { EmbedBadgePopover } from "@/components/embed/EmbedBadgePopover";
+import { HighlightedInput } from "@/components/search/HighlightedInput";
 import { SearchDropdownMenu } from "@/components/search/SearchDropdownMenu";
+import { ValidationErrorAlert } from "@/components/search/ValidationErrorAlert";
 import {
   SEARCH_OPERATORS,
   type SearchOperator,
@@ -239,7 +240,8 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
     initialQuery,
     removedOperators,
   });
-  const { handleSearch } = usePublicSearch({ mode: "search", setQuery });
+  const { handleSearch, validationErrors, clearValidationErrors } =
+    usePublicSearch({ mode: "search", setQuery });
 
   const handleOrgChange = (org: string) => {
     setSelectedOrg(org);
@@ -264,14 +266,18 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
           <EmbedBadgePopover owner="your" repo="repo" />
         </div>
         <div className="relative">
-          <Input
-            type="text"
+          <HighlightedInput
+            type="search"
             value={query}
-            onChange={handleInputChange}
+            onChange={(e) => {
+              handleInputChange(e);
+              clearValidationErrors();
+            }}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             onBlur={handleBlur}
             ref={inputRef}
+            removedOperators={removedOperators}
             className="pr-20"
             placeholder="Search issues..."
           />
@@ -286,7 +292,6 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
               <XIcon className="size-4 text-muted-foreground" />
             </Button>
           )}
-
           <Button
             type="submit"
             variant="ghost"
@@ -296,6 +301,7 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
             <SearchIcon className="size-4 text-muted-foreground" />
           </Button>
         </div>
+        <ValidationErrorAlert errors={validationErrors} />
         {shouldShowDropdown && (
           <div className="absolute z-10 w-full">
             <SearchDropdownMenu
@@ -340,7 +346,12 @@ export function HomepageSearchBar() {
     setCommandValue,
     setQuery,
   } = useSearchBar({ removedOperators });
-  const { handleSearch, handleLuckySearch } = usePublicSearch({
+  const {
+    handleSearch,
+    handleLuckySearch,
+    validationErrors,
+    clearValidationErrors,
+  } = usePublicSearch({
     mode: "search",
     setQuery,
   });
@@ -373,14 +384,18 @@ export function HomepageSearchBar() {
               className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
               size={18}
             />
-            <Input
-              ref={inputRef}
-              type="text"
+            <HighlightedInput
+              type="search"
               value={query}
-              onChange={handleInputChange}
+              onChange={(e) => {
+                handleInputChange(e);
+                clearValidationErrors();
+              }}
               onKeyDown={handleKeyDown}
               onFocus={handleFocus}
               onBlur={handleBlur}
+              ref={inputRef}
+              removedOperators={removedOperators}
               className="rounded-full border-gray-300 pl-11 pr-10 focus:border-transparent focus:ring-2 focus:ring-blue-500"
               placeholder={placeholderText}
             />
@@ -396,6 +411,7 @@ export function HomepageSearchBar() {
               </Button>
             )}
           </div>
+          <ValidationErrorAlert errors={validationErrors} />
           {shouldShowDropdown && (
             <div className="absolute z-10 w-full">
               <SearchDropdownMenu
@@ -413,11 +429,7 @@ export function HomepageSearchBar() {
           )}
         </div>
         <div className="mt-8 space-x-4">
-          <Button
-            type="submit"
-            onClick={(e) => handleSearch(e, query)}
-            variant="secondary"
-          >
+          <Button type="submit" variant="secondary">
             SemHub Search
           </Button>
           <Button

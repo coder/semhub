@@ -16,7 +16,7 @@ import { usersToRepos } from "@/db/schema/entities/user-to-repo.sql";
 import { lower } from "@/db/utils/general";
 import { jsonAggBuildObjectFromJoin, jsonContains } from "@/db/utils/json";
 
-import type { SearchParams } from "./schema";
+import type { SearchParams } from "./schema.output";
 import { parseSearchQuery } from "./util";
 
 export function getBaseSelect() {

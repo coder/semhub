@@ -4,11 +4,22 @@ import {
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Loader2Icon } from "lucide-react";
+import { useMemo } from "react";
 
+import { extractOwnerAndRepo } from "@/core/semsearch/util";
 import { publicSearchIssues } from "@/lib/api/search";
+import { useRepoStatus } from "@/lib/hooks/useRepoStatus";
 import { queryKeys } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RepoPreviewSkeleton } from "@/components/repos/RepoPreview";
+import {
+  ErrorMessage,
+  InitializingMessage,
+  NoMatchesMessage,
+  NotFoundMessage,
+  OnGithubMessage,
+} from "@/components/repos/RepoStatusMessages";
 import { IssueCard } from "@/components/search/IssueCard";
 import { ResultsSearchBar } from "@/components/search/PublicSearchBars";
 import {
@@ -47,12 +58,39 @@ export const Route = createFileRoute("/search")({
   },
 });
 
-function NothingMatched() {
-  return (
-    <div className="rounded-lg border bg-background p-4 text-mobile-base sm:p-6 sm:text-base">
-      No issues matched your search
-    </div>
+function NothingMatched({ query }: { query: string }) {
+  const extracted = useMemo(() => extractOwnerAndRepo(query), [query]);
+
+  const { repoStatus, error, preview, isLoading } = useRepoStatus(
+    extracted?.owner ?? null,
+    extracted?.repo ?? null,
   );
+
+  if (!extracted) {
+    return <NoMatchesMessage />;
+  }
+  if (isLoading) {
+    return <RepoPreviewSkeleton />;
+  }
+
+  switch (repoStatus) {
+    // still loading
+    case null:
+      return <RepoPreviewSkeleton />;
+    case "not_found":
+      return <NotFoundMessage />;
+    case "loaded":
+      return <NoMatchesMessage />;
+    case "initializing":
+      return (
+        <InitializingMessage owner={extracted.owner} repo={extracted.repo} />
+      );
+    case "error":
+      return <ErrorMessage owner={extracted.owner} repo={extracted.repo} />;
+    case "on_github":
+      return <OnGithubMessage error={error} preview={preview} />;
+  }
+  repoStatus satisfies never;
 }
 
 function IssuesSkeleton() {
@@ -105,7 +143,7 @@ function Search() {
   return (
     <SearchLayout>
       {data?.pages.length === 0 || data?.pages[0]?.data.length === 0 ? (
-        <NothingMatched />
+        <NothingMatched query={q} />
       ) : (
         <>
           <div className="divide-y rounded-lg border">

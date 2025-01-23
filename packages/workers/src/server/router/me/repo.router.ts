@@ -81,8 +81,8 @@ export const repoRouter = new Hono<AuthedContext>()
       if (repoExists.exists) {
         const { id, isPrivate } = repoExists;
         if (isPrivate) {
-          throw new HTTPException(400, {
-            message: "This endpoint is for public repositories only",
+          throw new HTTPException(404, {
+            message: "Repository does not exist",
           });
         }
         // assumption: since this is a public repo, it has already been initialised
@@ -103,7 +103,7 @@ export const repoRouter = new Hono<AuthedContext>()
       });
       if (!repoData.exists) {
         throw new HTTPException(404, {
-          message: "Repository does not exist on GitHub",
+          message: "Repository does not exist",
         });
       }
       await db.transaction(async (tx) => {

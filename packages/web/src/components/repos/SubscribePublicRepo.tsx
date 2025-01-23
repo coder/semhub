@@ -18,15 +18,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
+  githubRepoFormSchema,
+  githubRepoSubmitSchema,
+} from "@/components/repos/form-schema";
+import {
   RepoPreview,
   RepoPreviewSkeleton,
   type RepoPreviewProps,
 } from "@/components/repos/RepoPreview";
-import {
-  githubRepoFormSchema,
-  githubRepoSubmitSchema,
-  ValidationErrors,
-} from "@/components/repos/subscribe";
+import { ValidationErrors } from "@/components/ValidationErrors";
 
 export function SubscribePublicRepo() {
   const [open, setOpen] = useState(false);

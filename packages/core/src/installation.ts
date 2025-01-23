@@ -116,12 +116,8 @@ export const Installation = {
           throw error;
         }
       }
-      default:
-        installationTargetType satisfies never;
-        throw new Error(
-          `Unexpected installation target type: ${installationTargetType}`,
-        );
     }
+    installationTargetType satisfies never;
   },
 
   mapGithubTargetType: (githubType: "Organization" | "User") => {
@@ -130,10 +126,8 @@ export const Installation = {
         return "organization" as const;
       case "User":
         return "user" as const;
-      default:
-        githubType satisfies never;
-        throw new Error(`Unexpected GitHub target type: ${githubType}`);
     }
+    githubType satisfies never;
   },
 
   getTargetId: async ({
@@ -160,10 +154,8 @@ export const Installation = {
           .where(eq(users.nodeId, nodeId));
         return user?.id ?? null;
       }
-      default:
-        targetType satisfies never;
-        throw new Error(`Not supported target type: ${targetType}`);
     }
+    targetType satisfies never;
   },
 
   getInstallerUserId: async ({
@@ -187,10 +179,8 @@ export const Installation = {
       case "Organization": {
         throw new Error(`Not supported installer type: ${installerType}`);
       }
-      default:
-        installerType satisfies never;
-        throw new Error(`Unexpected installer type: ${installerType}`);
     }
+    installerType satisfies never;
   },
 
   userHasValidInstallation: async ({

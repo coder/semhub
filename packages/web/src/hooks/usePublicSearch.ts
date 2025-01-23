@@ -2,6 +2,8 @@ import { useNavigate } from "@tanstack/react-router";
 
 import { modifyUserQuery } from "@/core/semsearch/util";
 
+import { useSearchValidation } from "./useSearchValidation";
+
 type SuggestedSearchArgs = {
   mode: "suggested";
 };
@@ -22,26 +24,35 @@ type SearchArgs = SuggestedSearchArgs | RepoSearchArgs | PublicSearchArgs;
 
 export const usePublicSearch = (args: SearchArgs) => {
   const navigate = useNavigate();
+  const { validateSearch, validationErrors, clearValidationErrors } =
+    useSearchValidation();
 
   const handleSearch = (e: React.FormEvent, query: string) => {
     e.preventDefault();
     e.stopPropagation();
+
     if (args.mode === "repo_search") {
       query = `repo:${args.owner}/${args.repo} ${query}`;
     }
     const modifiedQuery = modifyUserQuery(query);
+    if (!validateSearch(modifiedQuery)) {
+      return;
+    }
+
     if (args.mode !== "suggested") {
       args.setQuery(modifiedQuery);
     }
-
-    if (query.trim()) {
-      navigate({ to: "/search", search: { q: modifiedQuery } });
-    }
+    navigate({ to: "/search", search: { q: modifiedQuery } });
   };
 
   const handleLuckySearch = (e: React.FormEvent, query: string) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!validateSearch(query)) {
+      return;
+    }
+
     if (query.trim()) {
       navigate({
         to: "/search",
@@ -53,5 +64,7 @@ export const usePublicSearch = (args: SearchArgs) => {
   return {
     handleSearch,
     handleLuckySearch,
+    validationErrors,
+    clearValidationErrors,
   };
 };

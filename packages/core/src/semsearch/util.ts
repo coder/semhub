@@ -112,3 +112,12 @@ export function modifyUserQuery(query: string) {
   // Normalize spaces - replace multiple spaces with single space
   return modifiedQuery.replace(/\s+/g, " ").trim();
 }
+export function extractOwnerAndRepo(query: string) {
+  const { ownerQueries, repoQueries } = parseSearchQuery(query);
+  const owner = ownerQueries[0];
+  const repo = repoQueries[0];
+  if (!owner || !repo) {
+    return null;
+  }
+  return { owner, repo };
+}

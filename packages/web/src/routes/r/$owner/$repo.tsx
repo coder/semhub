@@ -218,10 +218,8 @@ function RepoSearch() {
           </div>
         </div>
       );
-    default:
-      initStatus satisfies never;
-      return <NotFoundView />;
   }
+  initStatus satisfies never;
 }
 
 // Shared component for repo links
