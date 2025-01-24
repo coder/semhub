@@ -89,6 +89,8 @@ interface UseSearchBarProps {
   removedOperators?: SearchOperator[];
 }
 
+export const DEFAULT_COMMAND_VALUE = "__no_selection__";
+
 export function useSearchBar({
   initialQuery = "",
   removedOperators = [],
@@ -103,8 +105,7 @@ export function useSearchBar({
 
   const [isFocused, setIsFocused] = useState(false);
   const [isTouched, setIsTouched] = useState(false);
-  const defaultCommandValue = "__no_selection__";
-  const [commandValue, setCommandValue] = useState(defaultCommandValue);
+  const [commandValue, setCommandValue] = useState(DEFAULT_COMMAND_VALUE);
 
   const searchOperators = useMemo(() => {
     return SEARCH_OPERATORS.filter(
@@ -155,22 +156,6 @@ export function useSearchBar({
       (showOperatorList || showSubmenuList)
     );
   }, [showDropdown, isFocused, isTouched, commandInputValue, subMenu]);
-
-  // this effect is necessary to override cmdk's built-in auto selection of the first item
-  // while still allowing manual selection via arrow keys
-  // this results in a slight flicker, remove this effect to see the difference in behavior
-  // if you modify this, remember to test on both Chromium and WebKit
-  // for ideal behaviour, probably need to (1) submit PR to cmdk; or (2) roll our own dropdown component
-  const [needsReset, setNeedsReset] = useState(false);
-  useEffect(() => {
-    if (needsReset) {
-      setCommandValue(defaultCommandValue);
-      setNeedsReset(false);
-    }
-  }, [needsReset]);
-  useEffect(() => {
-    setNeedsReset(true);
-  }, [commandInputValue]);
 
   // offset dropdown menu relative to where the user's currently typed word is
   const [menuCursorOffsetX, setMenuCursorOffsetX] = useState(0);
@@ -275,19 +260,28 @@ export function useSearchBar({
   // Forward keyboard events to the command input so that arrows keys and enter key work
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // Handle command input forwarding first
-    if (
-      shouldShowDropdown &&
-      (e.key === "ArrowUp" ||
-        e.key === "ArrowDown" ||
-        (e.key === "Enter" && commandValue !== "__no_selection__"))
-    ) {
-      e.preventDefault();
-      const syntheticEvent = new KeyboardEvent("keydown", {
-        key: e.key,
-        bubbles: true,
-      });
-      commandInputRef.current?.dispatchEvent(syntheticEvent);
-      return;
+    if (shouldShowDropdown) {
+      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        e.preventDefault();
+        // Forward the event to command input
+        const syntheticEvent = new KeyboardEvent("keydown", {
+          key: e.key,
+          bubbles: true,
+        });
+        commandInputRef.current?.dispatchEvent(syntheticEvent);
+        return;
+      }
+
+      // Only handle Enter if an item is actually selected
+      if (e.key === "Enter" && commandValue !== DEFAULT_COMMAND_VALUE) {
+        e.preventDefault();
+        const syntheticEvent = new KeyboardEvent("keydown", {
+          key: e.key,
+          bubbles: true,
+        });
+        commandInputRef.current?.dispatchEvent(syntheticEvent);
+        return;
+      }
     }
 
     const input = e.currentTarget;

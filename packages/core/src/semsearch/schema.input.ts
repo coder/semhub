@@ -29,6 +29,8 @@ export const operatorSchema = z.string().superRefine((query, ctx) => {
   });
 });
 
+// currently only use this on frontend; it's more limiting that what our API can accept
+// but these limits are in service of a better search result
 export const searchQuerySchema = z.string().superRefine((query, ctx) => {
   const input = getInputForEmbedding(query);
   if (!input) {

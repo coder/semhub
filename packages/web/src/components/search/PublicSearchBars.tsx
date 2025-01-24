@@ -61,12 +61,6 @@ const repos = [
       "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Typescript.svg/260px-Typescript.svg.png",
   },
   {
-    value: "golang/go",
-    label: "Go",
-    avatarUrl:
-      "https://cdn.icon-icons.com/icons2/2699/PNG/512/golang_logo_icon_171073.png",
-  },
-  {
     value: "rust-lang/rust",
     label: "Rust",
     avatarUrl: "https://avatars.githubusercontent.com/u/5430905?v=4",

@@ -8,12 +8,14 @@ import {
   TagIcon,
   UserIcon,
 } from "lucide-react";
+import { useEffect } from "react";
 
 import {
   SEARCH_OPERATORS,
   STATE_SUBMENU_VALUES,
   type SearchOperator,
 } from "@/core/constants/search.constant";
+import { DEFAULT_COMMAND_VALUE } from "@/hooks/useSearchBar";
 import {
   Command,
   CommandGroup,
@@ -94,6 +96,28 @@ export function SearchDropdownMenu({
   setCommandValue,
   removedOperators = [],
 }: SearchDropdownMenuProps) {
+  // Add effect to clear default selection
+  // this is a behavior of cmdk that we cannot override using its API
+  useEffect(() => {
+    const commandElement = commandRef.current;
+    if (commandElement) {
+      // Clear selection whenever input value changes
+      const clearSelection = () => {
+        const selectedItem = commandElement.querySelector(
+          '[cmdk-item][aria-selected="true"]',
+        );
+        if (selectedItem) {
+          selectedItem.setAttribute("aria-selected", "false");
+          selectedItem.setAttribute("data-selected", "false");
+        }
+        setCommandValue(DEFAULT_COMMAND_VALUE);
+      };
+
+      // Small delay to ensure it runs after Command's internal selection
+      setTimeout(clearSelection, 0);
+    }
+  }, [commandInputValue]);
+
   return (
     <Command
       ref={commandRef}
