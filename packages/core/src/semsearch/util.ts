@@ -1,9 +1,5 @@
 // must use relative path because this file is used in web
-import type { StateSubmenuValue } from "../constants/search.constant";
-import {
-  SEARCH_OPERATORS,
-  STATE_SUBMENU_VALUES,
-} from "../constants/search.constant";
+import { SEARCH_OPERATORS } from "../constants/search.constant";
 
 export function parseSearchQuery(inputQuery: string) {
   // Create a Map with empty arrays as default values for each operator
@@ -53,28 +49,13 @@ export function parseSearchQuery(inputQuery: string) {
       // ignore empty string
       .filter((value) => value.trim().length > 0) ?? [];
 
-  // extra handling for enums conversion
-  const stateQueries = [
-    ...new Set( // using set to remove duplicates
-      operatorMatches
-        .get("state")
-        ?.map((q) => {
-          const normalized = q.toLowerCase();
-          return STATE_SUBMENU_VALUES.includes(normalized as StateSubmenuValue)
-            ? normalized
-            : null;
-        })
-        .filter((query): query is StateSubmenuValue => query !== null) ?? [],
-    ),
-  ];
-
   return {
     substringQueries,
     titleQueries: operatorMatches.get("title") ?? [],
     authorQueries: operatorMatches.get("author") ?? [],
     bodyQueries: operatorMatches.get("body") ?? [],
     labelQueries: operatorMatches.get("label") ?? [],
-    stateQueries,
+    stateQueries: operatorMatches.get("state") ?? [],
     repoQueries: operatorMatches.get("repo") ?? [],
     ownerQueries: operatorMatches.get("org") ?? [],
     collectionQueries: operatorMatches.get("collection") ?? [],

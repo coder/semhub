@@ -1,9 +1,11 @@
 import { z } from "zod";
 
+import { searchQuerySchema } from "@/core/semsearch/schema.input";
+
 import { paginationSchema } from "../../response";
 
 export const meSearchSchema = paginationSchema.extend({
-  q: z.string(),
+  q: searchQuerySchema,
 });
 
 export type MeSearchSchema = z.infer<typeof meSearchSchema>;

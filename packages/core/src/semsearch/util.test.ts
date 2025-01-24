@@ -142,21 +142,6 @@ describe("parseSearchQuery", () => {
       },
     },
     {
-      query: "state:invalid_state",
-      expected: {
-        authorQueries: [],
-        repoQueries: [],
-        stateQueries: [],
-        substringQueries: [],
-        titleQueries: [],
-        bodyQueries: [],
-        labelQueries: [],
-        ownerQueries: [],
-        collectionQueries: [],
-        remainingQuery: "",
-      },
-    },
-    {
       // we match quoted value even though enclosedInQuotes is false because because it allows users to optionally use quotes even when they're not required, which is a common user expectation in search syntax.
       query: 'author:"john smith"',
       expected: {
@@ -218,21 +203,6 @@ describe("parseSearchQuery", () => {
       },
     },
     {
-      query: "state:ClOseD state:open state:closed state:CLOSED",
-      expected: {
-        authorQueries: [],
-        repoQueries: [],
-        stateQueries: ["closed", "open"],
-        substringQueries: [],
-        titleQueries: [],
-        bodyQueries: [],
-        labelQueries: [],
-        ownerQueries: [],
-        collectionQueries: [],
-        remainingQuery: "",
-      },
-    },
-    {
       query: "author:USER repo:REPO/NAME repo:repo/name",
       expected: {
         authorQueries: ["USER"],
@@ -263,27 +233,11 @@ describe("parseSearchQuery", () => {
       },
     },
     {
-      query: 'state: open title:"bug" state:NOT_VALID state:closed',
-      expected: {
-        authorQueries: [],
-        repoQueries: [],
-        stateQueries: ["closed"],
-        substringQueries: [],
-        titleQueries: ["bug"],
-        bodyQueries: [],
-        labelQueries: [],
-        ownerQueries: [],
-        collectionQueries: [],
-        remainingQuery: "open",
-      },
-    },
-    {
       query: 'state:open"no space" title:"unterminated',
       expected: {
         authorQueries: [],
         repoQueries: [],
-        stateQueries: [],
-        // reasoning: state regex matches state:open"no and removes that substring
+        stateQueries: ['open"no'],
         substringQueries: [" title:"],
         titleQueries: [],
         bodyQueries: [],

@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import { SEARCH_OPERATORS } from "../constants/search.constant";
+import type { StateSubmenuValue } from "../constants/search.constant";
+import {
+  SEARCH_OPERATORS,
+  STATE_SUBMENU_VALUES,
+} from "../constants/search.constant";
 import { parseSearchQuery } from "./util";
 
 export const operatorSchema = z.string().superRefine((query, ctx) => {
@@ -78,6 +82,15 @@ export const searchQuerySchema = z.string().superRefine((query, ctx) => {
       code: z.ZodIssueCode.custom,
       message: "Please filter by at most one org",
     });
+  }
+  if (stateQueries.length === 1) {
+    const state = stateQueries[0]!.toLowerCase() as StateSubmenuValue;
+    if (!STATE_SUBMENU_VALUES.includes(state)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Please filter by a valid state: ${STATE_SUBMENU_VALUES.join(", ")}`,
+      });
+    }
   }
 });
 

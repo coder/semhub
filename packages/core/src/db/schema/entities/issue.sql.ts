@@ -8,8 +8,6 @@ import {
   text,
 } from "drizzle-orm/pg-core";
 
-import type { StateSubmenuValue } from "@/constants/search.constant";
-
 import { getBaseColumns, timestamptz } from "../base.sql";
 import type { AggregateReactions, TopCommenters } from "../shared";
 import { type Author } from "../shared";
@@ -77,7 +75,8 @@ export const issuesRelations = relations(issueTable, ({ many }) => ({
   issuesToLabels: many(issuesToLabels),
 }));
 
-export const convertToIssueStateSql = (state: StateSubmenuValue) => {
+export const convertToIssueStateSql = (state: string) => {
+  state = state.toLowerCase();
   switch (state) {
     case "open":
       return eq(issueTable.issueState, "OPEN");
@@ -85,6 +84,10 @@ export const convertToIssueStateSql = (state: StateSubmenuValue) => {
       return eq(issueTable.issueState, "CLOSED");
     case "all":
       return sql`true`;
+    default:
+      // actually has small chance of occurring
+      // if inputs were not validated in schema.input
+      throw new Error(`Invalid state: ${state}`);
   }
 };
 

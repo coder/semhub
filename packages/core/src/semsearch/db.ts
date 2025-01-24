@@ -132,6 +132,7 @@ export function applyFilters<T extends PgSelect>(
   } = parsedSearchQuery;
 
   whereClauses.push(
+    // after validation in schema.input, many of these should be at most arrays of length 1
     ...substringQueries.map((subQuery) =>
       or(
         ilike(issueTable.title, `%${subQuery}%`),

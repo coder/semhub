@@ -197,7 +197,14 @@ function IssueTitleWithLabels({ issue }: { issue: Issue }) {
   };
 
   const processTitle = (title: string) => {
-    return title.replace(/`([^`]+)`/g, "<code>$1</code>");
+    // First escape HTML characters
+    const escapedTitle = title
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    // Then process code blocks
+    return escapedTitle.replace(/`([^`]+)`/g, "<code>$1</code>");
   };
 
   return (
