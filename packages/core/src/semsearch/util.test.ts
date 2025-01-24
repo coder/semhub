@@ -368,6 +368,21 @@ describe("parseSearchQuery", () => {
         remainingQuery: "",
       },
     },
+    {
+      query: 'state:open repo: state: title:""',
+      expected: {
+        authorQueries: [],
+        repoQueries: [],
+        stateQueries: ["open"],
+        substringQueries: [],
+        titleQueries: [],
+        bodyQueries: [],
+        labelQueries: [],
+        ownerQueries: [],
+        collectionQueries: [],
+        remainingQuery: "",
+      },
+    },
   ];
 
   testQueries.forEach(({ query, expected }) => {

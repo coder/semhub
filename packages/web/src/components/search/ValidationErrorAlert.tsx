@@ -13,7 +13,8 @@ export function ValidationErrorAlert({ errors }: { errors: string[] }) {
       <div className="flex items-center gap-2">
         <AlertTriangleIcon className="size-4 text-orange-500" />
         <AlertTitle className="text-orange-500">
-          Search query contains {errors.length} errors
+          Search query contains {errors.length}{" "}
+          {errors.length === 1 ? "error" : "errors"}
         </AlertTitle>
       </div>
       <AlertDescription className="w-full">

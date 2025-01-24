@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { operatorQuoteSchema, searchQuerySchema } from "./schema.input";
+import { operatorSchema, searchQuerySchema } from "./schema.input";
 
 describe("operatorQuoteSchema", () => {
   it("should pass when quoted operators have quotes", () => {
@@ -19,7 +19,7 @@ describe("operatorQuoteSchema", () => {
     ];
 
     validQueries.forEach((query) => {
-      expect(() => operatorQuoteSchema.parse(query)).not.toThrow();
+      expect(() => operatorSchema.parse(query)).not.toThrow();
     });
   });
 
@@ -37,7 +37,25 @@ describe("operatorQuoteSchema", () => {
     ];
 
     invalidQueries.forEach((query) => {
-      expect(() => operatorQuoteSchema.parse(query)).toThrow(/requires quotes/);
+      expect(() => operatorSchema.parse(query)).toThrow(/requires quotes/);
+    });
+  });
+
+  it("should fail when operators have no value after colon", () => {
+    const invalidQueries = [
+      "title:",
+      "body:",
+      "label:",
+      "collection:",
+      "author:",
+      "state:",
+      // Mixed with valid operators
+      'title:"hello" body:',
+      "hello world title:",
+    ];
+
+    invalidQueries.forEach((query) => {
+      expect(() => operatorSchema.parse(query)).toThrow(/requires a value/);
     });
   });
 
@@ -54,7 +72,7 @@ describe("operatorQuoteSchema", () => {
     ];
 
     validQueries.forEach((query) => {
-      expect(() => operatorQuoteSchema.parse(query)).not.toThrow();
+      expect(() => operatorSchema.parse(query)).not.toThrow();
     });
   });
 });

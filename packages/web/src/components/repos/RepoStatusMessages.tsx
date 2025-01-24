@@ -12,7 +12,9 @@ const MessageLayout = ({ children }: { children: React.ReactNode }) => (
 );
 
 export const NotFoundMessage = () => (
-  <MessageLayout>This repo does not exist. Is it spelled correctly?</MessageLayout>
+  <MessageLayout>
+    This repo does not exist. Is it spelled correctly?
+  </MessageLayout>
 );
 
 export const InitializingMessage = ({

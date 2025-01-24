@@ -5,28 +5,21 @@ import { getRandomItems } from "@/core/util/random";
 import { usePublicSearch } from "@/hooks/usePublicSearch";
 import { Button } from "@/components/ui/button";
 
-// Pool of suggested searches covering different use cases and operators
 const ALL_SUGGESTED_SEARCHES = [
   // Editor related
-  'label:"good first issue" repo:vscode renderer',
+  'repo:microsoft/vscode label:"good first issue" ',
   "repo:getcursor/cursor memory leak",
-  "repo:getcursor/cursor battery drain",
   // Terminal related
-  "repo:ghostty scrollback",
-  "repo:ghostty search history",
-  "repo:neovim startup performance",
-  "repo:alacritty gpu rendering",
+  'repo:ghostty-org/ghostty author:mitchellh label:"gui"',
+  "repo:neovim/neovim language server protocol",
   // Frontend frameworks
-  'repo:svelte label:"runes"',
-  "org:vercel app router",
-  "org:solidjs reactive primitives",
   "repo:vuejs/core composition api",
-  "org:withastro server components",
   // Programming languages
-  'repo:rust title:"lifetime"',
-  "repo:TypeScript type inference",
+  'repo:rust-lang/rust title:"lifetime"',
   "repo:golang/go concurrency",
-  "repo:kubernetes pod networking",
+  // org queries
+  "org:vercel command line",
+  "org:microsoft devtools",
 ] as const;
 
 interface SuggestedSearchCardProps {

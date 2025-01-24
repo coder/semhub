@@ -1,6 +1,8 @@
-import { LoaderIcon } from "lucide-react";
+import { GlobeIcon, LoaderIcon, LockIcon, StarIcon } from "lucide-react";
 
-export interface RepoPreviewProps {
+import { cn } from "@/lib/utils";
+
+export type RepoPreviewProps = {
   name: string;
   description: string | null;
   owner: {
@@ -9,7 +11,9 @@ export interface RepoPreviewProps {
   };
   private: boolean;
   stargazersCount: number;
-}
+} & {
+  className?: string;
+};
 
 export function RepoPreview({
   name,
@@ -17,26 +21,52 @@ export function RepoPreview({
   owner,
   private: isPrivate,
   stargazersCount,
+  className,
 }: RepoPreviewProps) {
   return (
-    <div className="rounded-lg border p-4">
+    <div
+      className={cn(
+        "rounded-lg border bg-card p-4 transition-colors hover:bg-accent/5",
+        className,
+      )}
+    >
       <div className="flex items-start gap-3">
         <img
           src={owner.avatarUrl}
           alt={owner.login}
-          className="size-10 rounded-full"
+          className="size-10 rounded-full ring-1 ring-border"
         />
-        <div className="grid gap-1">
-          <h3 className="font-medium">
-            {owner.login}/{name}
-          </h3>
-          {description && (
-            <p className="text-sm text-muted-foreground">{description}</p>
-          )}
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>{stargazersCount.toLocaleString()} stars</span>
-            <span>{isPrivate ? "Private" : "Public"}</span>
+        <div className="grid flex-1 gap-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="font-medium hover:underline">
+              <a
+                href={`https://github.com/${owner.login}/${name}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1"
+              >
+                {owner.login}/{name}
+              </a>
+            </h3>
+            <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <StarIcon className="size-4" />
+                <span>{stargazersCount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center gap-1 text-muted-foreground">
+                {isPrivate ? (
+                  <LockIcon className="size-4" />
+                ) : (
+                  <GlobeIcon className="size-4" />
+                )}
+              </div>
+            </div>
           </div>
+          {description && (
+            <p className="line-clamp-2 text-sm text-muted-foreground">
+              {description}
+            </p>
+          )}
         </div>
       </div>
     </div>

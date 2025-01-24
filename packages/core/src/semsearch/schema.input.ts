@@ -3,7 +3,18 @@ import { z } from "zod";
 import { SEARCH_OPERATORS } from "../constants/search.constant";
 import { parseSearchQuery } from "./util";
 
-export const operatorQuoteSchema = z.string().superRefine((query, ctx) => {
+export const operatorSchema = z.string().superRefine((query, ctx) => {
+  // Check for operators with no value after colon
+  SEARCH_OPERATORS.forEach(({ operator }) => {
+    const emptyOperatorPattern = new RegExp(`${operator}:(?=\\s|$)`);
+    if (emptyOperatorPattern.test(query)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `The ${operator} operator requires a value after the colon`,
+      });
+    }
+  });
+
   // Check for unquoted operators that require quotes
   SEARCH_OPERATORS.forEach(({ operator, enclosedInQuotes }) => {
     if (enclosedInQuotes) {
@@ -28,7 +39,7 @@ export const searchQuerySchema = z.string().superRefine((query, ctx) => {
   }
 
   // Run operator quote validation
-  const quoteValidation = operatorQuoteSchema.safeParse(query);
+  const quoteValidation = operatorSchema.safeParse(query);
   if (!quoteValidation.success) {
     quoteValidation.error.issues.forEach((issue) => ctx.addIssue(issue));
   }
@@ -80,7 +91,8 @@ export function getInputForEmbedding(query: string) {
     remainingQuery.length === 0 &&
     bodyQueries.length === 0 &&
     substringQueries.length === 0 &&
-    titleQueries.length === 0
+    titleQueries.length === 0 &&
+    labelQueries.length === 0
   ) {
     // not enough to construct an embedding
     return null;
