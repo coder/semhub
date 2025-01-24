@@ -8,20 +8,20 @@ import { useMemo } from "react";
 
 import { extractOwnerAndRepo } from "@/core/semsearch/util";
 import { publicSearchIssues } from "@/lib/api/search";
-import { useRepoStatus } from "@/lib/hooks/useRepoStatus";
+import { useSearchResultRepoStatus } from "@/lib/hooks/useSearchResultRepoStatus";
 import { queryKeys } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RepoPreviewSkeleton } from "@/components/repos/RepoPreview";
+import { IssueCard } from "@/components/search/IssueCard";
+import { ResultsSearchBar } from "@/components/search/PublicSearchBars";
 import {
   ErrorMessage,
   InitializingMessage,
   NoMatchesMessage,
   NotFoundMessage,
   OnGithubMessage,
-} from "@/components/repos/RepoStatusMessages";
-import { IssueCard } from "@/components/search/IssueCard";
-import { ResultsSearchBar } from "@/components/search/PublicSearchBars";
+} from "@/components/search/SearchResultRepoStatusMessages";
 import {
   publicSearchSchema,
   type PublicSearchSchema,
@@ -61,7 +61,7 @@ export const Route = createFileRoute("/search")({
 function NothingMatched({ query }: { query: string }) {
   const extracted = useMemo(() => extractOwnerAndRepo(query), [query]);
 
-  const { repoStatus, error, preview, isLoading } = useRepoStatus(
+  const { repoStatus, error, preview, isLoading } = useSearchResultRepoStatus(
     extracted?.owner ?? null,
     extracted?.repo ?? null,
   );

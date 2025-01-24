@@ -20,7 +20,7 @@ type UseRepoStatusResult = {
   isLoading: boolean;
 };
 
-export function useRepoStatus(
+export function useSearchResultRepoStatus(
   owner: string | null,
   repo: string | null,
 ): UseRepoStatusResult {

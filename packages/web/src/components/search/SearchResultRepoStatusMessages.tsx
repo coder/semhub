@@ -3,7 +3,7 @@ import { AlertCircleIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-import { RepoPreview, type RepoPreviewProps } from "./RepoPreview";
+import { RepoPreview, type RepoPreviewProps } from "../repos/RepoPreview";
 
 const MessageLayout = ({ children }: { children: React.ReactNode }) => (
   <div className="rounded-lg border bg-background p-4 text-mobile-base sm:p-6 sm:text-base">
@@ -107,6 +107,8 @@ export const OnGithubMessage = ({ error, preview }: OnGithubMessageProps) => (
                   owner: preview.owner.login,
                   repo: preview.name,
                 }}
+                // important, or we will load all repos immediately
+                preload={false}
               >
                 Load repo in SemHub
               </Link>
