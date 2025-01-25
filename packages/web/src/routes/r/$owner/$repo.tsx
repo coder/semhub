@@ -86,15 +86,18 @@ function RepoSearch() {
         <div className="flex flex-col gap-2 text-muted-foreground">
           <p className="text-lg">
             This repo is queued for initialization.{" "}
-            {queuePosition === 1 ? (
+            {queuePosition === 1 || queuePosition === 0 ? (
               <>
-                There is <span className="font-mono font-bold">1</span> repo
+                There is{" "}
+                <span className="font-mono font-bold underline">1</span> repo
                 ahead of it in the queue.
               </>
             ) : (
               <>
                 There are{" "}
-                <span className="font-mono font-bold">{queuePosition}</span>{" "}
+                <span className="font-mono font-bold underline">
+                  {queuePosition}
+                </span>{" "}
                 repos ahead of it in the queue.
               </>
             )}

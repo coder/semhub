@@ -59,7 +59,8 @@ export const repoRouter = new Hono<Context>()
           repoName: repo,
           repoOwner: owner,
         };
-        void initNextRepos(db, c.env.REPO_INIT_WORKFLOW);
+        // try to trigger init workflow immediately
+        await initNextRepos(db, c.env.REPO_INIT_WORKFLOW);
       }
       switch (repoStatus.initStatus) {
         case "in_progress": {
