@@ -62,31 +62,31 @@ export const searchQuerySchema = z.string().superRefine((query, ctx) => {
   if (repoQueries.length === 1 && ownerQueries.length === 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Please specify an org for the repo",
+      message: "The query did not specify which org the repo belongs to",
     });
   }
   if (stateQueries.length > 1) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Please filter by at most one state",
+      message: "The query contains more than one state filter",
     });
   }
   if (repoQueries.length > 1) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Please filter by at most one repo",
+      message: "The query contains more than one repo filter",
     });
   }
   if (authorQueries.length > 1) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Please filter by at most one author",
+      message: "The query contains more than one author filter",
     });
   }
   if (ownerQueries.length > 1) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Please filter by at most one org",
+      message: "The query contains more than one org filter",
     });
   }
   if (stateQueries.length === 1) {

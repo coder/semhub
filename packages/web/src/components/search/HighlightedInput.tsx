@@ -8,6 +8,7 @@ import {
 import { cn } from "@/lib/utils";
 
 // component inspired by https://akashhamirwasia.com/blog/building-highlighted-input-field-in-react/
+// with significant modifications
 const HighlightedInput = React.forwardRef<
   HTMLInputElement,
   Omit<React.InputHTMLAttributes<HTMLInputElement>, "value"> & {
@@ -17,19 +18,19 @@ const HighlightedInput = React.forwardRef<
 >(({ className, type, value, removedOperators = [], ...props }, ref) => {
   const rendererRef = React.useRef<HTMLDivElement>(null);
 
-  const searchOperators = useMemo(() => {
+  const filteredSearchOperators = useMemo(() => {
     return SEARCH_OPERATORS.filter(
       (op) => !removedOperators.includes(op.operator),
     );
   }, [removedOperators]);
 
-  // Create regex pattern from filtered search operators
+  // Create regex pattern from filtered search operators that captures both operator and value
   const operatorRegex = useMemo(() => {
     return new RegExp(
-      `(${searchOperators.map(({ operator }) => `${operator}:`).join("|")})`,
+      `(${filteredSearchOperators.map(({ operator }) => `${operator}:`).join("|")})(?:"([^"]*)"|([^\\s]*))`,
       "g",
     );
-  }, [searchOperators]);
+  }, [filteredSearchOperators]);
 
   const syncScroll = (e: React.UIEvent<HTMLInputElement>) => {
     if (rendererRef.current) {
@@ -43,6 +44,66 @@ const HighlightedInput = React.forwardRef<
   // Common text styling classes to ensure exact matching
   const textStyles =
     "font-sans text-[16px] leading-normal tracking-normal font-normal";
+
+  const inputWithHighlights = useMemo(() => {
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = operatorRegex.exec(value)) !== null) {
+      // Add text before the match
+      if (match.index > lastIndex) {
+        parts.push({
+          text: value.slice(lastIndex, match.index),
+          type: "text",
+        });
+      }
+
+      // Add operator
+      parts.push({
+        text: match[1], // The operator with colon
+        type: "operator",
+      });
+
+      // Add value (including quotes if present)
+      if (match[0] && match[1]) {
+        const valueWithQuotes = match[0].slice(match[1].length); // Get everything after the operator
+        parts.push({
+          text: valueWithQuotes,
+          type: "value",
+        });
+      }
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < value.length) {
+      parts.push({
+        text: value.slice(lastIndex),
+        type: "text",
+      });
+    }
+
+    return parts;
+  }, [value, operatorRegex]);
+
+  const renderedContent = useMemo(() => {
+    return inputWithHighlights.map((part, i) => (
+      <span
+        key={i}
+        className={
+          part.type === "operator"
+            ? "text-blue-600"
+            : part.type === "value"
+              ? "text-orange-500"
+              : undefined
+        }
+      >
+        {part.text}
+      </span>
+    ));
+  }, [inputWithHighlights]);
 
   return (
     <div className="relative">
@@ -67,14 +128,7 @@ const HighlightedInput = React.forwardRef<
           ...paddingClasses,
         )}
       >
-        {value.split(operatorRegex).map((part, i) => {
-          const isOperator = part.match(operatorRegex);
-          return (
-            <span key={i} className={isOperator ? "text-blue-600" : undefined}>
-              {part}
-            </span>
-          );
-        })}
+        {renderedContent}
       </div>
     </div>
   );
