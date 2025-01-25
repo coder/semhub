@@ -57,16 +57,14 @@ function RepoSearch() {
     <div className="flex size-full items-center justify-center p-2">
       <div className="flex flex-col items-center gap-8 text-center">
         <div className="flex flex-col items-center gap-4">
-          <p className="font-mono text-4xl font-bold">
-            Repository has no issues
-          </p>
+          <p className="font-mono text-4xl font-bold">Repo has no issues</p>
           <p className="font-mono text-lg text-muted-foreground">
             <RepoLink owner={owner} repo={repo} />
           </p>
         </div>
 
         <div className="flex flex-col gap-2 text-muted-foreground">
-          <p className="text-lg">This repository does not have any issues.</p>
+          <p className="text-lg">This repo does not have any issues.</p>
           <p className="text-lg">
             SemHub currently only supports issues, not pull requests.
           </p>
@@ -79,7 +77,7 @@ function RepoSearch() {
     <div className="flex size-full items-center justify-center p-2">
       <div className="flex flex-col items-center gap-8 text-center">
         <div className="flex flex-col items-center gap-4">
-          <p className="font-mono text-4xl font-bold">Repository Queued</p>
+          <p className="font-mono text-4xl font-bold">Repo Queued</p>
           <p className="font-mono text-lg text-muted-foreground">
             <RepoLink owner={owner} repo={repo} />
           </p>
@@ -87,9 +85,19 @@ function RepoSearch() {
 
         <div className="flex flex-col gap-2 text-muted-foreground">
           <p className="text-lg">
-            This repository is queued for initialization. There are{" "}
-            <span className="font-mono font-bold">{queuePosition}</span>{" "}
-            repositories ahead of it in the queue.
+            This repo is queued for initialization.{" "}
+            {queuePosition === 1 ? (
+              <>
+                There is <span className="font-mono font-bold">1</span> repo
+                ahead of it in the queue.
+              </>
+            ) : (
+              <>
+                There are{" "}
+                <span className="font-mono font-bold">{queuePosition}</span>{" "}
+                repos ahead of it in the queue.
+              </>
+            )}
           </p>
           <p className="text-lg">
             We&apos;ll start processing it shortly. Please check back in a few
@@ -113,9 +121,7 @@ function RepoSearch() {
       <div className="flex size-full items-center justify-center p-2">
         <div className="flex flex-col items-center gap-8 text-center">
           <div className="flex flex-col items-center gap-4">
-            <p className="font-mono text-4xl font-bold">
-              Initializing Repository...
-            </p>
+            <p className="font-mono text-4xl font-bold">Initializing Repo...</p>
             <p className="font-mono text-lg text-muted-foreground">
               <RepoLink owner={owner} repo={repo} />
             </p>
@@ -249,14 +255,14 @@ function NotFoundView() {
     <div className="flex size-full items-center justify-center p-2">
       <div className="flex flex-col items-center gap-8 text-center">
         <div className="flex flex-col items-center gap-4">
-          <p className="font-mono text-4xl font-bold">Repository Not Found</p>
+          <p className="font-mono text-4xl font-bold">Repo Not Found</p>
           <p className="font-mono text-lg text-muted-foreground">
             <RepoLink owner={owner} repo={repo} />
           </p>
         </div>
         <div className="flex flex-col gap-2 text-muted-foreground">
           <p className="text-lg">
-            Is there a typo? This repository could not be found.
+            Is there a typo? This repo could not be found.
           </p>
           <p className="text-lg">
             If this is a private repo, you must log in to search it.

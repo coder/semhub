@@ -1,4 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
+import { initNextRepos } from "@semhub/wrangler/workflows/sync/repo-init/init.workflow.util";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
@@ -58,6 +59,7 @@ export const repoRouter = new Hono<Context>()
           repoName: repo,
           repoOwner: owner,
         };
+        void initNextRepos(db, c.env.REPO_INIT_WORKFLOW);
       }
       switch (repoStatus.initStatus) {
         case "in_progress": {
