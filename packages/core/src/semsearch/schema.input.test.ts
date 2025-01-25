@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { operatorSchema, searchQuerySchema } from "./schema.input";
+import { modifyUserQuery } from "./util";
 
 describe("operatorQuoteSchema", () => {
   it("should pass when quoted operators have quotes", () => {
@@ -81,44 +82,50 @@ describe("searchQuerySchema", () => {
   describe("multiple operator validation", () => {
     it("should fail when multiple instances of unique operators are used", () => {
       const invalidQueries = [
-        "state:open state:closed",
-        "repo:a repo:b",
-        "author:x author:y",
-        "org:a org:b",
+        "state:open state:closed org:a abc",
+        "org:a repo:a repo:b abc",
+        "org:a author:x author:y abc",
+        "org:a org:b abc",
       ];
 
       invalidQueries.forEach((query) => {
-        expect(() => searchQuerySchema.parse(query)).toThrow(/at most one/);
+        expect(() => searchQuerySchema.parse(query)).toThrow(/Multiple/);
       });
     });
   });
 
   describe("empty query validation", () => {
-    it("should fail when no substantive query is provided", () => {
+    it("should fail when query is not specific", () => {
       const emptyQueries = [
         "",
         " ",
         "state:open", // only filter, no search content
+        "repo:a/b ",
+        "org:a repo:b ",
+        "repo:a/b state:open",
       ];
 
       emptyQueries.forEach((query) => {
-        expect(() => searchQuerySchema.parse(query)).toThrow(
-          /substantive query/,
+        expect(() => searchQuerySchema.parse(modifyUserQuery(query))).toThrow(
+          /something specific/,
         );
       });
     });
 
-    it("should pass when substantive query is provided", () => {
+    it("should pass when query is specific and specifies org or repo", () => {
       const validQueries = [
-        "hello world",
-        'title:"hello"',
-        'body:"description"',
-        "state:open hello",
-        '"exact match"',
+        "repo:a/b hello world",
+        "org:a repo:b hello world",
+        'repo:a/b title:"hello"',
+        'org:a repo:b body:"description"',
+        "repo:a/b state:open hello",
+        'repo:a/b state:open title:"exact match"',
       ];
 
       validQueries.forEach((query) => {
-        expect(() => searchQuerySchema.parse(query)).not.toThrow();
+        expect(() =>
+          searchQuerySchema.parse(modifyUserQuery(query)),
+        ).not.toThrow();
       });
     });
   });
