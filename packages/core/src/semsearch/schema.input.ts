@@ -53,6 +53,18 @@ export const searchQuerySchema = z.string().superRefine((query, ctx) => {
   const { stateQueries, repoQueries, authorQueries, ownerQueries } =
     parseSearchQuery(query);
 
+  if (repoQueries.length === 0 && ownerQueries.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Please specify an org or repo for your search",
+    });
+  }
+  if (repoQueries.length === 1 && ownerQueries.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Please specify an org for the repo",
+    });
+  }
   if (stateQueries.length > 1) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -63,12 +75,6 @@ export const searchQuerySchema = z.string().superRefine((query, ctx) => {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Please filter by at most one repo",
-    });
-  }
-  if (repoQueries.length === 1 && ownerQueries.length === 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Please specify an org for the repo",
     });
   }
   if (authorQueries.length > 1) {
