@@ -62,8 +62,8 @@ export const repoRouter = new Hono<Context>()
       switch (repoStatus.initStatus) {
         case "in_progress": {
           const [repoIssueCounts, syncedIssuesCount] = await Promise.all([
-            getRepoIssueCounts(owner, repo, restOctokit),
-            getSyncedIssuesCount(owner, repo, repoStatus.id, db),
+            getCachedRepoIssueCounts(owner, repo, restOctokit),
+            getCachedSyncedIssuesCount(owner, repo, repoStatus.id, db),
           ]);
           const repoStatusWithCounts = {
             ...repoStatus,
@@ -79,7 +79,25 @@ export const repoRouter = new Hono<Context>()
             }),
           );
         }
-        case "ready":
+        case "ready": {
+          const repoInitQueuePosition = await getCachedInitQueuePosition(
+            repoStatus.id,
+            db,
+          );
+          const repoStatusNew = {
+            ...repoStatus,
+            id: undefined,
+            initStatus: repoStatus.initStatus,
+            repoInitQueuePosition,
+          } as const;
+          return c.json(
+            createSuccessResponse({
+              data: repoStatusNew,
+              message:
+                "Successfully retrieved repository status with queue position",
+            }),
+          );
+        }
         case "completed":
         case "error":
         case "no_issues":
@@ -88,14 +106,11 @@ export const repoRouter = new Hono<Context>()
             ...repoStatus,
             id: undefined,
             initStatus: repoStatus.initStatus,
-            repoIssueCounts: null,
-            syncedIssuesCount: null,
           } as const;
           return c.json(
             createSuccessResponse({
               data: repoStatusNew,
-              message:
-                "Successfully retrieved repository status without counts",
+              message: "Successfully retrieved repository status",
             }),
           );
         }
@@ -156,7 +171,7 @@ export const repoRouter = new Hono<Context>()
     );
   });
 
-async function getRepoIssueCounts(
+async function getCachedRepoIssueCounts(
   owner: string,
   repo: string,
   restOctokit: RestOctokit,
@@ -181,7 +196,7 @@ async function getRepoIssueCounts(
   });
 }
 
-async function getSyncedIssuesCount(
+async function getCachedSyncedIssuesCount(
   owner: string,
   repo: string,
   repoId: string,
@@ -192,5 +207,14 @@ async function getSyncedIssuesCount(
     schema: z.coerce.number(),
     options: { expirationTtl: 60 }, // 1 minute cache
     fetch: () => Repo.getSyncedIssuesCount(repoId, db),
+  });
+}
+
+async function getCachedInitQueuePosition(repoId: string, db: DbClient) {
+  return withCache({
+    key: CacheKey.repoInitQueuePosition(repoId),
+    schema: z.coerce.number(),
+    options: { expirationTtl: 60 }, // 1 minute cache
+    fetch: () => Repo.getInitQueuePosition(repoId, db),
   });
 }

@@ -75,7 +75,7 @@ function RepoSearch() {
     </div>
   );
 
-  const QueuedView = () => (
+  const QueuedView = ({ queuePosition }: { queuePosition: number }) => (
     <div className="flex size-full items-center justify-center p-2">
       <div className="flex flex-col items-center gap-8 text-center">
         <div className="flex flex-col items-center gap-4">
@@ -87,7 +87,9 @@ function RepoSearch() {
 
         <div className="flex flex-col gap-2 text-muted-foreground">
           <p className="text-lg">
-            This repository is queued for initialization.
+            This repository is queued for initialization. There are{" "}
+            <span className="font-mono font-bold">{queuePosition}</span>{" "}
+            repositories ahead of it in the queue.
           </p>
           <p className="text-lg">
             We&apos;ll start processing it shortly. Please check back in a few
@@ -163,8 +165,10 @@ function RepoSearch() {
     // should never be hit, this is for private repos only?
     case "pending":
       return <ErrorView />;
-    case "ready":
-      return <QueuedView />;
+    case "ready": {
+      const { repoInitQueuePosition } = repoStatus;
+      return <QueuedView queuePosition={repoInitQueuePosition} />;
+    }
     case "in_progress": {
       const {
         syncedIssuesCount,

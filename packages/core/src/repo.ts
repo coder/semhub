@@ -111,6 +111,7 @@ export const Repo = {
     return result;
   },
 
+  /*  METHODS FOR ISSUES SYNC */
   getNextEnqueuedAndMarkInProgress: async (db: DbClient) => {
     // wrapped in a single transaction to prevent race condition
     return await db.transaction(async (tx) => {
@@ -143,7 +144,6 @@ export const Repo = {
       return repo;
     });
   },
-
   enqueueForIssueSync: async (db: DbClient) => {
     return await db
       .update(repos)
@@ -166,18 +166,6 @@ export const Repo = {
       });
   },
 
-  unstuckForInit: async (db: DbClient) => {
-    await db
-      .update(repos)
-      .set({ initStatus: "ready" })
-      .where(
-        and(
-          eq(repos.initStatus, "in_progress"),
-          lt(repos.updatedAt, sql`NOW() - INTERVAL '1 hour'`),
-        ),
-      );
-  },
-
   unstuckForIssueSync: async (db: DbClient) => {
     await db
       .update(repos)
@@ -186,6 +174,19 @@ export const Repo = {
         and(
           eq(repos.syncStatus, "in_progress"),
           lt(repos.lastSyncedAt, sql`NOW() - INTERVAL '1 hour'`),
+        ),
+      );
+  },
+
+  /*  METHODS FOR INIT */
+  unstuckForInit: async (db: DbClient) => {
+    await db
+      .update(repos)
+      .set({ initStatus: "ready" })
+      .where(
+        and(
+          eq(repos.initStatus, "in_progress"),
+          lt(repos.updatedAt, sql`NOW() - INTERVAL '1 hour'`),
         ),
       );
   },
@@ -327,6 +328,16 @@ export const Repo = {
     return countRes?.count ?? 0;
   },
 
+  getInitQueuePosition: async (repoId: string, db: DbClient) => {
+    const [result] = await db
+      .select({
+        count: count(),
+      })
+      .from(repos)
+      // I can use repos.id because it is a ULID key
+      .where(and(eq(repos.initStatus, "in_progress"), lt(repos.id, repoId)));
+    return result?.count ?? 0;
+  },
   getInitReadyRepos: async (db: DbClient, numRepos: number) => {
     const result = await db
       .select({
