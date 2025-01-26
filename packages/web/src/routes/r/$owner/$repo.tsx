@@ -89,8 +89,10 @@ function RepoSearch() {
             {queuePosition === 1 || queuePosition === 0 ? (
               <>
                 There is{" "}
-                <span className="font-mono font-bold underline">1</span> repo
-                ahead of it in the queue.
+                <span className="font-mono font-bold underline">
+                  {queuePosition}
+                </span>{" "}
+                repo ahead of it in the queue.
               </>
             ) : (
               <>
