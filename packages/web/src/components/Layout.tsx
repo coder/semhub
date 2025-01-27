@@ -1,3 +1,4 @@
+import { getCurrentYear } from "@/lib/time";
 import { Navbar } from "@/components/navbar/Navbar";
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -9,6 +10,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1">
         <div className="py-6">{children}</div>
       </main>
+      <footer className="py-4 text-center text-sm text-muted-foreground">
+        © {getCurrentYear()} Research at Coder.com. All rights reserved.
+      </footer>
     </div>
   );
 }
