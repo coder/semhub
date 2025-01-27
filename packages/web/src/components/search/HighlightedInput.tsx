@@ -1,9 +1,10 @@
 import * as React from "react";
 import { useMemo } from "react";
 
+import type {
+  SearchOperator} from "@/core/constants/search.constant";
 import {
-  SEARCH_OPERATORS,
-  SearchOperator,
+  SEARCH_OPERATORS
 } from "@/core/constants/search.constant";
 import { cn } from "@/lib/utils";
 

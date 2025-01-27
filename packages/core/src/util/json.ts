@@ -16,6 +16,7 @@ export function restoreTypes<T extends object>(data: T): T {
       if (dateRegex.test(value)) {
         const date = new Date(value);
         if (!isNaN(date.getTime())) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (restored as any)[key] = date;
           continue;
         }
@@ -23,9 +24,11 @@ export function restoreTypes<T extends object>(data: T): T {
       // Try to parse numbers
       const numberValue = Number(value);
       if (!isNaN(numberValue) && String(numberValue) === value) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (restored as any)[key] = numberValue;
       }
     } else if (Array.isArray(value)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (restored as any)[key] = value.map((item) =>
         item === null
           ? null
@@ -34,6 +37,7 @@ export function restoreTypes<T extends object>(data: T): T {
             : item,
       );
     } else if (value && typeof value === "object") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (restored as any)[key] = restoreTypes(value);
     }
   }
