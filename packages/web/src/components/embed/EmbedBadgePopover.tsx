@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 
+import type { ButtonProps } from "@/components/ui/button";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -18,9 +19,11 @@ import {
 export function EmbedBadgePopover({
   owner,
   repo,
+  buttonVariant = "outline",
 }: {
   owner: string;
   repo: string;
+  buttonVariant?: ButtonProps["variant"];
 }) {
   const embedCode = getEmbedCode(owner, repo);
   const { copied, copyToClipboard } = useCopyToClipboard(embedCode);
@@ -28,7 +31,7 @@ export function EmbedBadgePopover({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant={buttonVariant} size="sm" className="gap-2">
           <PlusIcon className="size-4" />
           <span>Embed</span>
         </Button>

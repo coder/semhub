@@ -13,6 +13,8 @@ export const CacheKey = {
     `repo:${owner}/${repo}:github-issue-counts` as const,
   repoSyncedIssues: (owner: string, repo: string) =>
     `repo:${owner}/${repo}:synced-issues-count` as const,
+  repoInitQueuePosition: (repoId: string) =>
+    `repo:${repoId}:init-queue-position` as const,
 
   // Search related keys
   publicSearch: (query: string, page: number, pageSize: number) =>

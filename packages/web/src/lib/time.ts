@@ -46,3 +46,7 @@ export function formatLocalDateTime(date: Date) {
     timeStyle: "short",
   }).format(date);
 }
+
+export function getCurrentYear() {
+  return new Date().getFullYear();
+}

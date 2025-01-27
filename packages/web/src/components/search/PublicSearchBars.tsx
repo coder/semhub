@@ -365,13 +365,14 @@ export function HomepageSearchBar() {
     <form onSubmit={(e) => handleSearch(e, query)}>
       <div className="flex flex-col items-center">
         <div className="relative mx-auto w-full max-w-xl">
-          <div className="mb-2 flex items-center gap-1">
+          <div className="mb-2 flex items-center justify-between">
             <SearchFilters
               selectedOrg={selectedOrg}
               selectedRepo={selectedRepo}
               onOrgChange={handleOrgChange}
               onRepoChange={handleRepoChange}
             />
+            <EmbedBadgePopover owner="your" repo="repo" buttonVariant="ghost" />
           </div>
           <div className="relative">
             <SearchIcon

@@ -14,9 +14,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { ShineButton } from "@/components/ui/shine-button";
 import { githubRepoFormSchema } from "@/components/repos/form-schema";
+import type { RepoPreviewProps } from "@/components/repos/RepoPreview";
 import {
   RepoPreview,
-  RepoPreviewProps,
   RepoPreviewSkeleton,
 } from "@/components/repos/RepoPreview";
 

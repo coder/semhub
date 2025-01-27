@@ -2,9 +2,9 @@
 import { SEARCH_OPERATORS } from "../constants/search.constant";
 
 export function parseSearchQuery(inputQuery: string) {
-  // Create a Map with empty arrays as default values for each operator
+  // Create a Map with empty Sets as default values for each operator
   const operatorMatches = new Map(
-    SEARCH_OPERATORS.map(({ operator }) => [operator, [] as string[]]),
+    SEARCH_OPERATORS.map(({ operator }) => [operator, new Set<string>()]),
   );
   let remainingQuery = inputQuery;
 
@@ -18,21 +18,17 @@ export function parseSearchQuery(inputQuery: string) {
     const matches = inputQuery.match(new RegExp(pattern, "g"));
     if (matches) {
       // Extract the actual values based on the pattern
-      operatorMatches.set(
-        operator,
-        matches
-          .map((m) =>
-            // when adding to the map, we want the value only (without operator or quotation marks)
-            m.replace(
-              new RegExp(
-                `^${operator}:${enclosedInQuotes ? '"(.*)"' : "(.*)"}$`,
-              ),
-              "$1",
-            ),
-          )
-          // we also don't want empty string
-          .filter((value) => value.trim().length > 0),
-      );
+      matches
+        .map((m) =>
+          // when adding to the map, we want the value only (without operator or quotation marks)
+          m.replace(
+            new RegExp(`^${operator}:${enclosedInQuotes ? '"(.*)"' : "(.*)"}$`),
+            "$1",
+          ),
+        )
+        // we also don't want empty string
+        .filter((value) => value.trim().length > 0)
+        .forEach((value) => operatorMatches.get(operator)?.add(value));
       // Remove matches from remaining query
       remainingQuery = matches.reduce(
         (query, match) => query.replace(match, ""),
@@ -51,14 +47,14 @@ export function parseSearchQuery(inputQuery: string) {
 
   return {
     substringQueries,
-    titleQueries: operatorMatches.get("title") ?? [],
-    authorQueries: operatorMatches.get("author") ?? [],
-    bodyQueries: operatorMatches.get("body") ?? [],
-    labelQueries: operatorMatches.get("label") ?? [],
-    stateQueries: operatorMatches.get("state") ?? [],
-    repoQueries: operatorMatches.get("repo") ?? [],
-    ownerQueries: operatorMatches.get("org") ?? [],
-    collectionQueries: operatorMatches.get("collection") ?? [],
+    titleQueries: Array.from(operatorMatches.get("title") ?? []),
+    authorQueries: Array.from(operatorMatches.get("author") ?? []),
+    bodyQueries: Array.from(operatorMatches.get("body") ?? []),
+    labelQueries: Array.from(operatorMatches.get("label") ?? []),
+    stateQueries: Array.from(operatorMatches.get("state") ?? []),
+    repoQueries: Array.from(operatorMatches.get("repo") ?? []),
+    ownerQueries: Array.from(operatorMatches.get("org") ?? []),
+    collectionQueries: Array.from(operatorMatches.get("collection") ?? []),
     remainingQuery: remainingQuery.trim(),
   };
 }

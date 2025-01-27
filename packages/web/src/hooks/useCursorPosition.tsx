@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
-export function useCursorPosition(inputRef: React.RefObject<HTMLInputElement | null>) {
+export function useCursorPosition(
+  inputRef: React.RefObject<HTMLInputElement | null>,
+) {
   const [cursorPosition, setCursorPosition] = useState(0);
 
   const handleCursorPosition = () => {

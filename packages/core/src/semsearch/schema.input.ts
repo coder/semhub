@@ -14,7 +14,7 @@ export const operatorSchema = z.string().superRefine((query, ctx) => {
     if (emptyOperatorPattern.test(query)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `The ${operator} operator requires a value after the colon`,
+        message: `The <code>${operator}</code> operator requires a value after the colon`,
       });
     }
   });
@@ -26,7 +26,7 @@ export const operatorSchema = z.string().superRefine((query, ctx) => {
       if (unquotedPattern.test(query)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `The ${operator} operator requires quotes (") around its value`,
+          message: `The <code>${operator}</code> operator requires quotes (") around its value`,
         });
       }
     }
@@ -40,7 +40,8 @@ export const searchQuerySchema = z.string().superRefine((query, ctx) => {
   if (!input) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Please provide a substantive query",
+      message:
+        "Please search for something specific or use the <code>title</code>, <code>body</code>, or <code>label</code> operators",
     });
   }
 
@@ -53,34 +54,40 @@ export const searchQuerySchema = z.string().superRefine((query, ctx) => {
   const { stateQueries, repoQueries, authorQueries, ownerQueries } =
     parseSearchQuery(query);
 
-  if (stateQueries.length > 1) {
+  if (repoQueries.length === 0 && ownerQueries.length === 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Please filter by at most one state",
-    });
-  }
-  if (repoQueries.length > 1) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Please filter by at most one repo",
+      message: "Please specify an org or repo for your search",
     });
   }
   if (repoQueries.length === 1 && ownerQueries.length === 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Please specify an org for the repo",
+      message: "Please specify which org the repo belongs to",
+    });
+  }
+  if (stateQueries.length > 1) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Conflicting state filters in query",
+    });
+  }
+  if (repoQueries.length > 1) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Conflicting repo filters in query",
     });
   }
   if (authorQueries.length > 1) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Please filter by at most one author",
+      message: "Conflicting author filters in query",
     });
   }
   if (ownerQueries.length > 1) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Please filter by at most one org",
+      message: "Conflicting org filters in query",
     });
   }
   if (stateQueries.length === 1) {
@@ -88,7 +95,7 @@ export const searchQuerySchema = z.string().superRefine((query, ctx) => {
     if (!STATE_SUBMENU_VALUES.includes(state)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Please filter by a valid state: ${STATE_SUBMENU_VALUES.join(", ")}`,
+        message: `Please filter by a valid state: ${STATE_SUBMENU_VALUES.map((v) => `<code>${v}</code>`).join(", ")}`,
       });
     }
   }

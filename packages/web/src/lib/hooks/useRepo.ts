@@ -107,16 +107,17 @@ export const useUnsubscribeRepo = () => {
   });
 };
 
-const LOADING_INTERVAL = 1000 * 30; // 30 seconds
+export const GET_REPO_STATUS_QUERY_REFETCH_INTERVAL = 1000 * 60; // 60 seconds
 
 export const getRepoStatusQueryOptions = (owner: string, repo: string) =>
   queryOptions({
     queryKey: queryKeys.repos.status(owner, repo),
     queryFn: () => getRepoStatus(owner, repo),
+    refetchIntervalInBackground: true,
     refetchInterval: (query) => {
       const initStatus = query.state.data?.initStatus;
       if (initStatus === "in_progress" || initStatus === "ready") {
-        return LOADING_INTERVAL;
+        return GET_REPO_STATUS_QUERY_REFETCH_INTERVAL;
       }
       return false;
     },

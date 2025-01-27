@@ -345,6 +345,83 @@ describe("parseSearchQuery", () => {
       expect(result).toEqual(expected);
     });
   });
+
+  describe("deduplication", () => {
+    const deduplicationTests = [
+      {
+        name: "deduplicates identical title queries",
+        query: 'title:"bug" title:"bug" title:"feature"',
+        expected: {
+          titleQueries: ["bug", "feature"],
+          authorQueries: [],
+          repoQueries: [],
+          stateQueries: [],
+          substringQueries: [],
+          bodyQueries: [],
+          labelQueries: [],
+          ownerQueries: [],
+          collectionQueries: [],
+          remainingQuery: "",
+        },
+      },
+      {
+        name: "deduplicates identical state values",
+        query: "state:open state:open state:closed state:closed",
+        expected: {
+          titleQueries: [],
+          authorQueries: [],
+          repoQueries: [],
+          stateQueries: ["open", "closed"],
+          substringQueries: [],
+          bodyQueries: [],
+          labelQueries: [],
+          ownerQueries: [],
+          collectionQueries: [],
+          remainingQuery: "",
+        },
+      },
+      {
+        name: "deduplicates mixed quoted and unquoted values",
+        query: 'author:john author:"john" author:jane',
+        expected: {
+          titleQueries: [],
+          authorQueries: ["john", '"john"', "jane"],
+          repoQueries: [],
+          stateQueries: [],
+          substringQueries: [],
+          bodyQueries: [],
+          labelQueries: [],
+          ownerQueries: [],
+          collectionQueries: [],
+          remainingQuery: "",
+        },
+      },
+      {
+        name: "deduplicates across multiple operators",
+        query:
+          'title:"bug" body:"crash" title:"bug" body:"crash" label:"bug" label:"bug"',
+        expected: {
+          titleQueries: ["bug"],
+          authorQueries: [],
+          repoQueries: [],
+          stateQueries: [],
+          substringQueries: [],
+          bodyQueries: ["crash"],
+          labelQueries: ["bug"],
+          ownerQueries: [],
+          collectionQueries: [],
+          remainingQuery: "",
+        },
+      },
+    ];
+
+    deduplicationTests.forEach(({ name, query, expected }) => {
+      it(name, () => {
+        const result = parseSearchQuery(query);
+        expect(result).toEqual(expected);
+      });
+    });
+  });
 });
 
 describe("modifyUserQuery", () => {
