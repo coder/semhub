@@ -116,11 +116,7 @@ export const getRepoStatusQueryOptions = (owner: string, repo: string) =>
     refetchIntervalInBackground: true,
     refetchInterval: (query) => {
       const initStatus = query.state.data?.initStatus;
-      if (
-        initStatus === "in_progress" ||
-        initStatus === "ready" ||
-        initStatus === "completed"
-      ) {
+      if (initStatus === "in_progress" || initStatus === "ready") {
         return GET_REPO_STATUS_QUERY_REFETCH_INTERVAL;
       }
       return false;
