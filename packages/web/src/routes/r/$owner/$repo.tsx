@@ -1,7 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Loader2Icon } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { ApiError } from "@/lib/api/client";
-import { getRepoStatusQueryOptions, useRepoStatus } from "@/lib/hooks/useRepo";
+import {
+  GET_REPO_STATUS_QUERY_REFETCH_INTERVAL,
+  getRepoStatusQueryOptions,
+  useRepoStatus,
+} from "@/lib/hooks/useRepo";
+import { formatLocalDateTime } from "@/lib/time";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmbedBadgePopover } from "@/components/embed/EmbedBadgePopover";
 import { RepoSearchBar } from "@/components/search/RepoSearchBar";
@@ -41,7 +48,7 @@ function RepoSearchSkeleton() {
 
 function RepoSearch() {
   let { owner, repo } = Route.useParams();
-  const { data: repoStatus } = useRepoStatus(owner, repo);
+  const { data: repoStatus, dataUpdatedAt } = useRepoStatus(owner, repo);
 
   const {
     avatarUrl,
@@ -73,52 +80,96 @@ function RepoSearch() {
     </div>
   );
 
-  const QueuedView = ({ queuePosition }: { queuePosition: number }) => (
-    <div className="flex size-full items-center justify-center p-2">
-      <div className="flex flex-col items-center gap-8 text-center">
-        <div className="flex flex-col items-center gap-4">
-          <p className="font-mono text-4xl font-bold">Repo Queued</p>
-          <p className="font-mono text-lg text-muted-foreground">
-            <RepoLink owner={owner} repo={repo} />
-          </p>
-        </div>
+  const CheckText = ({ dataUpdatedAt }: { dataUpdatedAt: number }) => {
+    const [timeUntilNextFetch, setTimeUntilNextFetch] = useState<number>(0);
 
-        <div className="flex flex-col gap-2 text-muted-foreground">
-          <p className="text-lg">
-            This repo is queued for initialization.{" "}
-            {queuePosition === 1 || queuePosition === 0 ? (
-              <>
-                There is{" "}
-                <span className="font-mono font-bold underline">
-                  {queuePosition}
-                </span>{" "}
-                repo ahead of it in the queue.
-              </>
-            ) : (
-              <>
-                There are{" "}
-                <span className="font-mono font-bold underline">
-                  {queuePosition}
-                </span>{" "}
-                repos ahead of it in the queue.
-              </>
-            )}
-          </p>
-          <p className="text-lg">
-            We&apos;ll start processing it shortly. Please check back in a few
-            moments.
-          </p>
+    useEffect(() => {
+      const calculateTimeLeft = () => {
+        const nextFetchTime =
+          dataUpdatedAt + GET_REPO_STATUS_QUERY_REFETCH_INTERVAL;
+        return Math.max(0, nextFetchTime - Date.now());
+      };
+
+      setTimeUntilNextFetch(calculateTimeLeft());
+      const interval = setInterval(() => {
+        setTimeUntilNextFetch(calculateTimeLeft());
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }, [dataUpdatedAt]);
+
+    const formatTime = (ms: number) => {
+      const seconds = Math.floor(ms / 1000);
+      return `${seconds}s`;
+    };
+
+    return (
+      <p className="font-mono text-sm text-muted-foreground/80">
+        Last checked: {formatLocalDateTime(new Date(dataUpdatedAt))}
+        {" | "}
+        Next check in: {formatTime(timeUntilNextFetch)}
+      </p>
+    );
+  };
+
+  const QueuedView = ({
+    queuePosition,
+    dataUpdatedAt,
+  }: {
+    queuePosition: number;
+    dataUpdatedAt: number;
+  }) => {
+    return (
+      <div className="flex size-full items-center justify-center p-2">
+        <div className="flex flex-col items-center gap-8 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <p className="font-mono text-4xl font-bold">Repo Queued</p>
+            <p className="font-mono text-lg text-muted-foreground">
+              <RepoLink owner={owner} repo={repo} />
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2 text-muted-foreground">
+            <p className="text-lg">
+              This repo is queued for initialization.{" "}
+              {queuePosition === 1 || queuePosition === 0 ? (
+                <>
+                  There is{" "}
+                  <span className="font-mono font-bold underline">
+                    {queuePosition}
+                  </span>{" "}
+                  repo ahead of it in the queue.
+                </>
+              ) : (
+                <>
+                  There are{" "}
+                  <span className="font-mono font-bold underline">
+                    {queuePosition}
+                  </span>{" "}
+                  repos ahead of it in the queue.
+                </>
+              )}
+            </p>
+            <p className="text-lg">
+              We&apos;ll start processing it shortly. Please check back in a few
+              moments.
+            </p>
+            <Loader2Icon className="mx-auto my-4 animate-spin" />
+            <CheckText dataUpdatedAt={dataUpdatedAt} />
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const InitializingView = ({
     syncedIssuesCount,
     allIssuesCount,
+    dataUpdatedAt,
   }: {
     syncedIssuesCount: number;
     allIssuesCount: number;
+    dataUpdatedAt: number;
   }) => {
     const progress = Math.round((syncedIssuesCount / allIssuesCount) * 100);
 
@@ -162,11 +213,11 @@ function RepoSearch() {
               *Stats are cached and may be slightly out-of-date
             </p>
           </div>
-
           <p className="text-sm italic text-muted-foreground">
             Search functionality will be available once initialization is
             complete
           </p>
+          <CheckText dataUpdatedAt={dataUpdatedAt} />
         </div>
       </div>
     );
@@ -178,7 +229,12 @@ function RepoSearch() {
       return <ErrorView />;
     case "ready": {
       const { repoInitQueuePosition } = repoStatus;
-      return <QueuedView queuePosition={repoInitQueuePosition} />;
+      return (
+        <QueuedView
+          queuePosition={repoInitQueuePosition}
+          dataUpdatedAt={dataUpdatedAt}
+        />
+      );
     }
     case "in_progress": {
       const {
@@ -189,6 +245,7 @@ function RepoSearch() {
         <InitializingView
           syncedIssuesCount={syncedIssuesCount}
           allIssuesCount={allIssuesCount}
+          dataUpdatedAt={dataUpdatedAt}
         />
       );
     }
