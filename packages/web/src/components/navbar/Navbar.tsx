@@ -39,9 +39,11 @@ export function Navbar() {
 
   const standardLogo = (
     <>
-      <span className="text-blue-600">Sem</span>
+      <span className="text-blue-600 dark:text-blue-400">Sem</span>
       <span className="text-orange-500">Hub</span>
-      <span className="animate-cursor-slow text-blue-600">_</span>
+      <span className="animate-cursor-slow text-blue-600 dark:text-blue-400">
+        _
+      </span>
     </>
   );
   const lightModeLogo = (

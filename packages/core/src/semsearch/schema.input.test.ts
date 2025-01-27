@@ -80,7 +80,7 @@ describe("operatorQuoteSchema", () => {
 
 describe("searchQuerySchema", () => {
   describe("multiple operator validation", () => {
-    it("should fail when multiple instances of unique operators are used", () => {
+    it("should fail when conflicting instances of unique operators are used", () => {
       const invalidQueries = [
         "state:open state:closed org:a abc",
         "org:a repo:a repo:b abc",
@@ -89,7 +89,7 @@ describe("searchQuerySchema", () => {
       ];
 
       invalidQueries.forEach((query) => {
-        expect(() => searchQuerySchema.parse(query)).toThrow(/Multiple/);
+        expect(() => searchQuerySchema.parse(query)).toThrow(/Conflicting/);
       });
     });
   });

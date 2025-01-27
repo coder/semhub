@@ -94,7 +94,7 @@ const HighlightedInput = React.forwardRef<
         key={i}
         className={
           part.type === "operator"
-            ? "text-blue-600"
+            ? "text-blue-600 dark:text-blue-400"
             : part.type === "value"
               ? "text-orange-500"
               : undefined

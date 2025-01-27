@@ -15,7 +15,7 @@ function YourRepoPage() {
       <div className="w-full max-w-screen-xl px-4">
         <div className="mb-12 flex flex-col items-center text-center">
           <h1 className="mb-8 font-serif text-4xl tracking-tight">
-            Add <span className="text-blue-600 dark:text-blue-500">Sem</span>
+            Add <span className="text-blue-600 dark:text-blue-400">Sem</span>
             antic search to your Git<span className="text-orange-500">
               Hub
             </span>{" "}
@@ -26,7 +26,7 @@ function YourRepoPage() {
             <div className="flex flex-col gap-4 rounded-lg border bg-muted/30 p-6">
               <h2 className="font-serif text-2xl">
                 Give{" "}
-                <span className="text-blue-600 dark:text-blue-500">Sem</span>
+                <span className="text-blue-600 dark:text-blue-400">Sem</span>
                 <span className="text-orange-500">Hub</span> a try
               </h2>
               <ul className="flex list-disc flex-col gap-3 pl-5 text-left text-muted-foreground marker:text-blue-600/40">

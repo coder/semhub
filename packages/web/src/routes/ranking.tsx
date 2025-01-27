@@ -17,7 +17,7 @@ function RankingPage() {
     <main className="mx-auto max-w-3xl px-4 pt-4">
       <div className="mb-12 text-center">
         <h1 className="mb-8 font-serif text-4xl tracking-tight">
-          How <span className="text-blue-600 dark:text-blue-500">Sem</span>
+          How <span className="text-blue-600 dark:text-blue-400">Sem</span>
           <span className="text-orange-500">Hub</span> ranks results
         </h1>
 

@@ -213,7 +213,7 @@ function RepoSearch() {
               </div>
               <h2 className="mb-8 text-center font-serif text-lg italic tracking-tight text-muted-foreground">
                 Uncover insights with{" "}
-                <span className="text-blue-600 dark:text-blue-500">Sem</span>
+                <span className="text-blue-600 dark:text-blue-400">Sem</span>
                 antic search for Git
                 <span className="text-orange-500">Hub</span>
               </h2>

@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { AlertTriangleIcon } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -20,7 +21,16 @@ export function ValidationErrorAlert({ errors }: { errors: string[] }) {
       <AlertDescription className="w-full">
         <ul className="ml-6 list-disc space-y-1">
           {errors.map((error, index) => (
-            <li key={index}>{error}</li>
+            <li key={index}>
+              <span
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(error, {
+                    ALLOWED_TAGS: ["code"],
+                    ALLOWED_ATTR: [],
+                  }),
+                }}
+              />
+            </li>
           ))}
         </ul>
       </AlertDescription>
