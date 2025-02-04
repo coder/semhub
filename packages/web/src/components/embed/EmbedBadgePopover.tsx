@@ -33,7 +33,7 @@ export function EmbedBadgePopover({
       <PopoverTrigger asChild>
         <Button variant={buttonVariant} size="sm" className="gap-2">
           <PlusIcon className="size-4" />
-          <span>Embed</span>
+          <span>Add to Repo</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-96" align="end">

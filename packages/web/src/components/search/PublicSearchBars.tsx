@@ -1,7 +1,16 @@
-import { ChevronDownIcon, GlobeIcon, SearchIcon, XIcon } from "lucide-react";
-import { useTheme } from "next-themes";
+import {
+  ChevronDownIcon,
+  GlobeIcon,
+  SearchIcon,
+  SlidersHorizontalIcon,
+  XIcon,
+} from "lucide-react";
 import { useState } from "react";
 
+import {
+  SEARCH_OPERATORS,
+  type SearchOperator,
+} from "@/core/constants/search.constant";
 import { usePlaceholderAnimation } from "@/hooks/usePlaceholderAnimation";
 import { usePublicSearch } from "@/hooks/usePublicSearch";
 import { useSearchBar } from "@/hooks/useSearchBar";
@@ -12,14 +21,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { EmbedBadgePopover } from "@/components/embed/EmbedBadgePopover";
 import { HighlightedInput } from "@/components/search/HighlightedInput";
 import { SearchDropdownMenu } from "@/components/search/SearchDropdownMenu";
 import { ValidationErrorAlert } from "@/components/search/ValidationErrorAlert";
-import {
-  SEARCH_OPERATORS,
-  type SearchOperator,
-} from "@/../../core/src/constants/search.constant";
 
 // TODO: hard-coded for now, fetch from API eventually
 const owners = [
@@ -193,17 +197,23 @@ function SearchFilters({
   onRepoChange: (repo: string) => void;
 }) {
   return (
-    <div className="flex gap-1">
-      <FilterDropdown
-        options={owners}
-        value={selectedOrg}
-        onChange={onOrgChange}
-      />
-      <FilterDropdown
-        options={repos}
-        value={selectedRepo}
-        onChange={onRepoChange}
-      />
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+        <SlidersHorizontalIcon className="size-4" />
+        <span>Filter by</span>
+      </div>
+      <div className="flex gap-1">
+        <FilterDropdown
+          options={owners}
+          value={selectedOrg}
+          onChange={onOrgChange}
+        />
+        <FilterDropdown
+          options={repos}
+          value={selectedRepo}
+          onChange={onRepoChange}
+        />
+      </div>
     </div>
   );
 }
@@ -250,14 +260,13 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
   return (
     <form onSubmit={(e) => handleSearch(e, query)}>
       <div className="relative mx-auto w-full">
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2 flex items-center gap-1">
           <SearchFilters
             selectedOrg={selectedOrg}
             selectedRepo={selectedRepo}
             onOrgChange={handleOrgChange}
             onRepoChange={handleRepoChange}
           />
-          <EmbedBadgePopover owner="your" repo="repo" />
         </div>
         <div className="relative">
           <HighlightedInput
@@ -317,7 +326,6 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
 }
 
 export function HomepageSearchBar() {
-  const { theme } = useTheme();
   const [selectedOrg, setSelectedOrg] = useState("all");
   const [selectedRepo, setSelectedRepo] = useState("all");
   const removedOperators = ["collection"] as SearchOperator[];
@@ -340,15 +348,11 @@ export function HomepageSearchBar() {
     setCommandValue,
     setQuery,
   } = useSearchBar({ removedOperators });
-  const {
-    handleSearch,
-    handleLuckySearch,
-    validationErrors,
-    clearValidationErrors,
-  } = usePublicSearch({
-    mode: "search",
-    setQuery,
-  });
+  const { handleSearch, validationErrors, clearValidationErrors } =
+    usePublicSearch({
+      mode: "search",
+      setQuery,
+    });
   const placeholderText = usePlaceholderAnimation();
 
   const handleOrgChange = (org: string) => {
@@ -365,14 +369,13 @@ export function HomepageSearchBar() {
     <form onSubmit={(e) => handleSearch(e, query)}>
       <div className="flex flex-col items-center">
         <div className="relative mx-auto w-full max-w-xl">
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-2 flex items-center gap-1">
             <SearchFilters
               selectedOrg={selectedOrg}
               selectedRepo={selectedRepo}
               onOrgChange={handleOrgChange}
               onRepoChange={handleRepoChange}
             />
-            <EmbedBadgePopover owner="your" repo="repo" buttonVariant="ghost" />
           </div>
           <div className="relative">
             <SearchIcon
@@ -422,19 +425,6 @@ export function HomepageSearchBar() {
               />
             </div>
           )}
-        </div>
-        <div className="mt-8 space-x-4">
-          <Button type="submit" variant="secondary">
-            SemHub Search
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={(e) => handleLuckySearch(e, query)}
-          >
-            <span className="inline-block w-32 text-center">
-              {theme === "dark" ? "Time to Get Lucky" : "I'm Feeling Lucky"}
-            </span>
-          </Button>
         </div>
       </div>
     </form>

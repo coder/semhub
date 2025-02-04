@@ -5,11 +5,18 @@ import { useCallback } from "react";
 export function useThemeToggle() {
   const { theme, setTheme } = useTheme();
 
-  const handleThemeChange = useCallback(() => {
-    const nextTheme =
-      theme === "system" ? "light" : theme === "light" ? "dark" : "system";
-    setTheme(nextTheme);
-  }, [theme, setTheme]);
+  const handleThemeChange = useCallback(
+    (newTheme?: string) => {
+      if (newTheme) {
+        setTheme(newTheme);
+      } else {
+        const nextTheme =
+          theme === "system" ? "light" : theme === "light" ? "dark" : "system";
+        setTheme(nextTheme);
+      }
+    },
+    [theme, setTheme],
+  );
 
   const ThemeIcon =
     theme === "light" ? SunIcon : theme === "dark" ? MoonIcon : MonitorCogIcon;

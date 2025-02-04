@@ -59,7 +59,7 @@ export function UserNav({ user }: { user: User }) {
         <div className="flex flex-col gap-1 p-2">
           <Button
             variant="ghost"
-            onClick={handleThemeChange}
+            onClick={() => handleThemeChange()}
             className="w-full justify-start gap-2 pl-2 text-muted-foreground hover:text-foreground"
           >
             <ThemeIcon className="size-4" />
@@ -71,7 +71,7 @@ export function UserNav({ user }: { user: User }) {
             className="w-full justify-start gap-2 pl-2 text-muted-foreground hover:text-foreground"
           >
             <LogOutIcon className="size-4" />
-            Sign out
+            Sign Out
           </Button>
         </div>
       </DropdownMenuContent>

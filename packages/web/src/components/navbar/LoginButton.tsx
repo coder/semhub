@@ -14,7 +14,7 @@ export function LoginButton() {
   return (
     <Button variant="outline" onClick={handleLogin} className="gap-2">
       <GithubIcon className="size-4" />
-      Sign in
+      Sign In
     </Button>
   );
 }

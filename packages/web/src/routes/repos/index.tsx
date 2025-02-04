@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { EmbedBadgePopover } from "@/components/embed/EmbedBadgePopover";
 import { AuthorizeButton } from "@/components/repos/AuthorizeButton";
 import { RepoCard } from "@/components/repos/RepoCard";
 import { SubscribePrivateRepo } from "@/components/repos/SubscribePrivateRepo";
@@ -53,9 +52,6 @@ function ReposPage() {
             </TooltipProvider>
           </div>
         </>
-      </div>
-      <div className="fixed bottom-8 right-8">
-        <EmbedBadgePopover owner="your" repo="repo" />
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { ArrowUpRightIcon } from "lucide-react";
 import { useMemo } from "react";
 
 import { getRandomItems } from "@/core/util/random";
+import { useOperatorHighlighting } from "@/hooks/useOperatorHighlighting";
 import { usePublicSearch } from "@/hooks/usePublicSearch";
 import { Button } from "@/components/ui/button";
 
@@ -28,19 +29,35 @@ interface SuggestedSearchCardProps {
 
 export function SuggestedSearchCard({ search }: SuggestedSearchCardProps) {
   const { handleSearch } = usePublicSearch({ mode: "suggested" });
+  const highlightedParts = useOperatorHighlighting(search);
 
   return (
     <Button
       variant="outline"
-      className="group w-full justify-between p-4 text-left hover:bg-muted/50"
+      className="group w-full justify-between px-4 py-6 text-left hover:bg-muted/50"
       onClick={(e) => handleSearch(e, search)}
     >
-      <span>{search}</span>
-      <ArrowUpRightIcon className="size-4 opacity-50 transition-opacity group-hover:opacity-100" />
+      <span className="whitespace-pre-wrap break-words leading-relaxed">
+        {highlightedParts.map((part, i) => (
+          <span
+            key={i}
+            className={
+              part.type === "operator"
+                ? "text-blue-600 dark:text-blue-400"
+                : part.type === "value"
+                  ? "text-orange-500"
+                  : undefined
+            }
+          >
+            {part.text}
+          </span>
+        ))}
+      </span>
+      <ArrowUpRightIcon className="ml-2 size-4 shrink-0 opacity-50 transition-opacity group-hover:opacity-100" />
     </Button>
   );
 }
 
-export function useRandomSuggestions(count: number = 3) {
+export function useRandomSuggestions(count: number = 4) {
   return useMemo(() => getRandomItems(ALL_SUGGESTED_SEARCHES, count), [count]);
 }

@@ -126,7 +126,6 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        cursor: "cursor-blink 1s step-end infinite",
         "cursor-slow": "cursor-blink 2s step-end infinite",
         "shine-infinite": "shine-infinite 3s ease-in-out infinite",
         "shimmer-slide":

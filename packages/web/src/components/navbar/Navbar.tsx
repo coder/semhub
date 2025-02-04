@@ -1,9 +1,10 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 
 import { useSession } from "@/lib/hooks/useSession";
 import { useAudio } from "@/hooks/useAudio";
+import { EmbedBadgePopover } from "@/components/embed/EmbedBadgePopover";
 import { DarkModeToggle } from "@/components/navbar/DarkModeToggle";
 import { LoginButton } from "@/components/navbar/LoginButton";
 import { UserNav } from "@/components/navbar/UserNav";
@@ -64,6 +65,8 @@ export function Navbar() {
       </span>
     </h1>
   );
+
+  const location = useLocation();
   return (
     <div className="flex h-16 w-full items-center justify-between px-4">
       <div className="flex items-center gap-2">
@@ -73,6 +76,10 @@ export function Navbar() {
         </Link>
       </div>
       <nav className="flex items-center gap-4">
+        {/* avoids showing two EmbedBadgePopovers on the same page */}
+        {!location.pathname.startsWith("/r/") && (
+          <EmbedBadgePopover owner="your" repo="repo" />
+        )}
         {isAuthenticated ? (
           <>
             <Link
