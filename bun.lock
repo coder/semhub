@@ -58,6 +58,7 @@
       "name": "@semhub/web",
       "version": "0.0.0",
       "dependencies": {
+        "@counterscale/tracker": "^2.5.1",
         "@openauthjs/openauth": "*",
         "@radix-ui/react-accordion": "^1.2.1",
         "@radix-ui/react-alert-dialog": "^1.1.4",
@@ -216,6 +217,8 @@
     "@cloudflare/workers-shared": ["@cloudflare/workers-shared@0.9.0", "", { "dependencies": { "mime": "^3.0.0", "zod": "^3.22.3" } }, "sha512-eP6Ir45uPbKnpADVzUCtkRUYxYxjB1Ew6n/whTJvHu8H4m93USHAceCMm736VBZdlxuhXXUjEP3fCUxKPn+cfw=="],
 
     "@cloudflare/workers-types": ["@cloudflare/workers-types@4.20241022.0", "", {}, "sha512-1zOAw5QIDKItzGatzCrEpfLOB1AuMTwVqKmbw9B9eBfCUGRFNfJYMrJxIwcse9EmKahsQt2GruqU00pY/GyXgg=="],
+
+    "@counterscale/tracker": ["@counterscale/tracker@2.5.1", "", {}, "sha512-i/ejnlFWaOVxCY+0ClESD063452i8kDVOXSaVnglSToY+dVZHZYK5hBGJAD6d++x/txVibcEbNS0J0mjjZF3JA=="],
 
     "@cspotcode/source-map-support": ["@cspotcode/source-map-support@0.8.1", "", { "dependencies": { "@jridgewell/trace-mapping": "0.3.9" } }, "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw=="],
 
