@@ -1,5 +1,6 @@
 import "./globals.css";
 
+import * as Counterscale from "@counterscale/tracker";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { Loader2Icon } from "lucide-react";
@@ -11,6 +12,13 @@ import { queryClient } from "@/lib/queryClient";
 import { Error } from "./components/Error";
 import { NotFound } from "./components/NotFound";
 import { routeTree } from "./routeTree.gen";
+
+const sstStage = import.meta.env.VITE_SST_STAGE;
+// Initialize Counterscale analytics
+Counterscale.init({
+  siteId: `semhub-${sstStage}`,
+  reporterUrl: "https://semhub-prod-counterscale.pages.dev/collect",
+});
 
 const router = createRouter({
   routeTree,
