@@ -41,6 +41,6 @@
     "concurrently": "^8.2.2"
   },
   "dependencies": {
-    "sst": "^3.5.15"
+    "sst": "^3.7.7"
   }
 }
