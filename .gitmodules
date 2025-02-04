@@ -1,0 +1,3 @@
+[submodule "packages/counterscale"]
+	path = packages/counterscale
+	url = https://github.com/benvinegar/counterscale

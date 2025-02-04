@@ -17,7 +17,7 @@ const sstStage = import.meta.env.VITE_SST_STAGE;
 // Initialize Counterscale analytics
 Counterscale.init({
   siteId: `semhub-${sstStage}`,
-  reporterUrl: "https://semhub-prod-counterscale.pages.dev/collect",
+  reporterUrl: import.meta.env.VITE_COUNTERSCALE_REPORTER_URL,
 });
 
 const router = createRouter({

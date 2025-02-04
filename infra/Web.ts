@@ -12,6 +12,8 @@ const web = new sst.aws.StaticSite("Web", {
       }
       return url;
     }),
+    VITE_COUNTERSCALE_REPORTER_URL:
+      "https://semhub-prod-counterscale.pages.dev/collect",
   },
   build: {
     command: "vite build",
