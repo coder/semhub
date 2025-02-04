@@ -272,14 +272,18 @@ export function useSearchBar({
         return;
       }
 
-      // Only handle Enter if an item is actually selected
-      if (e.key === "Enter" && commandValue !== DEFAULT_COMMAND_VALUE) {
-        e.preventDefault();
-        const syntheticEvent = new KeyboardEvent("keydown", {
-          key: e.key,
-          bubbles: true,
-        });
-        commandInputRef.current?.dispatchEvent(syntheticEvent);
+      if (e.key === "Enter") {
+        if (commandValue !== DEFAULT_COMMAND_VALUE) {
+          e.preventDefault();
+          const syntheticEvent = new KeyboardEvent("keydown", {
+            key: e.key,
+            bubbles: true,
+          });
+          commandInputRef.current?.dispatchEvent(syntheticEvent);
+        } else {
+          setIsFocused(false);
+          setShowDropdown(false);
+        }
         return;
       }
     }
