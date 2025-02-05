@@ -1,10 +1,12 @@
 import { apiUrl } from "./Api";
 import { domain } from "./Dns";
+import { secret } from "./Secret";
 
 const web = new sst.aws.StaticSite("Web", {
   path: "packages/web",
   environment: {
     // when adding new env vars, you may have to rm -rf node_modules
+    SENTRY_AUTH_TOKEN: secret.sentryAuthToken.value,
     VITE_SST_STAGE: $app.stage,
     VITE_API_URL: apiUrl.apply((url) => {
       if (typeof url !== "string") {

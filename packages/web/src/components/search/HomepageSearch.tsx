@@ -1,3 +1,4 @@
+import { Button } from "../ui/button";
 import { HomepageSearchBar } from "./PublicSearchBars";
 import {
   SuggestedSearchCard,
@@ -24,6 +25,17 @@ export function HomepageSearch() {
         <div className="relative">
           <HomepageSearchBar />
         </div>
+        {/* TODO: remove before merging */}
+        <Button
+          onClick={() => {
+            console.log("Testing Sentry error capture...");
+            // Directly throw the error without try-catch to ensure Sentry's global handler catches it
+            const error = new Error("Test error from HomepageSearch!");
+            throw error;
+          }}
+        >
+          Break the world
+        </Button>
 
         {/* Suggested searches section */}
         <div className="mx-auto mt-24 grid max-w-xl grid-cols-1 gap-2 sm:mt-8 sm:grid-cols-2 sm:gap-4">

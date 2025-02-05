@@ -18,6 +18,7 @@ import { authRouter } from "./router/auth.router";
 import { authzRouter } from "./router/authz.router";
 import { meRouter } from "./router/me/me.router";
 import { publicRouter } from "./router/public/public.router";
+import { sentryRouter } from "./router/sentry.router";
 import { webhookRouter } from "./router/webhook/webhook.router";
 
 export interface Context extends Env {
@@ -66,7 +67,9 @@ const _routes = app
   // Public routes
   .route("/public", publicRouter)
   // Webhook routes (secured by webhook secret)
-  .route("/webhook", webhookRouter);
+  .route("/webhook", webhookRouter)
+  // Sentry tunnel route
+  .route("/sentry", sentryRouter);
 
 // Export the type for client usage
 export type ApiRoutes = typeof _routes;

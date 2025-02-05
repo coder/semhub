@@ -6,10 +6,11 @@
     "build": "tsc --build"
   },
   "dependencies": {
-    "@semhub/core": "workspace:*",
-    "@semhub/wrangler": "workspace:*",
     "@hono/zod-validator": "^0.4.1",
     "@openauthjs/openauth": "*",
+    "@semhub/core": "workspace:*",
+    "@semhub/wrangler": "workspace:*",
+    "@sentry/cloudflare": "^8.54.0",
     "hono": "^4.6.5"
   },
   "devDependencies": {

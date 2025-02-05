@@ -1,6 +1,10 @@
+import { type cors } from "hono/cors";
 import type { CookieOptions } from "hono/utils/cookie";
 
 import { GITHUB_SCOPES_PERMISSION } from "@/core/github/permission/oauth";
+
+// Extract CORSOptions type from cors function
+type CORSOptions = NonNullable<Parameters<typeof cors>[0]>;
 
 export const githubLogin = {
   provider: "github-login" as const,
@@ -10,6 +14,14 @@ export const githubLogin = {
   ],
 };
 
+// TODO: extract these to somewhere else
+
+const STG_STAGE = "stg";
+const UAT_STAGE = "uat";
+const PROD_STAGE = "prod";
+
+export const DEPLOYED_STAGES = [STG_STAGE, UAT_STAGE, PROD_STAGE];
+
 export const APP_DOMAIN = "semhub.dev";
 const LOCAL_DEV_DOMAIN = `local.${APP_DOMAIN}`;
 const APP_STG_DOMAIN = `stg.${APP_DOMAIN}`;
@@ -17,11 +29,11 @@ const APP_UAT_DOMAIN = `uat.${APP_DOMAIN}`;
 
 function getCookieDomain(stage: string) {
   switch (stage) {
-    case "prod":
+    case PROD_STAGE:
       return APP_DOMAIN;
-    case "uat":
+    case UAT_STAGE:
       return APP_UAT_DOMAIN;
-    case "stg":
+    case STG_STAGE:
       return APP_STG_DOMAIN;
     default:
       // For local development, we set the cookie on the parent domain (.semhub.dev) because:
@@ -55,11 +67,15 @@ export function getAuthServerCORS() {
     credentials: false,
     // can use wildcard if credentials: false is used
     origin: `https://*.${APP_DOMAIN}`,
-    allowHeaders: ["Content-Type"],
+    allowHeaders: [
+      "Content-Type",
+      "sentry-trace", // Allow Sentry tracing headers
+      "baggage", // Allow Sentry baggage header
+    ],
     allowMethods: ["POST", "GET", "OPTIONS"],
     exposeHeaders: ["Content-Length", "Access-Control-Allow-Origin"],
     maxAge: 600,
-  };
+  } satisfies CORSOptions;
 }
 
 export function getApiServerCORS(stage: string) {
@@ -76,9 +92,14 @@ export function getApiServerCORS(stage: string) {
   return {
     credentials: true,
     origin: origins,
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      "sentry-trace", // Allow Sentry tracing headers
+      "baggage", // Allow Sentry baggage header
+    ],
     allowMethods: ["POST", "GET", "OPTIONS"],
     exposeHeaders: ["Content-Length", "Access-Control-Allow-Origin"],
     maxAge: 600,
-  };
+  } satisfies CORSOptions;
 }

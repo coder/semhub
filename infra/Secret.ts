@@ -23,6 +23,7 @@ export const secret = {
   githubAppClientSecret: new sst.Secret("SEMHUB_GITHUB_APP_CLIENT_SECRET"),
   githubAppId: new sst.Secret("SEMHUB_GITHUB_APP_ID"),
   githubAppPrivateKey: new sst.Secret("SEMHUB_GITHUB_APP_PRIVATE_KEY"),
+  sentryAuthToken: new sst.Secret("SENTRY_AUTH_TOKEN"),
   keys,
 };
 
