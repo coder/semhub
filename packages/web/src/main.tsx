@@ -48,8 +48,11 @@ Sentry.init({
   tunnel: client.sentry.tunnel.$url().toString(),
   integrations: [
     Sentry.tanstackRouterBrowserTracingIntegration(router),
-    // Temporarily disable replay for local testing
-    // Sentry.replayIntegration(),
+    Sentry.replayIntegration({
+      // NOTE: This will disable built-in masking. Only use this if your site has no sensitive data, or if you've already set up other options for masking or blocking relevant data, such as 'ignore', 'block', 'mask' and 'maskFn'.
+      maskAllText: false,
+      blockAllMedia: false,
+    }),
   ],
   // Enable all error capturing for testing
   sampleRate: 1.0,
@@ -72,10 +75,9 @@ Sentry.init({
     /^https:\/\/api\.[^.]+\.stg\.semhub\.dev$/, // Matches api.{anything}.stg.semhub.dev
     /^https:\/\/auth\.[^.]+\.stg\.semhub\.dev$/, // Matches auth.{anything}.stg.semhub.dev
   ],
-  // Session Replay
-  // TODO: lower eventually?
-  replaysSessionSampleRate: 1.0, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-  replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
+  // Session Replay - only enabled in production
+  replaysSessionSampleRate: sstStage === "prod" ? 0.1 : 0, // 10% of sessions in prod, disabled elsewhere
+  replaysOnErrorSampleRate: sstStage === "prod" ? 1.0 : 0, // 100% of error sessions in prod, disabled elsewhere
 });
 
 declare module "@tanstack/react-router" {
