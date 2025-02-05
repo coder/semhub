@@ -1,6 +1,7 @@
 import {
+  Building2Icon,
   ChevronDownIcon,
-  GlobeIcon,
+  FolderGit2Icon,
   SearchIcon,
   SlidersHorizontalIcon,
   XIcon,
@@ -27,7 +28,7 @@ import { ValidationErrorAlert } from "@/components/search/ValidationErrorAlert";
 
 // TODO: hard-coded for now, fetch from API eventually
 const owners = [
-  { value: "all", label: "All orgs", icon: GlobeIcon },
+  { value: "unselected", label: "Org", icon: Building2Icon },
   {
     value: "microsoft",
     label: "Microsoft",
@@ -57,7 +58,7 @@ const owners = [
 
 // TODO: hard-coded for now, fetch from API eventually
 const repos = [
-  { value: "all", label: "All repos", icon: GlobeIcon },
+  { value: "unselected", label: "Repo", icon: FolderGit2Icon },
   {
     value: "microsoft/typescript",
     label: "TypeScript",
@@ -174,7 +175,7 @@ function updateQueryWithFilter(
   const queryWithoutFilter = query.replace(pattern, "").trim();
 
   // Add new operator if a specific value is selected
-  if (value !== "all") {
+  if (value !== "unselected") {
     // Check if the operator should be enclosed in quotes based on SEARCH_OPERATORS
     const operator = SEARCH_OPERATORS.find(
       (op: { operator: SearchOperator }) => op.operator === filterType,
@@ -219,8 +220,8 @@ function SearchFilters({
 }
 
 export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
-  const [selectedOrg, setSelectedOrg] = useState("all");
-  const [selectedRepo, setSelectedRepo] = useState("all");
+  const [selectedOrg, setSelectedOrg] = useState("unselected");
+  const [selectedRepo, setSelectedRepo] = useState("unselected");
   const removedOperators = ["collection"] as SearchOperator[];
   const {
     query,
@@ -326,8 +327,8 @@ export function ResultsSearchBar({ query: initialQuery }: { query: string }) {
 }
 
 export function HomepageSearchBar() {
-  const [selectedOrg, setSelectedOrg] = useState("all");
-  const [selectedRepo, setSelectedRepo] = useState("all");
+  const [selectedOrg, setSelectedOrg] = useState("unselected");
+  const [selectedRepo, setSelectedRepo] = useState("unselected");
   const removedOperators = ["collection"] as SearchOperator[];
   const {
     query,
