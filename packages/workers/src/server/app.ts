@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/cloudflare";
 import { Hono } from "hono";
 import type { Env } from "hono";
 import { cors } from "hono/cors";
@@ -18,6 +19,7 @@ import { authRouter } from "./router/auth.router";
 import { authzRouter } from "./router/authz.router";
 import { meRouter } from "./router/me/me.router";
 import { publicRouter } from "./router/public/public.router";
+import { sentryRouter } from "./router/sentry.router";
 import { webhookRouter } from "./router/webhook/webhook.router";
 
 export interface Context extends Env {
@@ -66,7 +68,9 @@ const _routes = app
   // Public routes
   .route("/public", publicRouter)
   // Webhook routes (secured by webhook secret)
-  .route("/webhook", webhookRouter);
+  .route("/webhook", webhookRouter)
+  // Sentry tunnel route
+  .route("/sentry", sentryRouter);
 
 // Export the type for client usage
 export type ApiRoutes = typeof _routes;
@@ -82,19 +86,61 @@ app.notFound((c) => {
 });
 
 app.onError((err, c) => {
-  if (err instanceof HTTPException) {
+  if (err instanceof HTTPException && err.status >= 400 && err.status < 500) {
+    // Don't report 4xx errors to Sentry as they are client errors
     return c.json<ErrorResponse>(
       {
         success: false,
         error: err.message,
-        // isFormError:
-        //   err.cause && typeof err.cause === "object" && "form" in err.cause
-        //     ? err.cause.form === true
-        //     : false,
       },
       err.status,
     );
   }
+
+  // Add request context to Sentry
+  Sentry.setContext("request", {
+    method: c.req.method,
+    url: c.req.url,
+    headers: c.req.header(),
+  });
+
+  // Add user context if available
+  const user = c.get("user");
+  if (user) {
+    Sentry.setUser({
+      id: user.id,
+    });
+  }
+
+  // Group similar errors together using fingerprinting
+  Sentry.withScope((scope) => {
+    // Create a fingerprint based on:
+    // 1. Error name/type
+    // 2. HTTP method
+    // 3. Request path pattern (removing dynamic segments)
+    // 4. Error message (if it's a known type)
+    const errorType = err.name || "Error";
+    const pathPattern = c.req.path.replace(/\/[0-9a-fA-F-]+/g, "/:id");
+
+    scope.setFingerprint([
+      errorType,
+      c.req.method,
+      pathPattern,
+      err instanceof Error ? err.message : "Unknown Error",
+    ]);
+
+    // Capture exception with extra context
+    Sentry.captureException(err, {
+      tags: {
+        stage: Resource.App.stage,
+      },
+      extra: {
+        path: c.req.path,
+        query: Object.fromEntries(new URL(c.req.url).searchParams),
+      },
+    });
+  });
+
   const isProd = Resource.App.stage === "prod";
   return c.json<ErrorResponse>(
     {

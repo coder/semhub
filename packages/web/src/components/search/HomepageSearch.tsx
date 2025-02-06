@@ -24,7 +24,6 @@ export function HomepageSearch() {
         <div className="relative">
           <HomepageSearchBar />
         </div>
-
         {/* Suggested searches section */}
         <div className="mx-auto mt-24 grid max-w-xl grid-cols-1 gap-2 sm:mt-8 sm:grid-cols-2 sm:gap-4">
           {suggestedSearches.slice(0, 4).map((search) => (

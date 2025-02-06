@@ -1,6 +1,17 @@
+import { type cors } from "hono/cors";
 import type { CookieOptions } from "hono/utils/cookie";
 
+import {
+  APP_DOMAIN,
+  APP_STG_DOMAIN,
+  APP_UAT_DOMAIN,
+  LOCAL_DEV_DOMAIN,
+  STAGES,
+} from "@/core/constants/domain.constant";
 import { GITHUB_SCOPES_PERMISSION } from "@/core/github/permission/oauth";
+
+// Extract CORSOptions type from cors function
+type CORSOptions = NonNullable<Parameters<typeof cors>[0]>;
 
 export const githubLogin = {
   provider: "github-login" as const,
@@ -10,18 +21,13 @@ export const githubLogin = {
   ],
 };
 
-export const APP_DOMAIN = "semhub.dev";
-const LOCAL_DEV_DOMAIN = `local.${APP_DOMAIN}`;
-const APP_STG_DOMAIN = `stg.${APP_DOMAIN}`;
-const APP_UAT_DOMAIN = `uat.${APP_DOMAIN}`;
-
 function getCookieDomain(stage: string) {
   switch (stage) {
-    case "prod":
+    case STAGES.PROD:
       return APP_DOMAIN;
-    case "uat":
+    case STAGES.UAT:
       return APP_UAT_DOMAIN;
-    case "stg":
+    case STAGES.STG:
       return APP_STG_DOMAIN;
     default:
       // For local development, we set the cookie on the parent domain (.semhub.dev) because:
@@ -34,7 +40,7 @@ function getCookieDomain(stage: string) {
 }
 
 function isLocalDev(stage: string): boolean {
-  return stage !== "prod" && stage !== "stg" && stage !== "uat";
+  return stage !== STAGES.PROD && stage !== STAGES.STG && stage !== STAGES.UAT;
 }
 
 export function getCookieOptions(stage: string): CookieOptions {
@@ -55,11 +61,15 @@ export function getAuthServerCORS() {
     credentials: false,
     // can use wildcard if credentials: false is used
     origin: `https://*.${APP_DOMAIN}`,
-    allowHeaders: ["Content-Type"],
+    allowHeaders: [
+      "Content-Type",
+      "sentry-trace", // Allow Sentry tracing headers
+      "baggage", // Allow Sentry baggage header
+    ],
     allowMethods: ["POST", "GET", "OPTIONS"],
     exposeHeaders: ["Content-Length", "Access-Control-Allow-Origin"],
     maxAge: 600,
-  };
+  } satisfies CORSOptions;
 }
 
 export function getApiServerCORS(stage: string) {
@@ -76,9 +86,14 @@ export function getApiServerCORS(stage: string) {
   return {
     credentials: true,
     origin: origins,
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      "sentry-trace", // Allow Sentry tracing headers
+      "baggage", // Allow Sentry baggage header
+    ],
     allowMethods: ["POST", "GET", "OPTIONS"],
     exposeHeaders: ["Content-Length", "Access-Control-Allow-Origin"],
     maxAge: 600,
-  };
+  } satisfies CORSOptions;
 }

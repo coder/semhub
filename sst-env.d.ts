@@ -68,6 +68,10 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "SENTRY_AUTH_TOKEN": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "SyncEmbeddingHandler": {
       "type": "sst.cloudflare.Worker"
     }

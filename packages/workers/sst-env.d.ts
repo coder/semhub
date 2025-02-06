@@ -52,6 +52,10 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "SENTRY_AUTH_TOKEN": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "Web": {
       "type": "sst.aws.StaticSite"
       "url": string
