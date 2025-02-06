@@ -14,7 +14,10 @@ export default defineConfig(() => {
       sentryVitePlugin({
         authToken: process.env.SENTRY_AUTH_TOKEN,
         org: "coder-aw",
-        project: "javascript-react",
+        project:
+          process.env.SST_STAGE === "prod"
+            ? "semhub-web-prod"
+            : "semhub-web-dev",
       }),
     ],
     resolve: {

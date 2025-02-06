@@ -1,7 +1,9 @@
+import { sentryEsbuildPlugin } from "@sentry/esbuild-plugin";
+
 import { auth, authKv } from "./Auth";
 import { domain } from "./Dns";
 import { mapStageToEnv } from "./helper";
-import { allSecrets } from "./Secret";
+import { allSecrets, secret } from "./Secret";
 
 export const cacheKv = new sst.cloudflare.Kv("CacheKv", {});
 
@@ -12,6 +14,8 @@ const hono = new sst.cloudflare.Worker("Hono", {
   domain: "api." + domain,
   transform: {
     worker: {
+      compatibilityDate: "2024-09-23",
+      compatibilityFlags: ["nodejs_compat"],
       // staging will bind to dev wrangler workers too
       serviceBindings: [
         {

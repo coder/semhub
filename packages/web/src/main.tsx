@@ -38,8 +38,6 @@ const router = createRouter({
   defaultErrorComponent: ({ error }) => <Error error={error} />,
 });
 
-console.log(client.sentry.tunnel.$url().toString());
-
 Sentry.init({
   // TODO: separate projects/DSNs for separate stages, pass these in as env vars
   dsn: "https://bf47d2a69dccbb1f44173be530166765@o4508764596142080.ingest.us.sentry.io/4508764610494464",
@@ -60,8 +58,6 @@ Sentry.init({
   tracesSampleRate: 1.0, //  Capture 100% of the transactions
   // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
   tracePropagationTargets: [
-    // Same-origin API routes
-    /^\/api\//,
     // uat endpoints
     "https://api.uat.semhub.dev",
     "https://auth.uat.semhub.dev",
