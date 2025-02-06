@@ -5,12 +5,13 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { Resource } from "sst";
 
+import { APP_DOMAIN } from "@/core/constants/domain.constant";
 import { tokensetRawSchema } from "@/core/github/schema.oauth";
 import { User } from "@/core/user";
 import { parseHostname } from "@/core/util/url";
 
 import { getDeps } from "../deps";
-import { APP_DOMAIN, getAuthServerCORS, githubLogin } from "./auth.constant";
+import { getAuthServerCORS, githubLogin } from "./auth.constant";
 import { subjects } from "./subjects";
 
 const app = new Hono();

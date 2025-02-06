@@ -1,6 +1,13 @@
 import { type cors } from "hono/cors";
 import type { CookieOptions } from "hono/utils/cookie";
 
+import {
+  APP_DOMAIN,
+  APP_STG_DOMAIN,
+  APP_UAT_DOMAIN,
+  LOCAL_DEV_DOMAIN,
+  STAGES,
+} from "@/core/constants/domain.constant";
 import { GITHUB_SCOPES_PERMISSION } from "@/core/github/permission/oauth";
 
 // Extract CORSOptions type from cors function
@@ -14,26 +21,13 @@ export const githubLogin = {
   ],
 };
 
-// TODO: extract these to somewhere else
-
-const STG_STAGE = "stg";
-const UAT_STAGE = "uat";
-const PROD_STAGE = "prod";
-
-export const DEPLOYED_STAGES = [STG_STAGE, UAT_STAGE, PROD_STAGE];
-
-export const APP_DOMAIN = "semhub.dev";
-const LOCAL_DEV_DOMAIN = `local.${APP_DOMAIN}`;
-const APP_STG_DOMAIN = `stg.${APP_DOMAIN}`;
-const APP_UAT_DOMAIN = `uat.${APP_DOMAIN}`;
-
 function getCookieDomain(stage: string) {
   switch (stage) {
-    case PROD_STAGE:
+    case STAGES.PROD:
       return APP_DOMAIN;
-    case UAT_STAGE:
+    case STAGES.UAT:
       return APP_UAT_DOMAIN;
-    case STG_STAGE:
+    case STAGES.STG:
       return APP_STG_DOMAIN;
     default:
       // For local development, we set the cookie on the parent domain (.semhub.dev) because:
@@ -46,7 +40,7 @@ function getCookieDomain(stage: string) {
 }
 
 function isLocalDev(stage: string): boolean {
-  return stage !== "prod" && stage !== "stg" && stage !== "uat";
+  return stage !== STAGES.PROD && stage !== STAGES.STG && stage !== STAGES.UAT;
 }
 
 export function getCookieOptions(stage: string): CookieOptions {
