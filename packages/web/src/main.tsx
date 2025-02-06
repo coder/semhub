@@ -39,8 +39,10 @@ const router = createRouter({
 });
 
 Sentry.init({
-  // TODO: separate projects/DSNs for separate stages, pass these in as env vars
-  dsn: "https://bf47d2a69dccbb1f44173be530166765@o4508764596142080.ingest.us.sentry.io/4508764610494464",
+  dsn:
+    sstStage === "prod"
+      ? "https://566d7949ee5e8265ac7d917d289585bd@o4508764596142080.ingest.us.sentry.io/4508770676637696"
+      : "https://bf47d2a69dccbb1f44173be530166765@o4508764596142080.ingest.us.sentry.io/4508764610494464",
   environment: sstStage,
   tunnel: client.sentry.tunnel.$url().toString(),
   integrations: [
@@ -51,10 +53,8 @@ Sentry.init({
       blockAllMedia: false,
     }),
   ],
-  // Enable all error capturing for testing
-  sampleRate: 1.0,
   // Tracing
-  tracesSampleRate: 1.0, //  Capture 100% of the transactions
+  tracesSampleRate: sstStage === "prod" ? 0.1 : 1.0, //  Capture 10% in prod, 100% elsewhere
   // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
   tracePropagationTargets: [
     // uat endpoints

@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import type { StatusCode } from "hono/utils/http-status";
 
 import type { Context } from "../app";
 
