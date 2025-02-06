@@ -45,6 +45,7 @@ Sentry.init({
       : "https://bf47d2a69dccbb1f44173be530166765@o4508764596142080.ingest.us.sentry.io/4508764610494464",
   environment: sstStage,
   tunnel: client.sentry.tunnel.$url().toString(),
+  debug: sstStage === "prod" ? false : true,
   integrations: [
     Sentry.tanstackRouterBrowserTracingIntegration(router),
     Sentry.replayIntegration({
