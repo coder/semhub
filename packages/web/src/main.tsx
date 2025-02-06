@@ -41,8 +41,7 @@ const router = createRouter({
 Sentry.init({
   // TODO: separate projects/DSNs for separate stages, pass these in as env vars
   dsn: "https://bf47d2a69dccbb1f44173be530166765@o4508764596142080.ingest.us.sentry.io/4508764610494464",
-  debug: true, // Enable debug mode temporarily
-  environment: sstStage, // Set the environment explicitly
+  environment: sstStage,
   tunnel: client.sentry.tunnel.$url().toString(),
   integrations: [
     Sentry.tanstackRouterBrowserTracingIntegration(router),

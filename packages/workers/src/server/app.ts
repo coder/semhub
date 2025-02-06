@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/cloudflare";
 import { Hono } from "hono";
 import type { Env } from "hono";
 import { cors } from "hono/cors";
@@ -86,19 +87,62 @@ app.notFound((c) => {
 
 app.onError((err, c) => {
   if (err instanceof HTTPException) {
+    // Don't report 4xx errors to Sentry as they are client errors
     return c.json<ErrorResponse>(
       {
         success: false,
         error: err.message,
-        // isFormError:
-        //   err.cause && typeof err.cause === "object" && "form" in err.cause
-        //     ? err.cause.form === true
-        //     : false,
       },
       err.status,
     );
   }
+
   const isProd = Resource.App.stage === "prod";
+
+  // Add request context to Sentry
+  Sentry.setContext("request", {
+    method: c.req.method,
+    url: c.req.url,
+    headers: c.req.header(),
+  });
+
+  // Add user context if available
+  const user = c.get("user");
+  if (user) {
+    Sentry.setUser({
+      id: user.id,
+    });
+  }
+
+  // Group similar errors together using fingerprinting
+  Sentry.withScope((scope) => {
+    // Create a fingerprint based on:
+    // 1. Error name/type
+    // 2. HTTP method
+    // 3. Request path pattern (removing dynamic segments)
+    // 4. Error message (if it's a known type)
+    const errorType = err.name || "Error";
+    const pathPattern = c.req.path.replace(/\/[0-9a-fA-F-]+/g, "/:id");
+
+    scope.setFingerprint([
+      errorType,
+      c.req.method,
+      pathPattern,
+      err instanceof Error ? err.message : "Unknown Error",
+    ]);
+
+    // Capture exception with extra context
+    Sentry.captureException(err, {
+      tags: {
+        stage: Resource.App.stage,
+      },
+      extra: {
+        path: c.req.path,
+        query: Object.fromEntries(new URL(c.req.url).searchParams),
+      },
+    });
+  });
+
   return c.json<ErrorResponse>(
     {
       success: false,
