@@ -86,7 +86,7 @@ app.notFound((c) => {
 });
 
 app.onError((err, c) => {
-  if (err instanceof HTTPException) {
+  if (err instanceof HTTPException && err.status >= 400 && err.status < 500) {
     // Don't report 4xx errors to Sentry as they are client errors
     return c.json<ErrorResponse>(
       {
@@ -96,8 +96,6 @@ app.onError((err, c) => {
       err.status,
     );
   }
-
-  const isProd = Resource.App.stage === "prod";
 
   // Add request context to Sentry
   Sentry.setContext("request", {
@@ -143,6 +141,7 @@ app.onError((err, c) => {
     });
   });
 
+  const isProd = Resource.App.stage === "prod";
   return c.json<ErrorResponse>(
     {
       success: false,

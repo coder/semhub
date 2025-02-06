@@ -55,14 +55,9 @@ export const sentryRouter = new Hono<Context>().post("/tunnel", async (c) => {
   });
 
   if (!response.ok) {
-    // TODO: properly handle error
-    console.error(
-      `Sentry forwarding failed: ${response.status} ${response.statusText}`,
-    );
-    return c.json(
-      { error: "Failed to forward to Sentry" },
-      response.status as StatusCode,
-    );
+    throw new HTTPException(503, {
+      message: "Failed to forward to Sentry",
+    });
   }
 
   // Return the response from Sentry
