@@ -16,8 +16,9 @@ export function HomepageSearch() {
           </span>
           antic search for Git
           <span className="bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent dark:from-blue-400 dark:to-orange-400">
-            Hub
+            Hub{" "}
           </span>
+          Issues
         </h1>
 
         {/* Search bar section */}

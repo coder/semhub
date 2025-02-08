@@ -43,9 +43,9 @@ export function SuggestedSearchCard({ search }: SuggestedSearchCardProps) {
             key={i}
             className={
               part.type === "operator"
-                ? "text-blue-600 dark:text-blue-400"
+                ? "text-blue-800 dark:text-blue-200"
                 : part.type === "value"
-                  ? "text-orange-500"
+                  ? "text-amber-800 dark:text-amber-200"
                   : undefined
             }
           >
