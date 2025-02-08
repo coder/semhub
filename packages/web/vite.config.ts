@@ -31,24 +31,43 @@ export default defineConfig(() => {
       rollupOptions: {
         output: {
           manualChunks: {
-            "react-core": ["react", "react-dom"],
-            tanstack: [
-              "@tanstack/react-router",
+            // Core React chunk
+            "react-core": ["react", "react-dom", "react/jsx-runtime"],
+
+            // Data management and routing
+            "data-layer": [
               "@tanstack/react-query",
-              "@tanstack/react-form",
-              "@tanstack/router-zod-adapter",
-              "@tanstack/zod-form-adapter",
+              "@tanstack/react-query-devtools",
+              "immer",
             ],
-            "ui-components": [
+
+            // Routing specific
+            routing: [
+              "@tanstack/react-router",
+              "@tanstack/router-devtools",
+              "@tanstack/router-zod-adapter",
+            ],
+
+            // Form handling
+            forms: ["@tanstack/react-form", "@tanstack/zod-form-adapter"],
+
+            // UI Framework - Radix components
+            "ui-radix": [
               "@radix-ui/react-accordion",
+              "@radix-ui/react-alert-dialog",
+              "@radix-ui/react-avatar",
               "@radix-ui/react-dialog",
+              "@radix-ui/react-dropdown-menu",
               "@radix-ui/react-icons",
+              "@radix-ui/react-popover",
+              "@radix-ui/react-select",
               "@radix-ui/react-slot",
               "@radix-ui/react-toast",
               "@radix-ui/react-tooltip",
-              "lucide-react",
-              "cmdk",
             ],
+            // UI Utilities
+            "ui-utils": ["lucide-react", "cmdk", "next-themes", "simple-icons"],
+            // Styling utilities
             styling: [
               "tailwindcss",
               "tailwind-merge",
@@ -56,6 +75,8 @@ export default defineConfig(() => {
               "class-variance-authority",
               "clsx",
             ],
+            // web analytics and monitoring
+            monitoring: ["@sentry/react", "@counterscale/tracker"],
           },
         },
         onwarn(warning, warn) {
