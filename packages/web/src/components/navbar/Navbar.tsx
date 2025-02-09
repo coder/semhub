@@ -1,6 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
+import { useGlitch } from "react-powerglitch";
 
 import { useSession } from "@/lib/hooks/useSession";
 import { useAudio } from "@/hooks/useAudio";
@@ -10,6 +11,16 @@ import { LoginButton } from "@/components/navbar/LoginButton";
 import { UserNav } from "@/components/navbar/UserNav";
 
 export function Navbar() {
+  const glitch = useGlitch({
+    playMode: "always",
+    timing: {
+      duration: 10000,
+    },
+    glitchTimeSpan: {
+      start: 0.5,
+      end: 0.55,
+    },
+  });
   const { isAuthenticated, user } = useSession();
   const [toggleCount, setToggleCount] = useState(0);
   const { theme, systemTheme } = useTheme();
@@ -69,7 +80,7 @@ export function Navbar() {
   const location = useLocation();
   return (
     <div className="flex h-16 w-full items-center justify-between px-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" ref={glitch.ref}>
         <Link to="/" className="flex items-center">
           {lightModeLogo}
           {showEasterEgg ? darkModeEasterEggLogo : darkModeLogo}
