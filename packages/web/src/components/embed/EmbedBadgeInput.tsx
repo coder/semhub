@@ -1,6 +1,5 @@
 import { AlertCircleIcon, PlusIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { useGlitch } from "react-powerglitch";
+import { useState } from "react";
 
 import { repoSchema } from "@/core/github/schema.rest";
 import { validateAndExtractGithubOwnerAndRepo } from "@/core/github/schema.validation";
@@ -34,19 +33,6 @@ export function EmbedBadgeInput() {
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [repoInput, setRepoInput] = useState("");
   const [preview, setPreview] = useState<RepoPreviewProps | null>(null);
-  const glitch = useGlitch({
-    playMode: "hover",
-    timing: {
-      duration: 400,
-    },
-  });
-  const buttonRef = useRef(null);
-
-  useEffect(() => {
-    if (buttonRef.current) {
-      glitch.ref(buttonRef.current);
-    }
-  }, []);
 
   const embedCode = preview
     ? getEmbedCode(preview.owner.login, preview.name)
@@ -114,7 +100,6 @@ export function EmbedBadgeInput() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <ShineButton
-          ref={buttonRef}
           variant="outline"
           size="sm"
           className="relative gap-2 border-2 border-blue-500/30 bg-gradient-to-r from-blue-500/30 to-orange-500/30 transition-all hover:border-blue-500/50 hover:from-blue-500/40 hover:to-orange-500/40 hover:shadow-[0_0_15px_rgba(59,130,246,0.5)] dark:from-blue-400/30 dark:to-orange-400/30 dark:hover:from-blue-400/40 dark:hover:to-orange-400/40"

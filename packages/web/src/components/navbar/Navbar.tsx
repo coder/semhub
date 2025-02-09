@@ -14,11 +14,11 @@ export function Navbar() {
   const glitch = useGlitch({
     playMode: "always",
     timing: {
-      duration: 10000,
+      duration: 20000,
     },
     glitchTimeSpan: {
       start: 0.5,
-      end: 0.55,
+      end: 0.52,
     },
   });
   const { isAuthenticated, user } = useSession();
