@@ -83,7 +83,7 @@ export const repoRouter = new Hono<Context>()
           );
         }
         case "ready": {
-          const repoInitQueuePosition = await getCachedInitQueuePosition(
+          const repoInitQueuePosition = await Repo.getInitQueuePosition(
             repoStatus.id,
             db,
           );
@@ -210,14 +210,5 @@ async function getCachedSyncedIssuesCount(
     schema: z.coerce.number(),
     options: { expirationTtl: 60 }, // 1 minute cache
     fetch: () => Repo.getSyncedIssuesCount(repoId, db),
-  });
-}
-
-async function getCachedInitQueuePosition(repoId: string, db: DbClient) {
-  return withCache({
-    key: CacheKey.repoInitQueuePosition(repoId),
-    schema: z.coerce.number(),
-    options: { expirationTtl: 30 }, // 30 seconds cache
-    fetch: () => Repo.getInitQueuePosition(repoId, db),
   });
 }

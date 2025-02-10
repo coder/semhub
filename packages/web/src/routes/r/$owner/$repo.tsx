@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { ApiError } from "@/lib/api/client";
 import {
   GET_REPO_STATUS_QUERY_REFETCH_INTERVAL,
-  getRepoStatusQueryOptions,
   useRepoStatus,
 } from "@/lib/hooks/useRepo";
 import { formatLocalDateTime } from "@/lib/time";
@@ -15,8 +14,6 @@ import { RepoSearchBar } from "@/components/search/RepoSearchBar";
 import { RepoStatusPopover } from "@/components/search/RepoStatusPopover";
 
 export const Route = createFileRoute("/r/$owner/$repo")({
-  loader: ({ context, params: { owner, repo } }) =>
-    context.queryClient.ensureQueryData(getRepoStatusQueryOptions(owner, repo)),
   component: () => <RepoSearch />,
   pendingComponent: () => <RepoSearchSkeleton />,
   errorComponent: ({ error }) => {
