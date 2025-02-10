@@ -1,4 +1,3 @@
-import { sql } from "drizzle-orm";
 import {
   bigint,
   index,
@@ -7,6 +6,8 @@ import {
   primaryKey,
   text,
 } from "drizzle-orm/pg-core";
+
+import { sql } from "@/db";
 
 import { getTimestampColumns, timestamptz } from "../base.sql";
 import { installations } from "./installation.sql";

@@ -7,6 +7,7 @@ import {
   text,
 } from "drizzle-orm/pg-core";
 
+import { sql } from "@/db";
 import type { Permissions } from "@/github/schema.webhook";
 
 import { getBaseColumns, timestamptz } from "../base.sql";
@@ -59,5 +60,11 @@ export const installations = pgTable(
     installedByUserIdx: index("installations_installed_by_user_idx").on(
       table.installedByUserId,
     ),
+    // partial index for looking up active installations
+    activeInstallationsIdx: index("installations_active_idx")
+      .on(table.uninstalledAt, table.suspendedAt)
+      .where(
+        sql`${table.uninstalledAt} IS NULL AND ${table.suspendedAt} IS NULL`,
+      ),
   }),
 );

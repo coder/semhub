@@ -1,4 +1,4 @@
-import { jsonb, pgTable, text } from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 
 import { type GithubScope } from "@/github/permission/oauth";
 
@@ -13,16 +13,22 @@ export type UserMetadata = {
   emails: string[];
 };
 
-export const users = pgTable("users", {
-  ...getBaseColumns("users"),
-  nodeId: text("node_id").notNull().unique(),
-  login: text("login").notNull(),
-  name: text("name"),
-  email: text("email").notNull(), // not unique because users can change their emails. we track the underlying Github user using nodeId
-  avatarUrl: text("avatar_url"),
-  htmlUrl: text("html_url").notNull(),
-  githubScopes: jsonb("github_scopes").$type<GithubScopes>(),
-  authRevokedAt: timestamptz("auth_revoked_at"),
-  accessToken: text("access_token").notNull(),
-  metadata: jsonb("metadata").$type<UserMetadata>(),
-});
+export const users = pgTable(
+  "users",
+  {
+    ...getBaseColumns("users"),
+    nodeId: text("node_id").notNull().unique(),
+    login: text("login").notNull(),
+    name: text("name"),
+    email: text("email").notNull(), // not unique because users can change their emails. we track the underlying Github user using nodeId
+    avatarUrl: text("avatar_url"),
+    htmlUrl: text("html_url").notNull(),
+    githubScopes: jsonb("github_scopes").$type<GithubScopes>(),
+    authRevokedAt: timestamptz("auth_revoked_at"),
+    accessToken: text("access_token").notNull(),
+    metadata: jsonb("metadata").$type<UserMetadata>(),
+  },
+  (table) => ({
+    emailIdx: index("email_idx").on(table.email),
+  }),
+);
