@@ -5,6 +5,7 @@ import { truncateCodeBlocks, truncateToByteSize } from "@/util/truncate";
 
 import type { DbClient } from "./db";
 import { and, asc, eq, gt, inArray, isNull, lt, ne, or, sql } from "./db";
+import { comments as commentTable } from "./db/schema/entities/comment.sql";
 import { issueEmbeddings } from "./db/schema/entities/issue-embedding.sql";
 import { issuesToLabels } from "./db/schema/entities/issue-to-label.sql";
 import type { SelectIssueForEmbedding } from "./db/schema/entities/issue.schema";
@@ -14,7 +15,10 @@ import { labels as labelTable } from "./db/schema/entities/label.sql";
 import { repos } from "./db/schema/entities/repo.sql";
 import { conflictUpdateOnly } from "./db/utils/conflict";
 import { convertToSqlRaw } from "./db/utils/general";
-import { jsonAggBuildObjectFromJoin } from "./db/utils/json";
+import {
+  jsonAggBuildObjectManyToMany,
+  jsonAggBuildObjectOneToMany,
+} from "./db/utils/json";
 import { EMBEDDING_MODEL, type OpenAIClient } from "./openai";
 import { isReducePromptError } from "./openai/errors";
 import { embeddingsCreateSchema } from "./openai/schema";
@@ -98,7 +102,7 @@ export async function selectIssuesForEmbeddingInit(
       issueStateReason: issueTable.issueStateReason,
       issueCreatedAt: issueTable.issueCreatedAt,
       issueClosedAt: issueTable.issueClosedAt,
-      labels: jsonAggBuildObjectFromJoin(
+      labels: jsonAggBuildObjectManyToMany(
         {
           name: labelTable.name,
           description: labelTable.description,
@@ -108,6 +112,16 @@ export async function selectIssuesForEmbeddingInit(
           joinTable: labelTable,
           joinCondition: eq(labelTable.id, issuesToLabels.labelId),
           whereCondition: eq(issuesToLabels.issueId, issueTable.id),
+        },
+      ),
+      comments: jsonAggBuildObjectOneToMany(
+        {
+          body: commentTable.body,
+          author: commentTable.author,
+        },
+        {
+          from: commentTable,
+          foreignKeyEquals: eq(commentTable.issueId, issueTable.id),
         },
       ),
     })
@@ -178,7 +192,7 @@ export async function selectIssuesForEmbeddingCron({
         issueStateReason: lockedIssues.issueStateReason,
         issueCreatedAt: lockedIssues.issueCreatedAt,
         issueClosedAt: lockedIssues.issueClosedAt,
-        labels: jsonAggBuildObjectFromJoin(
+        labels: jsonAggBuildObjectManyToMany(
           {
             name: labelTable.name,
             description: labelTable.description,
@@ -188,6 +202,16 @@ export async function selectIssuesForEmbeddingCron({
             joinTable: labelTable,
             joinCondition: eq(labelTable.id, issuesToLabels.labelId),
             whereCondition: eq(issuesToLabels.issueId, lockedIssues.id),
+          },
+        ),
+        comments: jsonAggBuildObjectOneToMany(
+          {
+            body: commentTable.body,
+            author: commentTable.author,
+          },
+          {
+            from: commentTable,
+            foreignKeyEquals: eq(commentTable.issueId, lockedIssues.id),
           },
         ),
       })

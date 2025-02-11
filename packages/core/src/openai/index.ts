@@ -9,3 +9,5 @@ export function createOpenAIClient(apiKey: string) {
 export type OpenAIClient = ReturnType<typeof createOpenAIClient>;
 
 export const EMBEDDING_MODEL = "text-embedding-3-small";
+
+export const SUMMARY_MODEL = "o3-mini-2025-01-31";

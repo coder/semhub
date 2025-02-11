@@ -70,8 +70,6 @@ export class IssueWorkflow extends WorkflowEntrypoint<Env> {
       const name = `${repoOwner}/${repoName}`;
       caughtName = name;
       caughtRepoId = repoId;
-      // don't have to worry about getting same issues twice because
-      // we are using hasNextPage to determine if we should continue
       let syncCursor = repoSyncCursor;
 
       while (true) {

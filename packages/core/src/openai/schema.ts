@@ -12,3 +12,11 @@ export const embeddingsCreateSchema = z
     model: z.string(),
   })
   .strip();
+
+export const chatCompletionSchema = z.object({
+  choices: z.array(
+    z.object({
+      message: z.object({ content: z.string() }),
+    }),
+  ),
+});

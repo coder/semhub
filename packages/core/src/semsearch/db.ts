@@ -14,7 +14,7 @@ import { publicCollections } from "@/db/schema/entities/public-collection.sql";
 import { repos } from "@/db/schema/entities/repo.sql";
 import { usersToRepos } from "@/db/schema/entities/user-to-repo.sql";
 import { lower } from "@/db/utils/general";
-import { jsonAggBuildObjectFromJoin, jsonContains } from "@/db/utils/json";
+import { jsonAggBuildObjectManyToMany, jsonContains } from "@/db/utils/json";
 
 import type { SearchParams } from "./schema.output";
 import { parseSearchQuery } from "./util";
@@ -24,7 +24,7 @@ export function getBaseSelect() {
     id: issueTable.id,
     number: issueTable.number,
     title: issueTable.title,
-    labels: jsonAggBuildObjectFromJoin(
+    labels: jsonAggBuildObjectManyToMany(
       {
         name: labels.name,
         color: labels.color,

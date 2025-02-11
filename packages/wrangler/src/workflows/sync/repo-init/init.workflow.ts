@@ -135,7 +135,7 @@ export class RepoInitWorkflow extends WorkflowEntrypoint<Env, RepoInitParams> {
                   attempt++
                 ) {
                   const numIssues = getNumIssues(attempt);
-                  // only use queryCursor's after if its since is the same as the previous
+                  // only use syncCursor's after if its since is the same as the previous
                   // else, just use null and use the new since
                   const result = await getLatestGithubRepoIssues({
                     repoId,

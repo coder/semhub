@@ -63,8 +63,7 @@ export function jsonArrayContains<
   )`;
 }
 
-// improvised somewhat, probably not the best way to do this
-export function jsonAggBuildObjectFromJoin<
+export function jsonAggBuildObjectManyToMany<
   T extends SelectedFields,
   Column extends AnyColumn,
 >(
@@ -96,6 +95,39 @@ export function jsonAggBuildObjectFromJoin<
         FROM ${sql`${from}`}
         JOIN ${sql`${joinTable}`} ON ${joinCondition}
         ${whereCondition ? sql`WHERE ${whereCondition}` : undefined}
+      ),
+      '[]'::json
+    )`;
+}
+
+// Simpler version for one-to-many relationships where we just need to aggregate related rows
+export function jsonAggBuildObjectOneToMany<
+  T extends SelectedFields,
+  Column extends AnyColumn,
+>(
+  shape: T,
+  {
+    from,
+    foreignKeyEquals,
+    orderBy,
+  }: {
+    from: Table;
+    foreignKeyEquals: SQL;
+    orderBy?: { colName: Column; direction: "ASC" | "DESC" };
+  },
+) {
+  return sql<SelectResultFields<T>[]>`
+    COALESCE(
+      (
+        SELECT json_agg(${jsonBuildObject(shape)}
+          ${
+            orderBy
+              ? sql`ORDER BY ${orderBy.colName} ${sql.raw(orderBy.direction)}`
+              : undefined
+          }
+        )
+        FROM ${sql`${from}`}
+        WHERE ${foreignKeyEquals}
       ),
       '[]'::json
     )`;

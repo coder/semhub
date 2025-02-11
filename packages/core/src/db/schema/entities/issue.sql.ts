@@ -38,6 +38,9 @@ export const issueTable = pgTable(
     htmlUrl: text("html_url").notNull(),
     title: text("title").notNull(),
     body: text("body").notNull(),
+    overallSummary: text("overall_summary"),
+    bodySummary: text("body_summary"),
+    commentsSummary: text("comments_summary"),
     aggregateReactions: jsonb(
       "aggregate_reactions",
     ).$type<AggregateReactions>(),

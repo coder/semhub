@@ -5,6 +5,7 @@ import pMap from "p-map";
 import type { WranglerEnv } from "@/core/constants/wrangler.constant";
 import { eq, inArray } from "@/core/db";
 import { issueEmbeddings } from "@/core/db/schema/entities/issue-embedding.sql";
+import { issueTable } from "@/core/db/schema/entities/issue.sql";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
 import {
@@ -13,6 +14,11 @@ import {
   selectIssuesForEmbeddingInit,
   upsertIssueEmbeddings,
 } from "@/core/embedding";
+import {
+  generateBodySummary,
+  generateCommentsSummary,
+  generateOverallSummary,
+} from "@/core/summary";
 import { chunkArray } from "@/core/util/truncate";
 import { getDeps } from "@/deps";
 import { getEnvPrefix } from "@/util";
@@ -30,8 +36,9 @@ interface Env extends WranglerEnv {
 }
 
 /* two modes
-1. as part of repo init. takes an array of issueIds (100 at a time), calls DB, creates embeddings, update DB
-2. as part of cron sync. no parameter. just query all out-of-sync issueIds 100 at a time, create embeddings, update DB, calls itself recursively until no more such issues are found
+1. as part of repo init. takes an array of issueIds (100 at a time), calls DB, creates embeddings and generate summaries, update DB
+2. as part of cron sync. no parameter. just query all out-of-sync issueIds 100 at a time, create embeddings and generate summaries, update DB
+calls itself recursively until no more such issues are found
 */
 export type EmbeddingParams =
   | {
@@ -86,16 +93,102 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         idx: number,
         totalBatches: number,
       ): Promise<void> => {
+        // Generate body summaries in parallel
+        const bodySummaries = await step.do(
+          `generate body summaries for selected issues (batch ${idx + 1} of ${totalBatches})`,
+          getStepDuration("medium"),
+          async () => {
+            return await Promise.all(
+              issues.map(async (issue) => ({
+                issueId: issue.id,
+                bodySummary: await generateBodySummary(issue.body, openai),
+              })),
+            );
+          },
+        );
+
+        // Generate comment summaries in parallel
+        const commentSummaries = await step.do(
+          `generate comment summaries for selected issues (batch ${idx + 1} of ${totalBatches})`,
+          getStepDuration("medium"),
+          async () => {
+            return await Promise.all(
+              issues.map(async (issue) => ({
+                issueId: issue.id,
+                commentsSummary: await generateCommentsSummary(
+                  issue.comments,
+                  openai,
+                ),
+              })),
+            );
+          },
+        );
+
+        // Generate overall summaries using both
+        const overallSummaries = await step.do(
+          `generate overall summaries (batch ${idx + 1} of ${totalBatches})`,
+          getStepDuration("medium"),
+          async () => {
+            return await Promise.all(
+              issues.map(async (issue) => {
+                const bodySummary =
+                  bodySummaries.find((s) => s.issueId === issue.id)
+                    ?.bodySummary || "";
+                const commentsSummary = commentSummaries.find(
+                  (s) => s.issueId === issue.id,
+                )?.commentsSummary;
+                return {
+                  issueId: issue.id,
+                  overallSummary: await generateOverallSummary(
+                    { bodySummary, commentsSummary },
+                    openai,
+                  ),
+                };
+              }),
+            );
+          },
+        );
+
+        // Update issues with summaries
+        await step.do(
+          `update issues with summaries in db (batch ${idx + 1} of ${totalBatches})`,
+          getStepDuration("medium"),
+          async () => {
+            for (const issue of issues) {
+              await dbSession
+                .update(issueTable)
+                .set({
+                  bodySummary: bodySummaries.find((s) => s.issueId === issue.id)
+                    ?.bodySummary,
+                  commentsSummary: commentSummaries.find(
+                    (s) => s.issueId === issue.id,
+                  )?.commentsSummary,
+                  overallSummary: overallSummaries.find(
+                    (s) => s.issueId === issue.id,
+                  )?.overallSummary,
+                })
+                .where(eq(issueTable.id, issue.id));
+            }
+          },
+        );
+
+        // Create embeddings using overall summaries
         const embeddings = await step.do(
-          `create embeddings for selected issues from API (batch ${idx + 1} of ${totalBatches})`,
+          `create embeddings using overall summaries (batch ${idx + 1} of ${totalBatches})`,
           getStepDuration("medium"),
           async () => {
             return await createEmbeddings({
-              issues,
+              issues: issues.map((issue) => ({
+                ...issue,
+                body:
+                  overallSummaries.find((s) => s.issueId === issue.id)
+                    ?.overallSummary || issue.body,
+              })),
               openai,
             });
           },
         );
+
         await step.do(
           `upsert issue embeddings in db (batch ${idx + 1})`,
           getStepDuration("medium"),

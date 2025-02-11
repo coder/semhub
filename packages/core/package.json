@@ -28,7 +28,7 @@
     "gql.tada": "^1.8.10",
     "graphql": "^16.9.0",
     "octokit": "^4.0.2",
-    "openai": "^4.69.0",
+    "openai": "^4.83.0",
     "postgres": "^3.4.4",
     "resend": "^4.0.1",
     "tldts": "^6.1.68",
