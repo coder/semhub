@@ -144,7 +144,7 @@ export async function generateOverallSummary(
   );
 }
 
-interface IssueSummary {
+export interface IssueSummary {
   issueId: string;
   bodySummary?: string | null;
   commentsSummary?: string | null;

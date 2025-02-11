@@ -22,6 +22,7 @@ import {
 import { EMBEDDING_MODEL, type OpenAIClient } from "./openai";
 import { isReducePromptError } from "./openai/errors";
 import { embeddingsCreateSchema } from "./openai/schema";
+import type { IssueSummary } from "./summary";
 
 export async function createEmbedding(
   {
@@ -42,10 +43,12 @@ export async function createEmbedding(
 
 export async function createEmbeddings({
   issues,
+  summaries,
   openai,
   concurrencyLimit,
 }: {
   issues: Awaited<ReturnType<typeof selectIssuesForEmbeddingInit>>;
+  summaries: IssueSummary[];
   openai: OpenAIClient;
   concurrencyLimit?: number;
 }) {
@@ -53,6 +56,7 @@ export async function createEmbeddings({
   const processIssue = async (issue: (typeof issues)[number]) => {
     let attempt = 0;
     const labels = issue.labels;
+    const summary = summaries.find((s) => s.issueId === issue.id);
     while (attempt <= TRUNCATION_MAX_ATTEMPTS) {
       try {
         const embedding = await createEmbedding(
@@ -61,6 +65,7 @@ export async function createEmbeddings({
               issue,
               labels,
               attempt,
+              summary,
             }),
           },
           openai,
@@ -310,6 +315,7 @@ interface FormatIssueParams {
   attempt: number;
   issue: SelectIssueForEmbedding;
   labels: SelectLabelForEmbedding[];
+  summary?: IssueSummary;
 }
 
 /* Alternate way to format issue for embedding */
@@ -318,6 +324,7 @@ function formatIssueForEmbedding({
   issue,
   attempt = 0,
   labels,
+  summary,
 }: FormatIssueParams): string {
   const {
     number,
@@ -329,8 +336,13 @@ function formatIssueForEmbedding({
     issueCreatedAt,
     issueClosedAt,
   } = issue;
-  // Truncate body to roughly 6000 tokens to leave room for other fields
-  const truncatedBody = truncateText(body, attempt);
+  // If attempt > 0 and we have a summary, use it instead of truncating
+  const truncatedBody =
+    attempt > 0 && summary?.bodySummary
+      ? summary.bodySummary
+      : truncateText(body, attempt);
+
+  const commentsSummary = summary?.commentsSummary;
 
   return (
     dedent`
@@ -341,6 +353,7 @@ function formatIssueForEmbedding({
     // the following are "metadata" fields, but including them because conceivably
     // users may include them in their search
     dedent`
+    ${commentsSummary ? `Comments: ${commentsSummary}` : ""}
     State: ${issueState}
     State Reason: ${issueStateReason}
     ${author ? `Author: ${author.name}` : ""}

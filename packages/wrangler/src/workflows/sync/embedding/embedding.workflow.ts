@@ -162,7 +162,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         );
 
         // Update issues with summaries
-        await step.do(
+        const summaries = await step.do(
           `bulk update issues with summaries in db (batch ${idx + 1} of ${totalBatches})`,
           getStepDuration("medium"),
           async () => {
@@ -178,6 +178,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
               )?.overallSummary,
             }));
             await bulkUpdateIssueSummaries(summaries, dbSession);
+            return summaries;
           },
         );
 
@@ -185,9 +186,9 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
           `create embeddings for selected issues from API (batch ${idx + 1} of ${totalBatches})`,
           getStepDuration("medium"),
           async () => {
-            // TODO: in the future, create embeddings using overall summary instead of issues
             return await createEmbeddings({
               issues,
+              summaries,
               openai,
             });
           },
