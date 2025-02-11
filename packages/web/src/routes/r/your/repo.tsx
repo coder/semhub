@@ -32,20 +32,25 @@ function YourRepoPage() {
               <ul className="flex list-disc flex-col gap-3 pl-5 text-left text-muted-foreground marker:text-blue-600/40">
                 <li>
                   <span>
-                    Help users find answers faster with semantic search
+                    ✨ Help users find answers faster with semantic search and
+                    quick summaries
                   </span>
                 </li>
                 <li>
                   <span>
-                    Reduce duplicate issues by making existing ones discoverable
+                    🎯 Reduce duplicate issues by making existing ones
+                    discoverable
                   </span>
                 </li>
                 <li>
-                  <span>Simple setup - just add a badge to your README</span>
+                  <span>
+                    🆓 Simple setup and free to use, just add a badge to your
+                    README!
+                  </span>
                 </li>
                 <li className="marker:!text-blue-600/20">
                   <span className="[word-break:break-word]">
-                    Search across pull requests and discussions
+                    💬 Search across pull requests and discussions
                     <Badge variant="coming-soon" className="ml-2">
                       Coming soon
                     </Badge>
@@ -53,7 +58,7 @@ function YourRepoPage() {
                 </li>
                 <li className="marker:!text-blue-600/20">
                   <span className="[word-break:break-word]">
-                    Search across a collection of multiple repos, including
+                    🔒 Search across a collection of multiple repos, including
                     private repos
                     <Badge variant="coming-soon" className="ml-2">
                       Coming soon
