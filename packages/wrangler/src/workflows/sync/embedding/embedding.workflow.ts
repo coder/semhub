@@ -97,27 +97,36 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         const [bodySummaries, commentSummaries] = await Promise.all([
           step.do(
             `generate body summaries for selected issues (batch ${idx + 1} of ${totalBatches})`,
-            getStepDuration("medium"),
+            getStepDuration("long"),
             async () => {
               return await Promise.all(
                 issues.map(async (issue) => ({
                   issueId: issue.id,
-                  bodySummary: await generateBodySummary(issue.body, openai),
+                  bodySummary:
+                    issue.body.length > 1000
+                      ? await generateBodySummary(issue.body, openai)
+                      : issue.body,
                 })),
               );
             },
           ),
           step.do(
             `generate comment summaries for selected issues (batch ${idx + 1} of ${totalBatches})`,
-            getStepDuration("medium"),
+            getStepDuration("long"),
             async () => {
               return await Promise.all(
                 issues.map(async (issue) => ({
                   issueId: issue.id,
-                  commentsSummary: await generateCommentsSummary(
-                    issue.comments,
-                    openai,
-                  ),
+                  commentsSummary:
+                    issue.comments.reduce((acc, c) => acc + c.body, "").length >
+                    1000
+                      ? await generateCommentsSummary(issue.comments, openai)
+                      : issue.comments
+                          .map(
+                            (c) =>
+                              `${c.author?.name ?? "Deleted User"}: ${c.body}`,
+                          )
+                          .join("\n"),
                 })),
               );
             },
@@ -126,7 +135,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
 
         const overallSummaries = await step.do(
           `generate overall summaries (batch ${idx + 1} of ${totalBatches})`,
-          getStepDuration("medium"),
+          getStepDuration("long"),
           async () => {
             return await Promise.all(
               issues.map(async (issue) => {
@@ -176,6 +185,7 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
           `create embeddings for selected issues from API (batch ${idx + 1} of ${totalBatches})`,
           getStepDuration("medium"),
           async () => {
+            // TODO: in the future, create embeddings using overall summary instead of issues
             return await createEmbeddings({
               issues,
               openai,

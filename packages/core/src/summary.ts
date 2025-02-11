@@ -14,13 +14,11 @@ async function summarize(
     textToSummarize,
     systemPrompt,
     userInstructions,
-    temperature = 0.2,
     reasoningEffort = "high",
   }: {
     textToSummarize: string;
     systemPrompt: string;
     userInstructions: string;
-    temperature?: number;
     reasoningEffort?: "low" | "medium" | "high";
   },
   openai: OpenAIClient,
@@ -39,7 +37,6 @@ async function summarize(
   const response = await openai.chat.completions.create({
     model: SUMMARY_MODEL,
     messages,
-    temperature,
     reasoning_effort: reasoningEffort,
   });
   const result = chatCompletionSchema.parse(response);
@@ -50,18 +47,18 @@ async function summarize(
 const PROMPTS = {
   issueBody: {
     system:
-      "You are a helpful assistant that generates concise summaries of GitHub issue descriptions. Focus on the problem, proposed solutions, and key technical details.",
-    user: "Please summarize this GitHub issue description:",
+      "You are a helpful assistant that generates concise summaries of GitHub issue descriptions. Describe the issue directly and focus on the problem, proposed solutions, and key technical details.",
+    user: "Please summarize this GitHub issue description in no more than 3 short paragraphs. Just provide the summary directly.",
   },
   comments: {
     system:
-      "You are a helpful assistant that generates concise summaries of GitHub issue comments. Focus on key decisions, solutions proposed, and final outcomes.",
-    user: "Please summarize the discussion in these GitHub issue comments:",
+      "You are a helpful assistant that generates concise summaries of GitHub issue comments. Summarise the comments so that a human can capture the main points of discussion without reading the entire comment thread. If you include the name of the author, make sure to stick to the original casing and don't modify it.",
+    user: "Please summarize the discussion in these GitHub issue comments in no more than 3 short paragraphs. Just provide the summary directly.",
   },
   overall: {
     system:
-      "You are a helpful assistant that generates concise overall summaries of GitHub issues. Synthesize the issue description and discussion into a clear summary.",
-    user: "Please provide a concise overall summary of this GitHub issue based on these summaries:",
+      "You are a helpful assistant that generates concise overall summaries of GitHub issues so that a human can understand the issue at a glance. You will be provided with information of the issue, a summary of of the issue body and a summary of the comments, and additional context. Don't use 'this issue' or 'this discussion', just provide the summary directly.",
+    user: "Please provide a direct summary of this issue based on the provided information in no more than 3 short paragraphs.",
   },
 } as const;
 
@@ -113,7 +110,6 @@ export async function generateOverallSummary(
   openai: OpenAIClient,
 ): Promise<string> {
   const {
-    number,
     title,
     author,
     issueState: state,
@@ -124,13 +120,13 @@ export async function generateOverallSummary(
   } = params.issue;
 
   const text = dedent`
-    Issue #${number}: ${title}
+    Issue: ${title}
 
     Description Summary:
     ${params.bodySummary}
 
-    Discussion Summary:
-    ${params.commentsSummary || "No discussion"}
+    Comments Summary:
+    ${params.commentsSummary || "No comments"}
 
     Additional Context:
     - State: ${state}${stateReason ? `, Reason: ${stateReason}` : ""}
@@ -143,7 +139,6 @@ export async function generateOverallSummary(
       textToSummarize: text,
       systemPrompt: PROMPTS.overall.system,
       userInstructions: PROMPTS.overall.user,
-      temperature: 0.3,
     },
     openai,
   );
