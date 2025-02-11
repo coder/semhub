@@ -172,18 +172,12 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
           },
         );
 
-        // Create embeddings using overall summaries
         const embeddings = await step.do(
-          `create embeddings using overall summaries (batch ${idx + 1} of ${totalBatches})`,
+          `create embeddings for selected issues from API (batch ${idx + 1} of ${totalBatches})`,
           getStepDuration("medium"),
           async () => {
             return await createEmbeddings({
-              issues: issues.map((issue) => ({
-                ...issue,
-                body:
-                  overallSummaries.find((s) => s.issueId === issue.id)
-                    ?.overallSummary || issue.body,
-              })),
+              issues,
               openai,
             });
           },
