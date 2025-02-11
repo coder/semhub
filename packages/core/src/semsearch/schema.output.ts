@@ -59,6 +59,7 @@ const searchIssueSchema = createSelectSchema(issueTable, {
     issueCreatedAt: true,
     issueClosedAt: true,
     issueUpdatedAt: true,
+    overallSummary: true,
   })
   .extend({
     labels: z.array(selectLabelForSearchSchema),

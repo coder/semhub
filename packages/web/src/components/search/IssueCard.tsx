@@ -5,6 +5,7 @@ import {
   CircleDotIcon,
   CircleSlashIcon,
   MessageSquareIcon,
+  ScanEyeIcon,
 } from "lucide-react";
 
 import { NORMALIZATION_ANCHOR } from "@/core/constants/ranking.constant";
@@ -12,7 +13,13 @@ import type { AggregateReactions } from "@/core/db/schema/shared";
 import type { PublicSearchIssuesResponse } from "@/lib/api/search";
 import { formatLocalDateTime, getTimeAgo } from "@/lib/time";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { FastTooltip } from "@/components/ui/fast-tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Tooltip,
   TooltipContent,
@@ -35,6 +42,23 @@ export function IssueCard({ issue }: { issue: Issue }) {
             </div>
             <div className="ml-6 mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <RepoTag issue={issue} />
+              {issue.overallSummary && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="size-6">
+                      <ScanEyeIcon className="size-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start">
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">Summary</div>
+                      <div className="whitespace-pre-wrap text-sm text-muted-foreground">
+                        {issue.overallSummary}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
               <IssueBasicInfo issue={issue} />
               <IssueInteractions issue={issue} />
             </div>

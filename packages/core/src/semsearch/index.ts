@@ -278,6 +278,7 @@ async function filterBeforeVectorSearch(
         repoOwnerName: vectorSearchSubquery.repoOwnerName,
         repoLastSyncedAt: vectorSearchSubquery.repoLastSyncedAt,
         commentCount: vectorSearchSubquery.commentCount,
+        overallSummary: vectorSearchSubquery.overallSummary,
         rankingScore,
         similarityScore,
         // Add window function to get total count in same query
