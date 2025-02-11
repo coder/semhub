@@ -1,3 +1,10 @@
+import dedent from "dedent";
+
+import { inArray, sql } from "./db";
+import type { DbClient } from "./db";
+import type { SelectIssueForEmbedding } from "./db/schema/entities/issue.schema";
+import { issueTable } from "./db/schema/entities/issue.sql";
+import type { Author } from "./db/schema/shared";
 import type { OpenAIClient } from "./openai";
 import { SUMMARY_MODEL } from "./openai";
 import { chatCompletionSchema } from "./openai/schema";
@@ -8,7 +15,7 @@ async function summarize(
     systemPrompt,
     userInstructions,
     temperature = 0.2,
-    reasoningEffort = "medium",
+    reasoningEffort = "high",
   }: {
     textToSummarize: string;
     systemPrompt: string;
@@ -67,15 +74,13 @@ export async function generateBodySummary(
       textToSummarize: body,
       systemPrompt: PROMPTS.issueBody.system,
       userInstructions: PROMPTS.issueBody.user,
-      temperature: 0.2,
-      reasoningEffort: "high",
     },
     openai,
   );
 }
 
 export async function generateCommentsSummary(
-  comments: Array<{ body: string }>,
+  comments: Array<{ body: string; author: Author }>,
   openai: OpenAIClient,
 ): Promise<string> {
   if (!comments.length) {
@@ -84,10 +89,16 @@ export async function generateCommentsSummary(
 
   return await summarize(
     {
-      textToSummarize: comments.map((c) => c.body).join("\n\n"),
+      textToSummarize: comments
+        .map((c) => {
+          const authorName = c.author?.name || "Deleted User";
+          return dedent`
+            ${authorName} wrote:
+            ${c.body}`;
+        })
+        .join("\n\n---\n\n"),
       systemPrompt: PROMPTS.comments.system,
       userInstructions: PROMPTS.comments.user,
-      temperature: 0.3,
     },
     openai,
   );
@@ -97,14 +108,35 @@ export async function generateOverallSummary(
   params: {
     bodySummary: string;
     commentsSummary?: string;
+    issue: SelectIssueForEmbedding;
   },
   openai: OpenAIClient,
 ): Promise<string> {
-  const text = `Issue description summary:
-${params.bodySummary}
+  const {
+    number,
+    title,
+    author,
+    issueState: state,
+    issueStateReason: stateReason,
+    issueCreatedAt: createdAt,
+    issueClosedAt: closedAt,
+    labels,
+  } = params.issue;
 
-Discussion summary:
-${params.commentsSummary || "No discussion"}`;
+  const text = dedent`
+    Issue #${number}: ${title}
+
+    Description Summary:
+    ${params.bodySummary}
+
+    Discussion Summary:
+    ${params.commentsSummary || "No discussion"}
+
+    Additional Context:
+    - State: ${state}${stateReason ? `, Reason: ${stateReason}` : ""}
+    - Author: ${author?.name || "Anonymous"}
+    - Created: ${createdAt.toISOString()}${closedAt ? `\n- Closed: ${closedAt.toISOString()}` : ""}
+    ${labels?.length ? `- Labels: ${labels.map((label) => `${label.name}${label.description ? ` (${label.description})` : ""}`).join(", ")}` : ""}`;
 
   return await summarize(
     {
@@ -115,6 +147,53 @@ ${params.commentsSummary || "No discussion"}`;
     },
     openai,
   );
+}
+
+interface IssueSummary {
+  issueId: string;
+  bodySummary?: string | null;
+  commentsSummary?: string | null;
+  overallSummary?: string | null;
+}
+
+export async function bulkUpdateIssueSummaries(
+  summaries: IssueSummary[],
+  db: DbClient,
+): Promise<void> {
+  if (summaries.length === 0) return;
+
+  const sqlChunks = {
+    bodySummary: [sql`(case`],
+    commentsSummary: [sql`(case`],
+    overallSummary: [sql`(case`],
+  };
+
+  const issueIds = summaries.map((s) => s.issueId);
+
+  for (const summary of summaries) {
+    sqlChunks.bodySummary.push(
+      sql`when id = ${summary.issueId} then ${summary.bodySummary}`,
+    );
+    sqlChunks.commentsSummary.push(
+      sql`when id = ${summary.issueId} then ${summary.commentsSummary}`,
+    );
+    sqlChunks.overallSummary.push(
+      sql`when id = ${summary.issueId} then ${summary.overallSummary}`,
+    );
+  }
+
+  for (const key of Object.keys(sqlChunks) as Array<keyof typeof sqlChunks>) {
+    sqlChunks[key].push(sql`end)`);
+  }
+
+  await db
+    .update(issueTable)
+    .set({
+      bodySummary: sql.join(sqlChunks.bodySummary, sql.raw(" ")),
+      commentsSummary: sql.join(sqlChunks.commentsSummary, sql.raw(" ")),
+      overallSummary: sql.join(sqlChunks.overallSummary, sql.raw(" ")),
+    })
+    .where(inArray(issueTable.id, issueIds));
 }
 
 // Export for testing or custom usage

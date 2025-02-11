@@ -5,7 +5,6 @@ import pMap from "p-map";
 import type { WranglerEnv } from "@/core/constants/wrangler.constant";
 import { eq, inArray } from "@/core/db";
 import { issueEmbeddings } from "@/core/db/schema/entities/issue-embedding.sql";
-import { issueTable } from "@/core/db/schema/entities/issue.sql";
 import { repos } from "@/core/db/schema/entities/repo.sql";
 import { sendEmail } from "@/core/email";
 import {
@@ -15,6 +14,7 @@ import {
   upsertIssueEmbeddings,
 } from "@/core/embedding";
 import {
+  bulkUpdateIssueSummaries,
   generateBodySummary,
   generateCommentsSummary,
   generateOverallSummary,
@@ -93,38 +93,37 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
         idx: number,
         totalBatches: number,
       ): Promise<void> => {
-        // Generate body summaries in parallel
-        const bodySummaries = await step.do(
-          `generate body summaries for selected issues (batch ${idx + 1} of ${totalBatches})`,
-          getStepDuration("medium"),
-          async () => {
-            return await Promise.all(
-              issues.map(async (issue) => ({
-                issueId: issue.id,
-                bodySummary: await generateBodySummary(issue.body, openai),
-              })),
-            );
-          },
-        );
+        // Generate both summaries in parallel
+        const [bodySummaries, commentSummaries] = await Promise.all([
+          step.do(
+            `generate body summaries for selected issues (batch ${idx + 1} of ${totalBatches})`,
+            getStepDuration("medium"),
+            async () => {
+              return await Promise.all(
+                issues.map(async (issue) => ({
+                  issueId: issue.id,
+                  bodySummary: await generateBodySummary(issue.body, openai),
+                })),
+              );
+            },
+          ),
+          step.do(
+            `generate comment summaries for selected issues (batch ${idx + 1} of ${totalBatches})`,
+            getStepDuration("medium"),
+            async () => {
+              return await Promise.all(
+                issues.map(async (issue) => ({
+                  issueId: issue.id,
+                  commentsSummary: await generateCommentsSummary(
+                    issue.comments,
+                    openai,
+                  ),
+                })),
+              );
+            },
+          ),
+        ]);
 
-        // Generate comment summaries in parallel
-        const commentSummaries = await step.do(
-          `generate comment summaries for selected issues (batch ${idx + 1} of ${totalBatches})`,
-          getStepDuration("medium"),
-          async () => {
-            return await Promise.all(
-              issues.map(async (issue) => ({
-                issueId: issue.id,
-                commentsSummary: await generateCommentsSummary(
-                  issue.comments,
-                  openai,
-                ),
-              })),
-            );
-          },
-        );
-
-        // Generate overall summaries using both
         const overallSummaries = await step.do(
           `generate overall summaries (batch ${idx + 1} of ${totalBatches})`,
           getStepDuration("medium"),
@@ -140,7 +139,11 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
                 return {
                   issueId: issue.id,
                   overallSummary: await generateOverallSummary(
-                    { bodySummary, commentsSummary },
+                    {
+                      bodySummary,
+                      commentsSummary,
+                      issue,
+                    },
                     openai,
                   ),
                 };
@@ -151,24 +154,21 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
 
         // Update issues with summaries
         await step.do(
-          `update issues with summaries in db (batch ${idx + 1} of ${totalBatches})`,
+          `bulk update issues with summaries in db (batch ${idx + 1} of ${totalBatches})`,
           getStepDuration("medium"),
           async () => {
-            for (const issue of issues) {
-              await dbSession
-                .update(issueTable)
-                .set({
-                  bodySummary: bodySummaries.find((s) => s.issueId === issue.id)
-                    ?.bodySummary,
-                  commentsSummary: commentSummaries.find(
-                    (s) => s.issueId === issue.id,
-                  )?.commentsSummary,
-                  overallSummary: overallSummaries.find(
-                    (s) => s.issueId === issue.id,
-                  )?.overallSummary,
-                })
-                .where(eq(issueTable.id, issue.id));
-            }
+            const summaries = issues.map((issue) => ({
+              issueId: issue.id,
+              bodySummary: bodySummaries.find((s) => s.issueId === issue.id)
+                ?.bodySummary,
+              commentsSummary: commentSummaries.find(
+                (s) => s.issueId === issue.id,
+              )?.commentsSummary,
+              overallSummary: overallSummaries.find(
+                (s) => s.issueId === issue.id,
+              )?.overallSummary,
+            }));
+            await bulkUpdateIssueSummaries(summaries, dbSession);
           },
         );
 

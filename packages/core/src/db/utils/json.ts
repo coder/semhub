@@ -100,7 +100,6 @@ export function jsonAggBuildObjectManyToMany<
     )`;
 }
 
-// Simpler version for one-to-many relationships where we just need to aggregate related rows
 export function jsonAggBuildObjectOneToMany<
   T extends SelectedFields,
   Column extends AnyColumn,
