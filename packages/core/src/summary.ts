@@ -58,7 +58,7 @@ const PROMPTS = {
   overall: {
     system:
       "You are a helpful assistant that generates concise overall summaries of GitHub issues so that a human can understand the issue at a glance. You will be provided with information of the issue, a summary of of the issue body and a summary of the comments, and additional context. Don't use 'this issue' or 'this discussion', just provide the summary directly.",
-    user: "Please provide a direct summary of this issue based on the provided information in no more than 3 short paragraphs.",
+    user: "Please provide a direct summary of this issue based on the provided information in a single paragraph no more than 5 sentences.",
   },
 } as const;
 
