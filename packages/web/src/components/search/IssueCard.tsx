@@ -42,23 +42,6 @@ export function IssueCard({ issue }: { issue: Issue }) {
             </div>
             <div className="ml-6 mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <RepoTag issue={issue} />
-              {issue.overallSummary && (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="size-6">
-                      <ScanEyeIcon className="size-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start">
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium">Summary</div>
-                      <div className="whitespace-pre-wrap text-sm text-muted-foreground">
-                        {issue.overallSummary}
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              )}
               <IssueBasicInfo issue={issue} />
               <IssueInteractions issue={issue} />
             </div>
@@ -237,6 +220,27 @@ function IssueTitleWithLabels({ issue }: { issue: Issue }) {
         rankingScore={issue.rankingScore}
         similarityScore={issue.similarityScore}
       />
+      {issue.overallSummary && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mr-1 size-6 translate-y-[2px]"
+            >
+              <ScanEyeIcon className="size-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start">
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Summary</div>
+              <div className="whitespace-pre-wrap text-sm text-muted-foreground">
+                {issue.overallSummary}
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
       <a
         href={issue.issueUrl}
         target="_blank"
