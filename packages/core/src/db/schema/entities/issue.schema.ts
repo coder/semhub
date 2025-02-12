@@ -22,6 +22,7 @@ export type CreateIssue = z.infer<typeof createIssueSchema>;
 
 const selectIssueSchema = createSelectSchema(issueTable).extend({
   author: authorSchema,
+  aggregateReactions: aggregateReactionsSchema.nullable(),
 });
 
 export type SelectIssue = z.infer<typeof selectIssueSchema>;
@@ -37,16 +38,21 @@ const _selectIssueForEmbeddingSchema = selectIssueSchema
     issueStateReason: true,
     issueCreatedAt: true,
     issueClosedAt: true,
+    aggregateReactions: true,
   })
   .extend({
-    labels: z
-      .array(
-        z.object({
-          name: z.string(),
-          description: z.string().nullable(),
-        }),
-      )
-      .optional(),
+    labels: z.array(
+      z.object({
+        name: z.string(),
+        description: z.string().nullable(),
+      }),
+    ),
+    comments: z.array(
+      z.object({
+        body: z.string(),
+        author: authorSchema,
+      }),
+    ),
   });
 
 export type SelectIssueForEmbedding = z.infer<

@@ -117,7 +117,34 @@ export async function generateOverallSummary(
     issueCreatedAt: createdAt,
     issueClosedAt: closedAt,
     labels,
+    aggregateReactions,
   } = params.issue;
+
+  // Transform aggregate reactions into a human-readable string
+  // Format: "thumbs up (5), heart (3)" for reactions with count > 0
+  const reactionsSummary = aggregateReactions
+    ? Object.entries(aggregateReactions)
+        // Only include reactions that have been used
+        .filter(([, count]) => count > 0)
+        // Format each reaction as "reaction_name (count)"
+        .map(
+          ([reaction, count]) =>
+            `${reaction.toLowerCase().replace("_", " ")} (${count})`,
+        )
+        // Join all reactions with commas
+        .join(", ")
+    : "";
+
+  // Transform labels into a human-readable string
+  // Format: "bug (needs triage), feature (high priority)"
+  const labelsSummary = labels?.length
+    ? labels
+        .map(
+          (label) =>
+            `${label.name}${label.description ? ` (${label.description})` : ""}`,
+        )
+        .join(", ")
+    : "";
 
   const text = dedent`
     Issue: ${title}
@@ -128,9 +155,10 @@ export async function generateOverallSummary(
     ${params.commentsSummary ? `Comments Summary: ${params.commentsSummary}\n` : ""}
     Additional Context:
     - State: ${state}${stateReason ? `, Reason: ${stateReason}` : ""}
-    - Author: ${author?.name || "Anonymous"}
+    - Author: ${author?.name || "Deleted User"}
     - Created: ${createdAt.toISOString()}${closedAt ? `\n- Closed: ${closedAt.toISOString()}` : ""}
-    ${labels?.length ? `- Labels: ${labels.map((label) => `${label.name}${label.description ? ` (${label.description})` : ""}`).join(", ")}` : ""}`;
+    ${labelsSummary ? `- Labels: ${labelsSummary}` : ""}
+    ${reactionsSummary ? `- Reactions: ${reactionsSummary}` : ""}`;
 
   return await summarize(
     {

@@ -45,7 +45,7 @@ export async function createEmbeddings({
   openai,
   concurrencyLimit,
 }: {
-  issues: Awaited<ReturnType<typeof selectIssuesForEmbeddingInit>>;
+  issues: SelectIssueForEmbedding[];
   summaries: IssueSummary[];
   openai: OpenAIClient;
   concurrencyLimit?: number;
@@ -85,7 +85,7 @@ export async function createEmbeddings({
 export async function selectIssuesForEmbeddingInit(
   issueIds: string[],
   db: DbClient,
-) {
+): Promise<SelectIssueForEmbedding[]> {
   return await db
     .select({
       id: issueTable.id,
@@ -97,6 +97,7 @@ export async function selectIssuesForEmbeddingInit(
       issueStateReason: issueTable.issueStateReason,
       issueCreatedAt: issueTable.issueCreatedAt,
       issueClosedAt: issueTable.issueClosedAt,
+      aggregateReactions: issueTable.aggregateReactions,
       labels: jsonAggBuildObjectManyToMany(
         {
           name: labelTable.name,
@@ -143,7 +144,7 @@ export async function selectIssuesForEmbeddingCron({
   db: DbClient;
   numIssues: number;
   intervalInHours: number;
-}) {
+}): Promise<SelectIssueForEmbedding[]> {
   return await db.transaction(async (tx) => {
     const lockedIssues = tx.$with("locked_issues").as(
       tx
@@ -158,6 +159,7 @@ export async function selectIssuesForEmbeddingCron({
           issueCreatedAt: issueTable.issueCreatedAt,
           issueClosedAt: issueTable.issueClosedAt,
           issueUpdatedAt: issueTable.issueUpdatedAt, // needed for the WHERE clause later
+          aggregateReactions: issueTable.aggregateReactions,
         })
         .from(issueTable)
         .innerJoin(repos, eq(repos.id, issueTable.repoId))
@@ -187,6 +189,7 @@ export async function selectIssuesForEmbeddingCron({
         issueStateReason: lockedIssues.issueStateReason,
         issueCreatedAt: lockedIssues.issueCreatedAt,
         issueClosedAt: lockedIssues.issueClosedAt,
+        aggregateReactions: lockedIssues.aggregateReactions,
         labels: jsonAggBuildObjectManyToMany(
           {
             name: labelTable.name,
