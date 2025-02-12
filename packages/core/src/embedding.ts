@@ -1,8 +1,6 @@
 import dedent from "dedent";
 import pMap from "p-map";
 
-import { truncateCodeBlocks, truncateToByteSize } from "@/util/truncate";
-
 import type { DbClient } from "./db";
 import { and, asc, eq, gt, inArray, isNull, lt, ne, or, sql } from "./db";
 import { comments as commentTable } from "./db/schema/entities/comment.sql";
@@ -52,42 +50,34 @@ export async function createEmbeddings({
   openai: OpenAIClient;
   concurrencyLimit?: number;
 }) {
-  const TRUNCATION_MAX_ATTEMPTS = 8;
   const processIssue = async (issue: (typeof issues)[number]) => {
-    let attempt = 0;
-    const labels = issue.labels;
+    const { labels, number } = issue;
     const summary = summaries.find((s) => s.issueId === issue.id);
-    while (attempt <= TRUNCATION_MAX_ATTEMPTS) {
-      try {
-        const embedding = await createEmbedding(
-          {
-            input: formatIssueForEmbedding({
-              issue,
-              labels,
-              attempt,
-              summary,
-            }),
-          },
-          openai,
-        );
-        return {
-          issueId: issue.id,
-          embedding,
-        };
-      } catch (error) {
-        if (isReducePromptError(error) && attempt < TRUNCATION_MAX_ATTEMPTS) {
-          console.warn(
-            `Retrying issue #${issue.number} with truncation attempt ${attempt + 1}`,
-          );
-          attempt++;
-        } else {
-          throw error;
-        }
+    if (!summary) {
+      throw new Error(`No summary found for issue #${number}`);
+    }
+    try {
+      const embedding = await createEmbedding(
+        {
+          input: formatIssueForEmbedding({
+            issue,
+            labels,
+            summary,
+          }),
+        },
+        openai,
+      );
+      return {
+        issueId: issue.id,
+        embedding,
+      };
+    } catch (error) {
+      if (isReducePromptError(error)) {
+        // TODO: do something?
+        throw error;
       }
     }
-    throw new Error(
-      `Failed to create embedding for issue #${issue.number} after ${TRUNCATION_MAX_ATTEMPTS} attempts`,
-    );
+    throw new Error(`Failed to create embedding for issue #${number}`);
   };
   return await pMap(issues, processIssue, { concurrency: concurrencyLimit });
 }
@@ -312,17 +302,15 @@ export async function unstuckIssueEmbeddings(db: DbClient) {
 }
 
 interface FormatIssueParams {
-  attempt: number;
   issue: SelectIssueForEmbedding;
   labels: SelectLabelForEmbedding[];
-  summary?: IssueSummary;
+  summary: IssueSummary;
 }
 
 /* Alternate way to format issue for embedding */
 /* Instead of truncating the body repeatedly, we could pass the body into a LLM and obtain a summary. Then, we pass the summary into the embedding API instead. */
 function formatIssueForEmbedding({
   issue,
-  attempt = 0,
   labels,
   summary,
 }: FormatIssueParams): string {
@@ -330,24 +318,17 @@ function formatIssueForEmbedding({
     number,
     author,
     title,
-    body,
     issueState,
     issueStateReason,
     issueCreatedAt,
     issueClosedAt,
   } = issue;
-  // If attempt > 0 and we have a summary, use it instead of truncating
-  const truncatedBody =
-    attempt > 0 && summary?.bodySummary
-      ? summary.bodySummary
-      : truncateText(body, attempt);
-
-  const commentsSummary = summary?.commentsSummary;
+  const { commentsSummary, bodySummary } = summary;
 
   return (
     dedent`
     Issue #${number}: ${title}
-    Body: ${truncatedBody}
+    Body: ${bodySummary}
     ${labels ? `Labels: ${labels.map((label) => `${label.name}${label.description ? ` (${label.description})` : ""}`).join(", ")}` : ""}
     ` +
     // the following are "metadata" fields, but including them because conceivably
@@ -363,24 +344,24 @@ function formatIssueForEmbedding({
   );
 }
 
-function truncateText(text: string, attempt: number): string {
-  // currently, it seem like issues that have huge blocks of code and logs are being tokenized very differently from this heuristic
-  // we first truncate per the body schema
-  const MAX_BODY_SIZE_KB = 8;
-  const CODE_BLOCK_PREVIEW_LINES = 10;
-  text = truncateToByteSize(
-    truncateCodeBlocks(text, CODE_BLOCK_PREVIEW_LINES),
-    MAX_BODY_SIZE_KB * 1024,
-  );
-  // DISCUSSION:
-  // - could use a tokenizer to more accurately measure token length, e.g. https://github.com/dqbd/tiktoken
-  // - alternatively, the error returned by OpenAI also tells you how many token it is and hence how much it needs to be reduced
-  const TRUNCATION_FACTOR = 0.75; // after 8x retry, will be 10% of original length
-  const TRUNCATION_MAX_TOKENS = 6000; // somewhat arbitrary
-  // Rough approximation: 1 token ≈ 4 characters
-  const maxChars = Math.floor(
-    TRUNCATION_MAX_TOKENS * 4 * Math.pow(TRUNCATION_FACTOR, attempt),
-  );
-  if (text.length <= maxChars) return text;
-  return text.slice(0, maxChars);
-}
+// function truncateText(text: string, attempt: number): string {
+//   // currently, it seem like issues that have huge blocks of code and logs are being tokenized very differently from this heuristic
+//   // we first truncate per the body schema
+//   const MAX_BODY_SIZE_KB = 8;
+//   const CODE_BLOCK_PREVIEW_LINES = 10;
+//   text = truncateToByteSize(
+//     truncateCodeBlocks(text, CODE_BLOCK_PREVIEW_LINES),
+//     MAX_BODY_SIZE_KB * 1024,
+//   );
+//   // DISCUSSION:
+//   // - could use a tokenizer to more accurately measure token length, e.g. https://github.com/dqbd/tiktoken
+//   // - alternatively, the error returned by OpenAI also tells you how many token it is and hence how much it needs to be reduced
+//   const TRUNCATION_FACTOR = 0.75; // after 8x retry, will be 10% of original length
+//   const TRUNCATION_MAX_TOKENS = 6000; // somewhat arbitrary
+//   // Rough approximation: 1 token ≈ 4 characters
+//   const maxChars = Math.floor(
+//     TRUNCATION_MAX_TOKENS * 4 * Math.pow(TRUNCATION_FACTOR, attempt),
+//   );
+//   if (text.length <= maxChars) return text;
+//   return text.slice(0, maxChars);
+// }

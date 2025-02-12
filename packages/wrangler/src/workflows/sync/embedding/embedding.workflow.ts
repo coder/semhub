@@ -118,15 +118,17 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
                 issues.map(async (issue) => ({
                   issueId: issue.id,
                   commentsSummary:
-                    issue.comments.reduce((acc, c) => acc + c.body, "").length >
-                    1000
-                      ? await generateCommentsSummary(issue.comments, openai)
-                      : issue.comments
-                          .map(
-                            (c) =>
-                              `${c.author?.name ?? "Deleted User"}: ${c.body}`,
-                          )
-                          .join("\n"),
+                    issue.comments.length === 0
+                      ? null
+                      : issue.comments.reduce((acc, c) => acc + c.body, "")
+                            .length > 1000
+                        ? await generateCommentsSummary(issue.comments, openai)
+                        : issue.comments
+                            .map(
+                              (c) =>
+                                `${c.author?.name ?? "Deleted User"}: ${c.body}`,
+                            )
+                            .join("\n"),
                 })),
               );
             },
@@ -139,12 +141,19 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
           async () => {
             return await Promise.all(
               issues.map(async (issue) => {
-                const bodySummary =
-                  bodySummaries.find((s) => s.issueId === issue.id)
-                    ?.bodySummary || "";
+                const bodySummary = bodySummaries.find(
+                  (s) => s.issueId === issue.id,
+                )?.bodySummary;
                 const commentsSummary = commentSummaries.find(
                   (s) => s.issueId === issue.id,
                 )?.commentsSummary;
+                // this should never happen
+                if (
+                  bodySummary === undefined ||
+                  commentsSummary === undefined
+                ) {
+                  throw new Error(`No summary found for issue #${issue.id}`);
+                }
                 return {
                   issueId: issue.id,
                   overallSummary: await generateOverallSummary(
@@ -166,17 +175,30 @@ export class EmbeddingWorkflow extends WorkflowEntrypoint<
           `bulk update issues with summaries in db (batch ${idx + 1} of ${totalBatches})`,
           getStepDuration("medium"),
           async () => {
-            const summaries = issues.map((issue) => ({
-              issueId: issue.id,
-              bodySummary: bodySummaries.find((s) => s.issueId === issue.id)
-                ?.bodySummary,
-              commentsSummary: commentSummaries.find(
+            const summaries = issues.map((issue) => {
+              const bodySummary = bodySummaries.find(
                 (s) => s.issueId === issue.id,
-              )?.commentsSummary,
-              overallSummary: overallSummaries.find(
+              )?.bodySummary;
+              const commentsSummary = commentSummaries.find(
                 (s) => s.issueId === issue.id,
-              )?.overallSummary,
-            }));
+              )?.commentsSummary;
+              const overallSummary = overallSummaries.find(
+                (s) => s.issueId === issue.id,
+              )?.overallSummary;
+              if (
+                bodySummary === undefined ||
+                commentsSummary === undefined ||
+                overallSummary === undefined
+              ) {
+                throw new Error(`No summary found for issue #${issue.id}`);
+              }
+              return {
+                issueId: issue.id,
+                bodySummary,
+                commentsSummary,
+                overallSummary,
+              };
+            });
             await bulkUpdateIssueSummaries(summaries, dbSession);
             return summaries;
           },

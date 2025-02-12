@@ -104,7 +104,7 @@ export async function generateCommentsSummary(
 export async function generateOverallSummary(
   params: {
     bodySummary: string;
-    commentsSummary?: string;
+    commentsSummary: string | null;
     issue: SelectIssueForEmbedding;
   },
   openai: OpenAIClient,
@@ -125,9 +125,7 @@ export async function generateOverallSummary(
     Description Summary:
     ${params.bodySummary}
 
-    Comments Summary:
-    ${params.commentsSummary || "No comments"}
-
+    ${params.commentsSummary ? `Comments Summary: ${params.commentsSummary}\n` : ""}
     Additional Context:
     - State: ${state}${stateReason ? `, Reason: ${stateReason}` : ""}
     - Author: ${author?.name || "Anonymous"}
@@ -146,9 +144,9 @@ export async function generateOverallSummary(
 
 export interface IssueSummary {
   issueId: string;
-  bodySummary?: string | null;
-  commentsSummary?: string | null;
-  overallSummary?: string | null;
+  bodySummary: string;
+  commentsSummary: string | null;
+  overallSummary: string;
 }
 
 export async function bulkUpdateIssueSummaries(
@@ -170,7 +168,7 @@ export async function bulkUpdateIssueSummaries(
       sql`when id = ${summary.issueId} then ${summary.bodySummary}`,
     );
     sqlChunks.commentsSummary.push(
-      sql`when id = ${summary.issueId} then ${summary.commentsSummary}`,
+      sql`when id = ${summary.issueId} then ${summary.commentsSummary === null ? sql`null` : summary.commentsSummary}`,
     );
     sqlChunks.overallSummary.push(
       sql`when id = ${summary.issueId} then ${summary.overallSummary}`,
