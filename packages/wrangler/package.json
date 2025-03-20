@@ -1,0 +1,31 @@
+{
+  "name": "@semhub/wrangler",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc",
+    "build": "tsc --build",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "dev": "bun scripts/worker.ts dev",
+    "deploy": "bun scripts/deploy.ts",
+    "deploy:all": "bun scripts/deploy.ts all",
+    "deploy:all:uat": "bun scripts/deploy.ts all --uat",
+    "deploy:all:uat:load-env": "bun scripts/deploy.ts all --uat --load-env",
+    "deploy:all:prod": "bun scripts/deploy.ts all --prod",
+    "deploy:all:prod:load-env": "bun scripts/deploy.ts all --prod --load-env",
+    "delete": "bun scripts/worker.ts delete",
+    "delete:uat": "bun scripts/worker.ts delete --uat",
+    "delete:prod": "bun scripts/worker.ts delete --prod"
+  },
+  "dependencies": {
+    "@semhub/core": "workspace:*",
+    "p-map": "^7.0.2",
+    "zod": "*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241022.0",
+    "wrangler": "^3.91.0",
+    "vitest": "^2.1.6"
+  }
+}

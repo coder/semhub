@@ -1,0 +1,1 @@
+ALTER TYPE "init_status" ADD VALUE 'no_issues';

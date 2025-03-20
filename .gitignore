@@ -1,0 +1,33 @@
+# dependencies
+node_modules
+
+# sst
+.sst
+
+# secrets for loading onto sst
+.secrets.*
+!.secrets.example
+
+# tmp files
+.#*
+
+# env
+.env*.local
+.env
+
+# opennext
+.open-next
+
+# misc
+.DS_Store
+
+# tsbuildinfo
+*.tsbuildinfo
+
+# built JS files
+**/dist/
+**/build/
+
+# wrangler
+.wrangler
+.dev.vars

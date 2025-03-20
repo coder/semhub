@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS "issue_embeddings_sync_status_idx" ON "issue_embeddings" USING btree ("issue_embedding_sync_status");

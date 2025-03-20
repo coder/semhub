@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS "author_name_idx" ON "issues" USING btree (lower(("author"->>'name'::text)));

@@ -1,0 +1,21 @@
+# Local
+.DS_Store
+*.local
+*.log*
+
+# Dist
+dist/
+build/
+.vinxi
+.output
+.vercel
+.netlify
+.wrangler
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# SST
+sst-env.d.ts

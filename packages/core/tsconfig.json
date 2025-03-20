@@ -1,0 +1,25 @@
+{
+  "extends": "@tsconfig/node20/tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "emitDeclarationOnly": true,
+    "outDir": "./dist",
+    "plugins": [
+      {
+        "name": "gql.tada/ts-plugin",
+        "schema": "src/github/graphql/schema.docs.graphql",
+        "tadaOutputLocation": "src/github/graphql/schema.docs.graphql.d.ts"
+      }
+    ],
+    "noUncheckedIndexedAccess": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/infra/*": ["../../infra/*"]
+    },
+    "rootDir": "../../"
+  },
+  "include": ["./src/**/*", "../../infra/types.ts"],
+  "exclude": ["dist", "node_modules"]
+}

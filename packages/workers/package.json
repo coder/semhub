@@ -1,0 +1,19 @@
+{
+  "name": "@semhub/workers",
+  "version": "0.0.0",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --build"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.4.1",
+    "@openauthjs/openauth": "*",
+    "@semhub/core": "workspace:*",
+    "@semhub/wrangler": "workspace:*",
+    "@sentry/cloudflare": "^8.54.0",
+    "hono": "^4.6.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240923.0"
+  }
+}

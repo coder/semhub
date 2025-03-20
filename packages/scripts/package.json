@@ -1,0 +1,14 @@
+{
+  "name": "@semhub/scripts",
+  "version": "0.0.0",
+  "type": "module",
+  "dependencies": {
+    "@semhub/core": "workspace:*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "shell": "sst shell -- bun",
+    "shell:uat": "sst shell --stage uat -- bun",
+    "shell:prod": "sst shell --stage prod -- bun"
+  }
+}

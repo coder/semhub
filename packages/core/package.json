@@ -1,0 +1,45 @@
+{
+  "name": "@semhub/core",
+  "version": "0.0.0",
+  "type": "module",
+  "types": "tsd.d.ts",
+  "scripts": {
+    "test": "sst shell vitest",
+    "test:watch": "sst shell -- vitest watch",
+    "typecheck": "tsc",
+    "db": "sst shell -- drizzle-kit",
+    "db:generate": "sst shell -- drizzle-kit generate",
+    "db:migrate": "sst shell -- drizzle-kit migrate",
+    "db:migrate:prod": "sst shell --stage prod -- drizzle-kit migrate",
+    "db:migrate:uat": "sst shell --stage uat -- drizzle-kit migrate",
+    "db:push": "sst shell -- drizzle-kit push"
+  },
+  "exports": {
+    "./*": [
+      "./src/*/index.ts",
+      "./src/*.ts"
+    ]
+  },
+  "dependencies": {
+    "@openauthjs/openauth": "^0.3.1",
+    "dedent": "^1.5.3",
+    "drizzle-orm": "^0.40.0",
+    "drizzle-zod": "^0.5.1",
+    "gql.tada": "^1.8.10",
+    "graphql": "^16.9.0",
+    "octokit": "^4.0.2",
+    "openai": "^4.69.0",
+    "postgres": "^3.4.4",
+    "resend": "^4.0.1",
+    "tldts": "^6.1.68",
+    "ulidx": "^2.4.1",
+    "zod": "*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240923.0",
+    "@tsconfig/node20": "20.1.4",
+    "drizzle-kit": "^0.24.2",
+    "tsd": "^0.31.2",
+    "vitest": "^2.1.6"
+  }
+}
